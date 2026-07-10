@@ -1,0 +1,10 @@
+[Unit]
+Description=WireProxy WARP (userspace, stable)
+After=network-online.target
+Wants=network-online.target
+[Service]
+ExecStart=/root/v2pn-warp/wireproxy -c /root/v2pn-warp/warp-wireproxy.conf
+Restart=always
+RestartSec=5
+[Install]
+WantedBy=multi-user.target

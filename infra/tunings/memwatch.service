@@ -1,0 +1,10 @@
+[Unit]
+Description=Memory pressure watchdog (prevents hard crash)
+After=network.target
+[Service]
+ExecStart=/usr/local/bin/memwatch.sh
+Restart=always
+OOMScoreAdjust=-1000
+Nice=-5
+[Install]
+WantedBy=multi-user.target

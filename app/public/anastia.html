@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>VPN Sub</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{
+  --bg:#07030f;--acc:#7C5CFC;--acc2:#5eead4;
+  --text:#f0f0ff;--muted:rgba(240,240,255,.48);
+  --glass:rgba(255,255,255,.04);--border:rgba(124,92,252,.2);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+#cnv{position:fixed;inset:0;z-index:0;opacity:.4}
+.wrap{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:0 16px 100px}
+
+/* ─── LOADING ─── */
+#loading{position:fixed;inset:0;background:var(--bg);z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+.spin{width:36px;height:36px;border:3px solid rgba(124,92,252,.2);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading p{font-size:.82rem;color:var(--muted)}
+
+/* ─── HERO ─── */
+.hero{text-align:center;padding:36px 0 16px}
+.logo-a{
+  display:inline-block;font-size:5.2rem;line-height:1;
+  background:linear-gradient(135deg,var(--acc) 0%,#a78bfa 45%,var(--acc2) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 28px rgba(124,92,252,.65));
+  animation:floatA 3.5s ease-in-out infinite;
+  font-family:'Georgia','Palatino Linotype',serif;
+}
+@keyframes floatA{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-9px) scale(1.05)}}
+.hero-brand{font-size:1.85rem;font-weight:900;background:linear-gradient(135deg,var(--acc),var(--acc2) 55%,var(--acc));background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:gradShift 3s linear infinite;letter-spacing:1px;margin-top:10px}
+@keyframes gradShift{0%{background-position:0%}100%{background-position:200%}}
+.hero-tag{color:var(--muted);font-size:.87rem;margin-top:8px;line-height:1.65}
+
+/* ─── CLIENT MODE HEADER ─── */
+.client-header{text-align:center;padding:32px 0 12px}
+.client-logo-text{
+  display:inline-block;font-size:4rem;line-height:1;
+  background:linear-gradient(135deg,var(--acc) 0%,#a78bfa 45%,var(--acc2) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:floatA 3.5s ease-in-out infinite;
+  font-family:'Georgia','Palatino Linotype',serif;
+}
+.client-brand-name{font-size:1.4rem;font-weight:800;background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-top:8px}
+.client-welcome{font-size:.85rem;color:var(--muted);margin-top:5px;line-height:1.6}
+
+/* ─── SECTION TITLE ─── */
+.stitle{font-size:.7rem;font-weight:700;color:var(--acc);letter-spacing:2px;text-transform:uppercase;margin:22px 0 10px;display:flex;align-items:center;gap:8px}
+.stitle svg{width:14px;height:14px;stroke:var(--acc);flex-shrink:0}
+.stitle::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
+
+/* ─── INFO CARDS ─── */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.info-card{background:var(--glass);border:1px solid var(--border);border-radius:12px;padding:11px;backdrop-filter:blur(12px);text-align:center}
+.info-val{font-size:1.05rem;font-weight:800;color:var(--acc)}
+.info-val.ok{color:var(--acc2)}
+.info-val.warn{color:#fbbf24}
+.info-val.err{color:#f87171}
+.info-lbl{font-size:.67rem;color:var(--muted);margin-top:3px}
+
+/* ─── SUB CARD ─── */
+.sub-card{background:var(--glass);border:1px solid rgba(94,234,212,.22);border-radius:15px;padding:15px;margin-top:8px;position:relative;overflow:hidden;backdrop-filter:blur(16px)}
+.sub-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--acc2),var(--acc),var(--acc2),transparent);background-size:300%;animation:scan 2.5s linear infinite}
+@keyframes scan{0%{background-position:200%}100%{background-position:-200%}}
+.sub-lbl{font-size:.7rem;color:var(--muted);margin-bottom:9px;display:flex;align-items:center;gap:6px}
+.sub-lbl svg{width:12px;height:12px;stroke:var(--acc2);flex-shrink:0}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--acc2);animation:pulse 1.5s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+.sub-url{font-family:'Courier New',monospace;font-size:.72rem;color:var(--acc2);word-break:break-all;direction:ltr;text-align:left;line-height:1.7;background:rgba(0,0,0,.25);border-radius:8px;padding:8px 10px}
+.sub-actions{display:flex;gap:8px;margin-top:11px}
+.sub-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:9px;border-radius:9px;border:none;font-family:inherit;font-size:.77rem;font-weight:600;cursor:pointer;transition:all .2s}
+.sub-btn svg{width:13px;height:13px;stroke:currentColor;flex-shrink:0}
+.sub-btn.copy{background:rgba(94,234,212,.1);border:1px solid rgba(94,234,212,.25);color:var(--acc2)}
+.sub-btn.qr{background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.25);color:var(--acc)}
+.sub-btn:active{transform:scale(.95)}
+
+/* ─── CONFIGS ─── */
+.config-list{display:flex;flex-direction:column;gap:7px}
+.config-item{background:rgba(0,0,0,.3);border:1px solid rgba(124,92,252,.15);border-radius:10px;padding:11px 12px;position:relative;overflow:hidden}
+.config-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.proto-tag{background:rgba(124,92,252,.2);color:var(--acc);border-radius:4px;padding:2px 8px;font-family:monospace;font-size:.65rem;font-weight:700;letter-spacing:1px}
+.config-copy{background:none;border:1px solid rgba(124,92,252,.2);color:var(--acc);border-radius:5px;padding:2px 8px;font-size:.6rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px}
+.config-copy svg{width:10px;height:10px;stroke:currentColor}
+.config-hash{font-family:'Courier New',monospace;font-size:.65rem;line-height:1.6;direction:ltr;text-align:left;word-break:break-all;color:rgba(240,240,255,.7);overflow:hidden;max-height:3.5em;text-overflow:ellipsis}
+.h-s{color:#a78bfa}.h-u{color:var(--acc)}.h-h{color:var(--acc2)}.h-p{color:#fbbf24}.h-k{color:#94a3b8}.h-v{color:#f0abfc}.h-n{color:#86efac}
+
+/* ─── APPS ─── */
+.badge-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:2px}
+.badge{padding:4px 11px;border-radius:20px;font-size:.7rem;font-weight:700}
+.ba{background:rgba(94,234,212,.08);border:1px solid rgba(94,234,212,.2);color:var(--acc2)}
+.bp{background:rgba(124,92,252,.12);border:1px solid rgba(124,92,252,.3);color:var(--acc)}
+
+/* ─── PHONE MOCKUP (promo mode) ─── */
+.phone-wrap{display:flex;justify-content:center;margin-top:8px}
+.phone{
+  width:200px;height:360px;border-radius:28px;
+  background:#0d0d1e;border:2.5px solid rgba(124,92,252,.45);
+  box-shadow:0 0 40px rgba(124,92,252,.25),inset 0 0 20px rgba(0,0,0,.4);
+  position:relative;overflow:hidden;flex-shrink:0;
+}
+.phone::before{content:'';position:absolute;top:10px;left:50%;transform:translateX(-50%);width:48px;height:5px;background:rgba(255,255,255,.1);border-radius:3px;z-index:10}
+.pscreen{position:absolute;inset:0;padding:14px 10px 8px;opacity:0;transition:opacity .5s}
+.pscreen.active{opacity:1}
+.ps-topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.ps-logo{font-size:.7rem;font-weight:800;background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.ps-bal{font-size:.55rem;color:var(--acc2);background:rgba(94,234,212,.1);border-radius:8px;padding:2px 6px}
+.ps-card{background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.2);border-radius:9px;padding:8px;margin-bottom:5px}
+.ps-stat-row{display:flex;gap:4px;margin-bottom:5px}
+.ps-stat{flex:1;background:rgba(255,255,255,.04);border-radius:6px;padding:5px 4px;text-align:center}
+.ps-stat-v{font-size:.6rem;font-weight:800;color:var(--acc)}
+.ps-stat-l{font-size:.45rem;color:var(--muted);margin-top:1px}
+.ps-bar-bg{height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;margin-top:4px}
+.ps-bar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--acc),var(--acc2));width:55%}
+.ps-nav{display:flex;gap:3px;margin-bottom:8px;background:rgba(255,255,255,.03);border-radius:7px;padding:3px}
+.ps-nav-item{flex:1;text-align:center;font-size:.45rem;padding:3px;border-radius:5px;color:var(--muted)}
+.ps-nav-item.sel{background:rgba(124,92,252,.2);color:var(--acc)}
+.ps-label{font-size:.45rem;color:var(--muted);margin-bottom:2px}
+.ps-input{background:rgba(255,255,255,.05);border:1px solid rgba(124,92,252,.25);border-radius:5px;padding:4px 6px;font-size:.55rem;color:var(--text);width:100%;margin-bottom:5px;display:flex;align-items:center;gap:2px}
+.ps-input .typed{color:var(--acc2)}
+.ps-input .caret{display:inline-block;width:1px;height:9px;background:var(--acc2);animation:blink .7s step-end infinite;margin-left:1px;vertical-align:middle}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.ps-sublink-wrap{background:rgba(0,0,0,.25);border:1px solid rgba(94,234,212,.2);border-radius:5px;padding:5px;margin-top:3px}
+.ps-sublink-label{font-size:.42rem;color:var(--muted);margin-bottom:2px}
+.ps-sublink-val{font-size:.44rem;color:var(--acc2);font-family:monospace;direction:ltr;text-align:left;word-break:break-all;line-height:1.4}
+.ps-success{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%}
+.ps-check{width:36px;height:36px;border-radius:50%;background:rgba(94,234,212,.15);border:2px solid var(--acc2);display:flex;align-items:center;justify-content:center;margin-bottom:8px;animation:popIn .4s ease both}
+@keyframes popIn{from{transform:scale(0)}to{transform:scale(1)}}
+.ps-check svg{width:18px;height:18px;stroke:var(--acc2)}
+.ps-success-text{font-size:.6rem;color:var(--acc2);font-weight:700}
+.ps-success-sub{font-size:.5rem;color:var(--muted);margin-top:3px;text-align:center}
+
+/* ─── FEATURES ─── */
+.feats{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.feat{background:var(--glass);border:1px solid var(--border);border-radius:13px;padding:13px 11px;backdrop-filter:blur(16px)}
+.feat-ico{width:30px;height:30px;border-radius:8px;background:rgba(124,92,252,.12);border:1px solid rgba(124,92,252,.2);display:flex;align-items:center;justify-content:center;margin-bottom:8px}
+.feat-ico svg{width:16px;height:16px;stroke:var(--acc);stroke-width:1.8}
+.feat-name{font-size:.78rem;font-weight:700;margin-bottom:2px}
+.feat-desc{font-size:.68rem;color:var(--muted);line-height:1.4}
+
+/* ─── CTA ─── */
+.cta-wrap{margin-top:24px;text-align:center}
+.cta-btn{width:100%;padding:16px;border-radius:16px;border:none;font-family:inherit;font-size:1rem;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--acc),#9d7bfd 50%,#38bdf8);background-size:200%;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;animation:pulseCta 2.5s ease-in-out infinite}
+.cta-btn svg{width:20px;height:20px;fill:currentColor;flex-shrink:0}
+@keyframes pulseCta{0%,100%{box-shadow:0 8px 30px rgba(124,92,252,.35),0 0 0 0 rgba(124,92,252,.2)}50%{box-shadow:0 8px 45px rgba(124,92,252,.6),0 0 0 10px rgba(124,92,252,0)}}
+.cta-btn:active{transform:scale(.97)}
+.cta-note{font-size:.74rem;color:var(--muted);margin-top:10px;display:flex;align-items:center;justify-content:center;gap:5px}
+.cta-note svg{width:13px;height:13px;stroke:var(--acc2);flex-shrink:0}
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:22px 0 0}
+.renew-btn{width:100%;padding:14px;border-radius:14px;border:none;font-family:inherit;font-size:.9rem;font-weight:700;color:#fff;background:linear-gradient(135deg,#10b981,#06b6d4);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s}
+.renew-btn svg{width:18px;height:18px;fill:currentColor;flex-shrink:0}
+.renew-btn:active{transform:scale(.97)}
+
+/* ─── TOAST ─── */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(16px);background:rgba(45,212,191,.15);border:1px solid rgba(45,212,191,.35);color:var(--acc2);padding:10px 22px;border-radius:20px;font-size:.82rem;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;z-index:999}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<canvas id="cnv"></canvas>
+<div id="loading"><div class="spin"></div><p>در حال بارگذاری...</p></div>
+<div class="toast" id="toast"></div>
+
+<div class="wrap" id="mainWrap" style="display:none">
+
+  <!-- CLIENT MODE (hidden by default) -->
+  <div id="clientMode" style="display:none">
+    <div class="client-header">
+      <div class="client-logo-text" id="cl-logo">𝓐</div>
+      <div class="client-brand-name" id="cl-brand">VPN Panel</div>
+      <div class="client-welcome">سابلینک اختصاصی شما آماده است</div>
+    </div>
+
+    <div class="stitle">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      وضعیت اشتراک
+    </div>
+    <div class="info-grid" id="clientStats">
+      <div class="info-card"><div class="info-val ok" id="cl-traffic">--</div><div class="info-lbl">ترافیک مانده</div></div>
+      <div class="info-card"><div class="info-val ok" id="cl-expire">--</div><div class="info-lbl">روزهای مانده</div></div>
+    </div>
+
+    <div class="stitle">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      سابلینک شخصی
+    </div>
+    <div class="sub-card">
+      <div class="sub-lbl">
+        <div class="live-dot"></div>
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        لینک سابسکریپشن اختصاصی
+      </div>
+      <div class="sub-url" id="cl-suburl">در حال دریافت...</div>
+      <div class="sub-actions">
+        <button class="sub-btn copy" onclick="copyClientSub()">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          کپی لینک
+        </button>
+        <button class="sub-btn qr" onclick="showClientQR()">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="3" width="5" height="5"/><rect x="16" y="3" width="5" height="5"/><rect x="3" y="16" width="5" height="5"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
+          QR Code
+        </button>
+      </div>
+    </div>
+
+    <div class="stitle" id="cl-configs-title" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      کانفیگ‌های اتصال
+    </div>
+    <div class="config-list" id="cl-configs"></div>
+
+    <div class="stitle">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18" stroke-linecap="round" stroke-width="2.5"/></svg>
+      کلاینت‌های سازگار
+    </div>
+    <div class="badge-row">
+      <div class="badge ba">Hiddify</div>
+      <div class="badge ba">V2RayNG</div>
+      <div class="badge ba">Streisand</div>
+      <div class="badge ba">NekoBox</div>
+      <div class="badge ba">Sing-Box</div>
+      <div class="badge ba">Clash Meta</div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="cta-wrap">
+      <button class="renew-btn" id="renewBtn" onclick="openSupport()">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+        تمدید اشتراک
+      </button>
+    </div>
+  </div>
+
+  <!-- PROMO MODE (hidden by default) -->
+  <div id="promoMode" style="display:none">
+    <div class="hero">
+      <span class="logo-a">𝓐</span>
+      <div class="hero-brand" id="heroName">VPN Panel</div>
+      <div class="hero-tag">اینترنت آزاد، سریع و کاملاً شخصی<br><small style="opacity:.7">سابلینک اختصاصی قابل شخصی‌سازی برای تمام دستگاه‌ها</small></div>
+    </div>
+
+    <div class="stitle">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      طراحی پنل شخصی
+    </div>
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="pscreen" id="ps1">
+          <div class="ps-topbar"><span class="ps-logo" id="ps-brand-name">VPN Panel</span><span class="ps-bal">۱۲,۰۰۰ ت</span></div>
+          <div class="ps-card">
+            <div class="ps-stat-row">
+              <div class="ps-stat"><div class="ps-stat-v">۳</div><div class="ps-stat-l">کاربران</div></div>
+              <div class="ps-stat"><div class="ps-stat-v" style="color:var(--acc2)">۸۵٪</div><div class="ps-stat-l">آنلاین</div></div>
+              <div class="ps-stat"><div class="ps-stat-v" style="color:#fbbf24">۴۵</div><div class="ps-stat-l">GB مانده</div></div>
+            </div>
+            <div class="ps-bar-bg"><div class="ps-bar-fill"></div></div>
+          </div>
+          <div style="background:rgba(94,234,212,.06);border:1px solid rgba(94,234,212,.15);border-radius:7px;padding:6px 8px">
+            <div style="font-size:.48rem;color:var(--muted);margin-bottom:3px">سابلینک شما</div>
+            <div style="font-size:.44rem;color:var(--acc2);font-family:monospace;direction:ltr;text-align:left;word-break:break-all;line-height:1.5">__VOICE_DOMAIN__/sub/a3f8b2...</div>
+          </div>
+        </div>
+        <div class="pscreen" id="ps2">
+          <div class="ps-nav">
+            <div class="ps-nav-item">داشبورد</div><div class="ps-nav-item">کاربران</div><div class="ps-nav-item sel">برند</div>
+          </div>
+          <div class="ps-label">نام پنل شما</div>
+          <div class="ps-input"><span class="typed" id="ps-typed"></span><span class="caret"></span></div>
+          <div class="ps-label">رنگ اصلی</div>
+          <div style="display:flex;gap:4px;margin-bottom:5px">
+            <div style="width:16px;height:16px;border-radius:4px;background:#7C5CFC;border:1.5px solid rgba(255,255,255,.3)"></div>
+            <div style="width:16px;height:16px;border-radius:4px;background:#06b6d4"></div>
+            <div style="width:16px;height:16px;border-radius:4px;background:#10b981"></div>
+            <div style="width:16px;height:16px;border-radius:4px;background:#f59e0b"></div>
+          </div>
+          <div class="ps-sublink-wrap">
+            <div class="ps-sublink-label">سابلینک اختصاصی</div>
+            <div class="ps-sublink-val" id="ps-typed-sub">__VOICE_DOMAIN__/sub/...</div>
+          </div>
+        </div>
+        <div class="pscreen" id="ps3">
+          <div class="ps-success">
+            <div class="ps-check"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="ps-success-text">لینک کپی شد!</div>
+            <div class="ps-success-sub" id="ps-final-sub">__VOICE_DOMAIN__/sub/...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stitle">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      امکانات
+    </div>
+    <div class="feats">
+      <div class="feat">
+        <div class="feat-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
+        <div class="feat-name">سابلینک شخصی</div>
+        <div class="feat-desc">لینک اختصاصی فقط برای شما</div>
+      </div>
+      <div class="feat">
+        <div class="feat-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+        <div class="feat-name">سرعت بالا</div>
+        <div class="feat-desc">سرور پرسرعت اختصاصی</div>
+      </div>
+      <div class="feat">
+        <div class="feat-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <div class="feat-name">رمزنگاری XTLS</div>
+        <div class="feat-desc">امنیت کامل، غیرقابل شناسایی</div>
+      </div>
+      <div class="feat">
+        <div class="feat-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg></div>
+        <div class="feat-name">برند شخصی</div>
+        <div class="feat-desc">اسم، رنگ و لوگو دلخواه</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="cta-wrap">
+      <button class="cta-btn" onclick="openContact()">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+        همین الان VPN شخصی بگیر
+      </button>
+      <div class="cta-note">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        تنظیم فوری · پشتیبانی ۲۴/۷ · ضمانت کیفیت
+      </div>
+    </div>
+  </div>
+
+</div><!-- /mainWrap -->
+
+<script>
+const tg = window.Telegram?.WebApp;
+if(tg){tg.ready();tg.expand();tg.setHeaderColor('#07030f');tg.setBackgroundColor('#07030f');}
+
+const params = new URLSearchParams(location.search);
+const uuid = params.get('t');
+const resellerId = params.get('r');
+let brandTelegram = '';
+let clientSubUrl = '';
+
+// ─── Canvas ───
+(function(){
+  const cv=document.getElementById('cnv'),cx=cv.getContext('2d');
+  let W,H,pts;
+  function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;}
+  function mk(){return{x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.4+.6};}
+  function init(){resize();pts=Array.from({length:Math.min(Math.floor(W*H/14000),50)},mk);}
+  function draw(){
+    cx.clearRect(0,0,W,H);
+    for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){
+      const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);
+      if(d<120){cx.beginPath();cx.strokeStyle=`rgba(124,92,252,${(1-d/120)*.2})`;cx.lineWidth=.5;cx.moveTo(pts[i].x,pts[i].y);cx.lineTo(pts[j].x,pts[j].y);cx.stroke();}
+    }
+    pts.forEach(p=>{cx.beginPath();cx.arc(p.x,p.y,p.r,0,Math.PI*2);cx.fillStyle='rgba(124,92,252,.45)';cx.fill();p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>W)p.vx*=-1;if(p.y<0||p.y>H)p.vy*=-1;});
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',resize);
+  init();draw();
+})();
+
+// ─── Main init ───
+async function init(){
+  if(uuid){
+    await loadClientMode();
+  } else {
+    await loadPromoMode();
+  }
+  document.getElementById('loading').style.display='none';
+  document.getElementById('mainWrap').style.display='block';
+}
+
+// ─── CLIENT MODE ───
+async function loadClientMode(){
+  try{
+    const r = await fetch(`/api/sub-info/${uuid}`);
+    const d = await r.json();
+    if(!d.success) throw new Error('not found');
+
+    const info = d.data;
+    const brand = info.brand || {};
+
+    // Apply brand colors
+    if(brand.color) document.documentElement.style.setProperty('--acc', brand.color);
+    if(brand.bg) document.documentElement.style.setProperty('--bg', brand.bg);
+    if(brand.telegram) brandTelegram = brand.telegram;
+
+    document.getElementById('cl-logo').textContent = brand.logo && brand.logo !== '🌐' ? '𝓐' : '𝓐';
+    document.getElementById('cl-brand').textContent = brand.name || 'VPN Panel';
+
+    // Sub URL
+    clientSubUrl = info.sub_url || '';
+    document.getElementById('cl-suburl').textContent = clientSubUrl || 'سابلینک موجود نیست';
+
+    // Stats
+    if(info.traffic_remaining != null){
+      const gb = (info.traffic_remaining / (1024**3)).toFixed(1);
+      const el = document.getElementById('cl-traffic');
+      el.textContent = gb + ' GB';
+      if(parseFloat(gb) < 5) el.className = 'info-val warn';
+      if(parseFloat(gb) < 1) el.className = 'info-val err';
+    } else {
+      document.getElementById('cl-traffic').textContent = 'نامحدود';
+    }
+
+    if(info.expire_days != null){
+      const el = document.getElementById('cl-expire');
+      el.textContent = info.expire_days + ' روز';
+      if(info.expire_days < 7) el.className = 'info-val warn';
+      if(info.expire_days < 2) el.className = 'info-val err';
+    } else {
+      document.getElementById('cl-expire').textContent = 'نامحدود';
+    }
+
+    // Configs
+    const configs = info.configs || info.links || [];
+    if(configs.length > 0){
+      document.getElementById('cl-configs-title').style.display='flex';
+      const container = document.getElementById('cl-configs');
+      configs.slice(0,4).forEach(cfg => {
+        const proto = cfg.protocol || (cfg.link||'').split('://')[0]?.toUpperCase() || 'CONFIG';
+        const link = cfg.link || cfg;
+        const name = cfg.name || proto + '-Server';
+        container.innerHTML += `
+        <div class="config-item">
+          <div class="config-header">
+            <span class="proto-tag">${proto}</span>
+            <button class="config-copy" onclick="copyText('${encodeURIComponent(link)}','کانفیگ کپی شد')">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              کپی
+            </button>
+          </div>
+          <div class="config-hash">${escHtml(link).slice(0,180)}</div>
+        </div>`;
+      });
+    }
+
+    document.getElementById('clientMode').style.display='block';
+  }catch(e){
+    // Fallback to promo
+    await loadPromoMode();
+  }
+}
+
+// ─── PROMO MODE ───
+async function loadPromoMode(){
+  try{
+    const id = resellerId || 'default';
+    const r = await fetch(`/api/auth/mini-brand/${id}`);
+    const d = await r.json();
+    if(d.success){
+      const b = d.brand;
+      if(b.color) document.documentElement.style.setProperty('--acc', b.color);
+      if(b.bg) document.documentElement.style.setProperty('--bg', b.bg);
+      if(b.telegram) brandTelegram = b.telegram;
+      document.getElementById('heroName').textContent = b.name || 'VPN Panel';
+      document.getElementById('ps-brand-name').textContent = b.name || 'VPN Panel';
+    }
+  }catch(_){}
+
+  document.getElementById('promoMode').style.display='block';
+  startPhoneAnim();
+}
+
+// ─── Phone animation (promo) ───
+function startPhoneAnim(){
+  const ps1=document.getElementById('ps1'),ps2=document.getElementById('ps2'),ps3=document.getElementById('ps3');
+  const typedEl=document.getElementById('ps-typed'),typedSub=document.getElementById('ps-typed-sub'),finalSub=document.getElementById('ps-final-sub');
+  const names=['MyVPN','TurboNet','FreeNet','SpeedVPN'];
+  let idx=0;
+  function show(s){[ps1,ps2,ps3].forEach(p=>p.classList.remove('active'));s.classList.add('active');}
+  function typeText(el,text,speed,cb){let i=0;el.textContent='';const t=setInterval(()=>{el.textContent+=text[i++];if(i>=text.length){clearInterval(t);if(cb)setTimeout(cb,400);}},speed);}
+  function cycle(){
+    const name=names[idx%names.length];idx++;
+    const sub=`__VOICE_DOMAIN__/sub/${Math.random().toString(36).slice(2,16)}`;
+    show(ps1);
+    setTimeout(()=>{
+      show(ps2);typedEl.textContent='';typedSub.textContent='__VOICE_DOMAIN__/sub/...';
+      typeText(typedEl,name,90,()=>{
+        typedSub.textContent=sub.slice(0,30)+'...';finalSub.textContent=sub.slice(0,30)+'...';
+        setTimeout(()=>{show(ps3);setTimeout(cycle,2200);},1200);
+      });
+    },2500);
+  }
+  show(ps1);setTimeout(cycle,1200);
+}
+
+// ─── Helpers ───
+function copyText(encoded, msg){
+  const text = decodeURIComponent(encoded);
+  if(navigator.clipboard)navigator.clipboard.writeText(text).then(()=>toast(msg));
+  else{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast(msg);}
+}
+function copyClientSub(){copyText(encodeURIComponent(clientSubUrl),'سابلینک کپی شد');}
+function showClientQR(){
+  if(!clientSubUrl)return;
+  const url=`https://api.qrserver.com/v1/create-qr-code/?size=220x220&color=7C5CFC&bgcolor=07030f&data=${encodeURIComponent(clientSubUrl)}`;
+  if(tg)tg.openLink(url);else window.open(url,'_blank');
+}
+function openSupport(){openContact();}
+function openContact(){
+  if(!brandTelegram){toast('لینک پشتیبانی تنظیم نشده');return;}
+  const link=brandTelegram.startsWith('http')?brandTelegram:`https://t.me/${brandTelegram.replace('@','')}`;
+  if(tg){try{tg.openTelegramLink(link);}catch(_){tg.openLink(link);}}else window.open(link,'_blank');
+  setTimeout(()=>{if(tg)tg.close();},300);
+}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function toast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+init();
+</script>
+</body>
+</html>

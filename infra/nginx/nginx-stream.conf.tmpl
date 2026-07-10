@@ -1,0 +1,17 @@
+map $ssl_preread_server_name $frb_backend {
+    __NSUB1__          frb_nginx;
+    __NSUB2__  frb_nginx;
+    __NSUB3__        frb_nginx;
+    default                                 frb_apache;
+}
+upstream frb_nginx  { server 127.0.0.1:8450; }
+upstream frb_apache { server 127.0.0.1:8444; }
+
+server {
+    listen 0.0.0.0:443;
+    listen [::]:443;
+    ssl_preread on;
+    proxy_pass $frb_backend;
+    proxy_connect_timeout 5s;
+    proxy_timeout 3600s;
+}

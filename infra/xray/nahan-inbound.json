@@ -1,0 +1,20 @@
+{
+  "remark": "نهان",
+  "port": 8001,
+  "protocol": "vless",
+  "settings": {
+    "clients": [],
+    "decryption": "none",
+    "fallbacks": []
+  },
+  "streamSettings": {
+    "network": "xhttp",
+    "security": "none",
+    "xhttpSettings": {
+      "host": "",
+      "path": "__XHTTP_PATH__",
+      "mode": "auto"
+    }
+  },
+  "listen": "127.0.0.1"
+}

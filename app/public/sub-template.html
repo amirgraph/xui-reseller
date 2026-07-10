@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="page-title">VPN Service</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;900&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--brand:#7c3aed;--brand-light:#f472b6;--darker:#07030f;--glass-bg:rgba(255,255,255,0.06);--glass-border:rgba(255,255,255,0.14);--text-primary:#f8f0ff;--text-secondary:rgba(248,240,255,0.6);--text-muted:rgba(248,240,255,0.35);--success:#34d399;--danger:#f87171}
+body{font-family:'Vazirmatn','Inter',sans-serif;background:var(--darker);color:var(--text-primary);min-height:100vh;overflow-x:hidden}
+.bg-orbs{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.35}
+.orb-1{width:600px;height:600px;background:radial-gradient(circle,var(--brand),transparent);top:-200px;right:-150px;animation:drift 18s ease-in-out infinite alternate}
+.orb-2{width:500px;height:500px;background:radial-gradient(circle,var(--brand-light),transparent);bottom:-150px;left:-100px;animation:drift 22s ease-in-out infinite alternate-reverse}
+.orb-3{width:300px;height:300px;background:radial-gradient(circle,var(--brand),transparent);top:40%;left:30%;animation:drift 14s ease-in-out infinite alternate}
+@keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(40px,30px) scale(1.08)}}
+canvas#fx{position:fixed;inset:0;z-index:0;pointer-events:none}
+.loading-screen{position:fixed;inset:0;background:var(--darker);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .5s}
+.loading-screen.hidden{opacity:0;pointer-events:none}
+.loading-logo{font-size:48px;animation:pulse-ring 1.5s ease-in-out infinite}
+.loading-text{font-size:14px;color:var(--text-secondary)}
+.loading-dots::after{content:'';animation:dots 1.5s infinite}
+@keyframes dots{0%{content:''}33%{content:'.'}66%{content:'..'}100%{content:'...'}}
+@keyframes pulse-ring{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.wrapper{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px 64px;gap:20px}
+.header{display:flex;flex-direction:column;align-items:center;gap:12px}
+.logo-ring{width:72px;height:72px;border-radius:22px;background:linear-gradient(135deg,var(--brand),var(--brand-light));display:flex;align-items:center;justify-content:center;box-shadow:0 0 32px rgba(124,58,237,.45);animation:glow 3s ease-in-out infinite;font-size:36px}
+@keyframes glow{0%,100%{box-shadow:0 0 32px rgba(124,58,237,.45)}50%{box-shadow:0 0 56px rgba(124,58,237,.75)}}
+.brand-name{font-family:'Inter',sans-serif;font-size:26px;font-weight:700;background:linear-gradient(135deg,#f8f0ff,var(--brand-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.brand-tagline{font-size:13px;color:var(--text-secondary)}
+.card{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:24px;backdrop-filter:blur(24px);padding:24px 20px;width:100%;max-width:480px}
+.status-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.status-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);color:var(--success)}
+.status-badge.off{background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.25);color:var(--danger)}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--success);animation:blink 1.8s infinite}
+.status-dot.off{background:var(--danger);animation:none}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.user-info{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+.avatar{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,var(--brand),var(--brand-light));display:flex;align-items:center;justify-content:center;font-size:22px;border:2px solid rgba(255,255,255,.12)}
+.user-name{font-size:15px;font-weight:700}
+.user-plan{font-size:12px;color:var(--text-secondary);margin-top:3px;display:flex;align-items:center;gap:5px}
+.plan-badge{background:linear-gradient(135deg,rgba(124,58,237,.35),rgba(244,114,182,.25));border:1px solid rgba(168,85,247,.3);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;color:#d8b4fe}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.stat-item{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 10px;text-align:center}
+.stat-val{font-size:15px;font-weight:800;color:#fbcfe8;line-height:1}
+.stat-label{font-size:10px;color:var(--text-muted);margin-top:4px}
+.traffic-section{margin-bottom:20px}
+.traffic-header{display:flex;justify-content:space-between;font-size:12px;color:var(--text-secondary);margin-bottom:8px}
+.traffic-bar-bg{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+.traffic-bar-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--brand),var(--brand-light));transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.countdown-card{background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(244,114,182,.12));border:1px solid rgba(168,85,247,.2);border-radius:16px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px}
+.countdown-icon{font-size:26px}
+.countdown-label{font-size:11px;color:var(--text-muted)}
+.countdown-timer{font-family:'Inter',monospace;font-size:18px;font-weight:700;background:linear-gradient(135deg,#d8b4fe,var(--brand-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-top:2px;letter-spacing:1px}
+.section-label{font-size:11px;font-weight:600;letter-spacing:.8px;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px}
+.link-box{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:12px 14px;margin-bottom:14px}
+.link-text{flex:1;font-size:11px;font-family:'Inter',monospace;color:var(--text-secondary);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;direction:ltr;text-align:left;background:transparent;border:none;outline:none;width:100%;cursor:text;user-select:all}
+.copy-btn{flex-shrink:0;padding:7px 14px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;background:linear-gradient(135deg,var(--brand),var(--brand-light));border:none;color:#fff;transition:all .2s;white-space:nowrap;font-family:'Vazirmatn',sans-serif}
+.copy-btn.copied{background:linear-gradient(135deg,#059669,#34d399)}
+.links-list{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;max-height:180px;overflow-y:auto}
+.link-item{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 12px}
+.link-proto{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;flex-shrink:0;color:#fff;background:rgba(124,58,237,.5)}
+.link-name{flex:1;font-size:11px;color:var(--text-secondary);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;direction:ltr;text-align:left}
+.link-copy-btn{flex-shrink:0;width:28px;height:28px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .2s}
+.link-copy-btn:hover{background:rgba(168,85,247,.2);border-color:rgba(168,85,247,.4)}
+.actions-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.action-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:13px 12px;border-radius:14px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--text-primary);transition:all .2s;text-decoration:none;font-family:'Vazirmatn',sans-serif}
+.action-btn:hover{background:rgba(255,255,255,.1);border-color:rgba(168,85,247,.3)}
+.btn-primary{grid-column:span 2;padding:15px;background:linear-gradient(135deg,var(--brand),var(--brand-light));border:none;border-radius:16px;font-size:15px;font-weight:700;color:#fff;cursor:pointer;transition:all .2s;box-shadow:0 8px 32px rgba(124,58,237,.35);font-family:'Vazirmatn',sans-serif}
+.voice-card{background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(244,114,182,.1));border:1px solid rgba(168,85,247,.25);border-radius:24px;padding:24px 20px;width:100%;max-width:480px}
+.voice-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.voice-icon{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--brand),var(--brand-light));display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.voice-title{font-size:16px;font-weight:700}
+.voice-subtitle{font-size:12px;color:var(--text-secondary);margin-top:2px}
+.voice-users{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.2);border-radius:12px;padding:10px 14px;margin-bottom:16px;min-height:52px;flex-wrap:wrap}
+.user-av{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--brand-light));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;border:2px solid rgba(255,255,255,.15);flex-shrink:0}
+.user-av.speaking{box-shadow:0 0 0 2px var(--success)}
+.voice-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-join{grid-column:span 2;padding:14px;background:linear-gradient(135deg,#059669,#34d399);border:none;border-radius:14px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;font-family:'Vazirmatn',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-join.connected{background:linear-gradient(135deg,#dc2626,#f87171)}
+.btn-ctrl{padding:12px;border-radius:14px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:var(--text-primary);font-family:'Vazirmatn',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-ctrl.muted{background:rgba(248,113,113,.15);border-color:rgba(248,113,113,.3);color:var(--danger)}
+.voice-status{font-size:11px;color:var(--text-muted);text-align:center;margin-top:12px}
+.support-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px 20px;width:100%;max-width:480px;display:flex;align-items:center;gap:14px;text-decoration:none;color:var(--text-primary);transition:all .2s}
+.support-card:hover{background:rgba(255,255,255,.07);border-color:rgba(168,85,247,.3)}
+.support-icon{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#0088cc,#00b4d8);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.apps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.app-item{display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px 6px;text-decoration:none;color:var(--text-primary)}
+.app-item:hover{border-color:rgba(244,114,182,.3)}
+.app-icon{font-size:22px}
+.app-name{font-size:10px;color:var(--text-muted)}
+.footer{text-align:center;font-size:11px;color:var(--text-muted);line-height:1.8}
+.footer a{color:var(--brand-light);text-decoration:none}
+.heart-footer{display:inline-block;animation:heartbeat 1.5s ease-in-out infinite}
+@keyframes heartbeat{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
+.toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(16px);background:rgba(20,10,35,.95);backdrop-filter:blur(16px);border:1px solid rgba(52,211,153,.3);color:var(--success);border-radius:12px;padding:10px 20px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:all .3s;z-index:9999;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="loading-screen" id="loading">
+  <div class="loading-logo" id="loading-logo">💜</div>
+  <div class="loading-text" id="loading-brand">VPN<span class="loading-dots"></span></div>
+</div>
+<div class="bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div></div>
+<canvas id="fx"></canvas>
+<div class="wrapper" id="main-wrapper" style="opacity:0;transition:opacity .5s">
+  <div class="header">
+    <div class="logo-ring" id="brand-logo">🌐</div>
+    <div class="brand-name" id="brand-name">VPN Service</div>
+    <div class="brand-tagline" id="brand-tagline">سرویس VPN اختصاصی</div>
+  </div>
+  <div class="card">
+    <div class="status-row">
+      <div class="status-badge" id="status-badge"><span class="status-dot" id="status-dot"></span><span id="status-text">در حال بارگذاری...</span></div>
+      <span style="font-size:12px;color:var(--text-muted)" id="ping-display">⚡ — ms</span>
+    </div>
+    <div class="user-info">
+      <div class="avatar" id="user-avatar">🌐</div>
+      <div><div class="user-name" id="username-display">—</div><div class="user-plan"><span class="plan-badge">PREMIUM</span> اشتراک فعال</div></div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-item"><div class="stat-val" id="days-left">—</div><div class="stat-label">روز مانده</div></div>
+      <div class="stat-item"><div class="stat-val" id="stat-used">—</div><div class="stat-label">مصرف</div></div>
+      <div class="stat-item"><div class="stat-val" id="stat-total">—</div><div class="stat-label">کل</div></div>
+    </div>
+    <div class="traffic-section">
+      <div class="traffic-header"><span>مصرف ترافیک</span><span id="traffic-percent">—</span></div>
+      <div class="traffic-bar-bg"><div class="traffic-bar-fill" id="traffic-bar" style="width:0%"></div></div>
+    </div>
+    <div class="countdown-card">
+      <div class="countdown-icon">⏳</div>
+      <div><div class="countdown-label">زمان انقضای اشتراک</div><div class="countdown-timer" id="countdown">—</div></div>
+    </div>
+    <div class="section-label">ساب‌لینک ۱ — اصلی (کلادفلر)</div>
+    <div class="link-box">
+      <input class="link-text" id="sub-url" readonly value="">
+      <button class="copy-btn" id="copy-sub-btn" onclick="copySub()">کپی</button>
+    </div>
+    <div class="section-label">ساب‌لینک ۲ — پشتیبان (آروان)</div>
+    <div class="link-box">
+      <input class="link-text" id="sub-url-2" readonly value="">
+      <button class="copy-btn" id="copy-sub-btn-2" onclick="copySub2()">کپی</button>
+    </div>
+    <div class="section-label">کانفیگ‌ها</div>
+    <div class="links-list" id="links-list"><div style="font-size:12px;color:var(--text-muted);text-align:center;padding:10px">در حال بارگذاری...</div></div>
+    <div class="actions-grid">
+      <a href="#" id="support-btn" target="_blank" class="action-btn">💬 پشتیبانی</a>
+      <button class="action-btn" onclick="copyAllLinks()">📋 کپی همه</button>
+      <button class="btn-primary" onclick="openInApp()">✨ باز کردن در اپ</button>
+    </div>
+  </div>
+  <div class="voice-card">
+    <div class="voice-header">
+      <div class="voice-icon">🎙️</div>
+      <div><div class="voice-title">ویس‌چت مشترک</div><div class="voice-subtitle">روم عمومی — همه کاربران میتونن بیان!</div></div>
+    </div>
+    <div class="voice-users" id="voice-users"><span style="font-size:12px;color:var(--text-muted)">هنوز کسی توی روم نیست...</span></div>
+    <div class="voice-controls">
+      <button class="btn-join" id="btn-join" onclick="toggleVoice()">🎙️ ورود به ویس‌چت</button>
+      <button class="btn-ctrl" id="btn-mute" onclick="toggleMute()" style="display:none">🎤 روشن</button>
+      <button class="btn-ctrl" id="btn-vol" style="display:none">🔊 صدا</button>
+    </div>
+    <div class="voice-status" id="voice-status">برای ورود به ویس‌چت دکمه بالا رو بزن</div>
+  </div>
+  <div class="card">
+    <div class="section-label" style="text-align:center;margin-bottom:14px">دانلود اپلیکیشن</div>
+    <div class="apps-grid">
+      <a class="app-item" href="https://play.google.com/store/apps/details?id=com.v2ray.ang" target="_blank"><div class="app-icon">🤖</div><div class="app-name">v2rayNG</div></a>
+      <a class="app-item" href="https://apps.apple.com/app/hiddify-proxy-vpn/id6596777532" target="_blank"><div class="app-icon">🛡️</div><div class="app-name">Hiddify</div></a>
+      <a class="app-item" href="https://apps.apple.com/app/streisand/id6450534064" target="_blank"><div class="app-icon">🍎</div><div class="app-name">Streisand</div></a>
+      <a class="app-item" href="https://play.google.com/store/apps/details?id=app.hiddify.com" target="_blank"><div class="app-icon">🦊</div><div class="app-name">Hiddify A</div></a>
+    </div>
+  </div>
+  <div class="footer">
+    <div>ساخته شده با <span class="heart-footer">♥</span> توسط <span id="footer-brand">VPN Service</span></div>
+    <div style="margin-top:4px"><a href="#" id="footer-tg">تلگرام و پشتیبانی</a></div>
+  </div>
+</div>
+<div class="toast" id="toast"><span id="toast-msg">کپی شد!</span></div>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js"></script>
+<script>
+var WS_URL='wss://ir.example.top:8443/lk';
+var TOKEN_API='/sub/voice-token';
+var ROOM_NAME='anastia-voice';
+var D={},LINKS=[];
+var room=null,isMuted=false,isConnected=false;
+
+function getUUID(){var p=window.location.pathname.split('/');return p[p.length-1]||p[p.length-2];}
+
+// ── Canvas FX ──────────────────────────────────────────────
+var canvas=document.getElementById('fx');
+var ctx=canvas.getContext('2d');
+var particles=[];
+var motionType='hearts';
+
+function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+resize();window.addEventListener('resize',resize);
+
+function spawnParticle(){
+  var p={x:Math.random()*canvas.width,y:canvas.height+20,size:Math.random()*14+6,speed:Math.random()*.6+.3,opacity:Math.random()*.35+.05,drift:(Math.random()-.5)*.6,w:Math.random()*Math.PI*2,ws:Math.random()*.025+.008};
+  particles.push(p);
+}
+
+function drawHeart(x,y,s,o){ctx.save();ctx.globalAlpha=o;ctx.fillStyle='#f472b6';ctx.beginPath();var sc=s/10;ctx.translate(x,y);ctx.scale(sc,sc);ctx.moveTo(0,-4);ctx.bezierCurveTo(0,-8,-8,-8,-8,-2);ctx.bezierCurveTo(-8,2,0,8,0,10);ctx.bezierCurveTo(0,8,8,2,8,-2);ctx.bezierCurveTo(8,-8,0,-8,0,-4);ctx.closePath();ctx.fill();ctx.restore();}
+
+function drawStar(x,y,s,o){ctx.save();ctx.globalAlpha=o;ctx.fillStyle='#fbbf24';ctx.beginPath();for(var i=0;i<5;i++){var a=i*Math.PI*2/5-Math.PI/2;ctx.lineTo(x+Math.cos(a)*s,y+Math.sin(a)*s);var a2=a+Math.PI/5;ctx.lineTo(x+Math.cos(a2)*s*.4,y+Math.sin(a2)*s*.4);}ctx.closePath();ctx.fill();ctx.restore();}
+
+function drawSnow(x,y,s,o){ctx.save();ctx.globalAlpha=o;ctx.fillStyle='#bae6fd';ctx.beginPath();ctx.arc(x,y,s*.4,0,Math.PI*2);ctx.fill();ctx.restore();}
+
+function drawBubble(x,y,s,o){ctx.save();ctx.globalAlpha=o*.7;ctx.strokeStyle='rgba(167,139,250,0.8)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(x,y,s*.5,0,Math.PI*2);ctx.stroke();ctx.restore();}
+
+function drawSparkle(x,y,s,o){ctx.save();ctx.globalAlpha=o;ctx.fillStyle='#e879f9';ctx.beginPath();ctx.arc(x,y,s*.25,0,Math.PI*2);ctx.fill();ctx.restore();}
+
+function animFX(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(motionType==='none'){requestAnimationFrame(animFX);return;}
+  for(var i=particles.length-1;i>=0;i--){
+    var p=particles[i];
+    p.y-=p.speed;p.w+=p.ws;p.x+=Math.sin(p.w)*p.drift;
+    if(motionType==='hearts') drawHeart(p.x,p.y,p.size,p.opacity);
+    else if(motionType==='stars') drawStar(p.x,p.y,p.size,p.opacity);
+    else if(motionType==='snow'){p.y+=p.speed*.5;p.x+=Math.sin(p.w)*.8;drawSnow(p.x,p.y,p.size,p.opacity);}
+    else if(motionType==='bubbles') drawBubble(p.x,p.y,p.size,p.opacity);
+    else if(motionType==='sparkles') drawSparkle(p.x,p.y,p.size,p.opacity);
+    if(p.y<-30||p.x<-50||p.x>canvas.width+50) particles.splice(i,1);
+  }
+  requestAnimationFrame(animFX);
+}
+setInterval(spawnParticle,600);
+animFX();
+
+// ── Load Data ──────────────────────────────────────────────
+async function loadData(){
+  try{
+    var uuid=getUUID();
+    var res=await fetch('/api/sub-info/'+uuid);
+    D=await res.json();
+    if(!D.success) throw new Error('not found');
+    applyBrand(D.brand);
+    LINKS=D.links||[];
+    fillUI();
+  }catch(e){
+    document.getElementById('status-text').textContent='خطا در بارگذاری';
+  }finally{
+    setTimeout(function(){
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('main-wrapper').style.opacity='1';
+    },600);
+  }
+}
+
+function applyBrand(b){
+  if(!b) return;
+  var r=document.documentElement;
+  if(b.color) r.style.setProperty('--brand',b.color);
+  if(b.bg) r.style.setProperty('--darker',b.bg);
+  if(b.motion) motionType=b.motion;
+  document.getElementById('brand-logo').textContent=b.logo||'🌐';
+  document.getElementById('loading-logo').textContent=b.logo||'💜';
+  document.getElementById('brand-name').textContent=b.name||'VPN Service';
+  document.getElementById('loading-brand').innerHTML=(b.name||'VPN')+'<span class="loading-dots"></span>';
+  document.getElementById('brand-tagline').textContent='سرویس VPN اختصاصی';
+  document.getElementById('footer-brand').textContent=b.name||'VPN Service';
+  document.getElementById('page-title').textContent=b.name||'VPN Service';
+  document.getElementById('user-avatar').textContent=b.logo||'🌐';
+  if(b.telegram){
+    var tgUrl='https://t.me/'+b.telegram.replace('@','');
+    document.getElementById('support-btn').href=tgUrl;
+    document.getElementById('footer-tg').href=tgUrl;
+    document.getElementById('footer-tg').textContent='پشتیبانی: '+b.telegram;
+  }
+}
+
+function fillUI(){
+  var enabled=D.is_active!==false;
+  var badge=document.getElementById('status-badge');
+  var dot=document.getElementById('status-dot');
+  if(!enabled){badge.classList.add('off');dot.classList.add('off');}
+  document.getElementById('status-text').textContent=enabled?'سرور فعال':'غیرفعال';
+  document.getElementById('username-display').textContent=D.username||'—';
+  var usedGb=D.traffic_used_gb||0;
+  var totalGb=D.traffic_limit_gb||0;
+  document.getElementById('stat-used').textContent=usedGb.toFixed(1)+' GB';
+  document.getElementById('stat-total').textContent=totalGb>0?totalGb+' GB':'∞';
+  var pct=totalGb>0?Math.min(100,Math.round(usedGb/totalGb*100)):0;
+  document.getElementById('traffic-percent').textContent=pct+'٪';
+  setTimeout(function(){document.getElementById('traffic-bar').style.width=pct+'%';},400);
+  var subUrl=D.sub_url||window.location.href;
+  document.getElementById('sub-url').value=subUrl;
+  document.getElementById('sub-url-2').value=D.sub_url_2||subUrl;
+  var ll=document.getElementById('links-list');
+  ll.innerHTML='';
+  if(!LINKS.length){ll.innerHTML='<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:10px">کانفیگی یافت نشد</div>';return;}
+  LINKS.forEach(function(l,i){
+    var proto=(l.match(/^(\w+):\/\//)||['','other'])[1];
+    var name=decodeURIComponent((l.split('#')[1]||'').replace(/\+/g,' '))||('کانفیگ '+(i+1));
+    var div=document.createElement('div');div.className='link-item';
+    var btn=document.createElement('button');btn.className='link-copy-btn';btn.textContent='📋';
+    btn.setAttribute('data-link',l);
+    btn.onclick=function(){copyText(this.getAttribute('data-link'),'کانفیگ کپی شد! ✓');};
+    div.innerHTML='<span class="link-proto">'+proto+'</span><span class="link-name" title="'+name+'">'+name+'</span>';
+    div.appendChild(btn);ll.appendChild(div);
+  });
+  updateCountdown();
+}
+
+function updateCountdown(){
+  var el=document.getElementById('countdown'),dl=document.getElementById('days-left');
+  var exp=D.expires_at?new Date(D.expires_at).getTime():0;
+  if(!exp){el.textContent='نامحدود';dl.textContent='∞';return;}
+  var diff=exp-Date.now();
+  if(diff<=0){el.textContent='منقضی شده';dl.textContent='۰';return;}
+  var d=Math.floor(diff/86400000),h=Math.floor((diff%86400000)/3600000),m=Math.floor((diff%3600000)/60000),s=Math.floor((diff%60000)/1000);
+  dl.textContent=d;
+  el.textContent=String(d).padStart(2,'0')+'d '+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+setInterval(updateCountdown,1000);
+setInterval(function(){document.getElementById('ping-display').textContent='⚡ '+Math.floor(Math.random()*30+8)+' ms';},5000);
+
+function copyText(t,msg){
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){showToast(msg||'کپی شد! ✓');}).catch(function(){fallbackCopy(t,msg);});
+  } else fallbackCopy(t,msg);
+}
+
+function fallbackCopy(t,msg){
+  var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.focus();ta.select();
+  try{document.execCommand('copy');showToast(msg||'کپی شد! ✓');}catch(e){showToast('کپی نشد — دستی کپی کن','error');}
+  document.body.removeChild(ta);
+}
+
+function copySub(){
+  var v=document.getElementById('sub-url').value;
+  copyText(v,'ساب‌لینک کپی شد! 💜');
+  var b=document.getElementById('copy-sub-btn');
+  b.textContent='✓ کپی شد';b.classList.add('copied');
+  setTimeout(function(){b.textContent='کپی';b.classList.remove('copied');},2500);
+}
+
+function copySub2(){
+  var v=document.getElementById('sub-url-2').value;
+  copyText(v,'ساب‌لینک ۲ کپی شد! 💜');
+  var b=document.getElementById('copy-sub-btn-2');
+  b.textContent='✓ کپی شد';b.classList.add('copied');
+  setTimeout(function(){b.textContent='کپی';b.classList.remove('copied');},2500);
+}
+
+function copyAllLinks(){copyText(LINKS.join('\n'),'همه کانفیگ‌ها کپی شدن! 💜');}
+
+function openInApp(){
+  var sub=document.getElementById('sub-url').value;
+  window.location.href='hiddify://import/'+encodeURIComponent(sub);
+  setTimeout(function(){window.location.href='v2rayng://install-config?url='+encodeURIComponent(sub);},500);
+}
+
+function showToast(msg){
+  var t=document.getElementById('toast');
+  document.getElementById('toast-msg').textContent=msg;
+  t.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer=setTimeout(function(){t.classList.remove('show');},2800);
+}
+
+// ── Voice Chat ─────────────────────────────────────────────
+async function toggleVoice(){if(isConnected)leaveVoice();else joinVoice();}
+async function joinVoice(){
+  if(room && room.state !== 'disconnected') { try { await room.disconnect(); } catch(e){} room=null; await new Promise(r=>setTimeout(r,500)); }
+  var btn=document.getElementById('btn-join'),st=document.getElementById('voice-status');
+  btn.textContent='⏳ در حال اتصال...';btn.disabled=true;st.textContent='در حال گرفتن توکن...';
+  try{
+    var identity=D.username||('guest_'+Math.floor(Math.random()*9000+1000));
+    var res=await fetch(TOKEN_API+'?user='+encodeURIComponent(identity)+'&room='+ROOM_NAME);
+    var data=await res.json();
+    room=new LivekitClient.Room({adaptiveStream:true,dynacast:true});
+    room.on(LivekitClient.RoomEvent.ParticipantConnected,updateParts);
+    room.on(LivekitClient.RoomEvent.ParticipantDisconnected,updateParts);
+    room.on(LivekitClient.RoomEvent.TrackSubscribed,function(track){if(track.kind===LivekitClient.Track.Kind.Audio){track.attach();updateParts();}});
+    room.on(LivekitClient.RoomEvent.ActiveSpeakersChanged,updateSpeakers);
+    room.on(LivekitClient.RoomEvent.Disconnected,function(){isConnected=false;updateVUI(false);});
+    await room.connect(WS_URL,data.token);
+    await room.localParticipant.setMicrophoneEnabled(true);
+    isConnected=true;updateVUI(true);updateParts();showToast('به ویس‌چت وصل شدی! 🎙️');
+  }catch(e){btn.textContent='🎙️ ورود به ویس‌چت';btn.disabled=false;st.textContent='خطا در اتصال';}
+}
+async function leaveVoice(){if(room)await room.disconnect();room=null;isConnected=false;updateVUI(false);}
+function updateVUI(c){
+  var btn=document.getElementById('btn-join'),mb=document.getElementById('btn-mute'),vb=document.getElementById('btn-vol'),st=document.getElementById('voice-status');
+  btn.disabled=false;
+  if(c){btn.textContent='📴 خروج';btn.classList.add('connected');mb.style.display='flex';vb.style.display='flex';st.textContent='🟢 متصل به روم عمومی';}
+  else{btn.textContent='🎙️ ورود به ویس‌چت';btn.classList.remove('connected');mb.style.display='none';vb.style.display='none';st.textContent='برای ورود به ویس‌چت دکمه بالا رو بزن';document.getElementById('voice-users').innerHTML='<span style="font-size:12px;color:var(--text-muted)">هنوز کسی توی روم نیست...</span>';}
+}
+function updateParts(){
+  if(!room) return;
+  var c=document.getElementById('voice-users');
+  var all=[room.localParticipant].concat(Array.from(room.remoteParticipants.values()));
+  if(!all.length){c.innerHTML='<span style="font-size:12px;color:var(--text-muted)">هنوز کسی توی روم نیست...</span>';return;}
+  c.innerHTML='';
+  all.forEach(function(p){var d=document.createElement('div');d.className='user-av';d.id='av-'+p.identity;d.textContent=p.identity.charAt(0).toUpperCase();d.title=p.identity;c.appendChild(d);});
+  var l=document.createElement('span');l.style.cssText='font-size:12px;color:var(--text-muted);margin-right:auto';l.textContent=all.length+' نفر آنلاین';c.appendChild(l);
+}
+function updateSpeakers(sp){document.querySelectorAll('.user-av').forEach(function(e){e.classList.remove('speaking');});sp.forEach(function(p){var e=document.getElementById('av-'+p.identity);if(e)e.classList.add('speaking');});}
+async function toggleMute(){if(!room)return;isMuted=!isMuted;await room.localParticipant.setMicrophoneEnabled(!isMuted);var b=document.getElementById('btn-mute');b.classList.toggle('muted',isMuted);b.textContent=isMuted?'🔇 خاموش':'🎤 روشن';}
+
+loadData();
+</script>
+</body>
+</html>

@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>پنل مدیریت</title>
+<style>
+  :root {
+    --bg: #080810;
+    --surface: rgba(255,255,255,0.04);
+    --surface-hover: rgba(255,255,255,0.07);
+    --border: rgba(255,255,255,0.08);
+    --accent: #7C5CFC;
+    --accent2: #5eead4;
+    --text: #f0f0ff;
+    --text-muted: rgba(240,240,255,0.45);
+    --danger: #ff4d6d;
+    --success: #2dd4bf;
+    --warning: #fbbf24;
+    --radius: 14px;
+    --glass: blur(20px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    top: -30%;
+    right: -10%;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(124,92,252,0.12) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -20%;
+    left: -10%;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(94,234,212,0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Auth ── */
+  #auth-screen {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+    background: var(--bg);
+  }
+  .auth-card {
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 48px 40px;
+    width: 100%; max-width: 400px;
+    text-align: center;
+  }
+  .auth-card h1 { font-size: 1.6rem; margin-bottom: 8px; }
+  .auth-card p { color: var(--text-muted); margin-bottom: 32px; font-size: 0.9rem; }
+
+  /* ── Layout ── */
+  #app { display: none; min-height: 100vh; position: relative; z-index: 1; }
+  .sidebar {
+    position: fixed; top: 0; right: 0;
+    width: 240px; height: 100vh;
+    background: rgba(255,255,255,0.03);
+    backdrop-filter: var(--glass);
+    border-left: 1px solid var(--border);
+    padding: 24px 16px;
+    display: flex; flex-direction: column;
+    z-index: 100;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; margin-bottom: 28px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .logo-text { font-size: 1rem; font-weight: 700; }
+  .logo-sub { font-size: 0.7rem; color: var(--text-muted); }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    transition: all .2s;
+    margin-bottom: 2px;
+  }
+  .nav-item:hover { background: var(--surface-hover); color: var(--text); }
+  .nav-item.active { background: rgba(124,92,252,0.18); color: var(--accent); }
+  .nav-item .icon { font-size: 1.1rem; width: 20px; text-align: center; }
+
+  .sidebar-bottom { margin-top: auto; }
+
+  .main {
+    margin-right: 240px;
+    padding: 28px;
+    min-height: 100vh;
+  }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── Header ── */
+  .page-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .page-header h2 { font-size: 1.4rem; font-weight: 700; }
+
+  /* ── Cards ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px; margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--surface);
+    backdrop-filter: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: border-color .2s;
+  }
+  .stat-card:hover { border-color: rgba(124,92,252,0.3); }
+  .stat-label { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 8px; }
+  .stat-value { font-size: 2rem; font-weight: 700; }
+  .stat-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+  .stat-card.accent .stat-value { color: var(--accent); }
+  .stat-card.success .stat-value { color: var(--success); }
+  .stat-card.warning .stat-value { color: var(--warning); }
+
+  /* ── Table ── */
+  .table-wrap {
+    background: var(--surface);
+    backdrop-filter: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .table-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .table-header h3 { font-size: 1rem; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: right; padding: 12px 16px;
+    font-size: 0.75rem; color: var(--text-muted);
+    font-weight: 500; border-bottom: 1px solid var(--border);
+  }
+  td { padding: 13px 16px; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface-hover); }
+
+  /* ── Inputs ── */
+  input, select, textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color .2s;
+    font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+    background: rgba(124,92,252,0.08);
+  }
+  select option { background: #1a1a2e; color: var(--text); }
+  label { display: block; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px; }
+  .form-group { margin-bottom: 16px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 9px 18px; border-radius: 10px; font-size: 0.85rem;
+    font-weight: 600; cursor: pointer; border: none; transition: all .2s;
+    font-family: inherit;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #6d4ff0; transform: translateY(-1px); }
+  .btn-secondary {
+    background: var(--surface-hover);
+    border: 1px solid var(--border); color: var(--text);
+  }
+  .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+  .btn-danger { background: rgba(255,77,109,0.15); color: var(--danger); border: 1px solid rgba(255,77,109,0.3); }
+  .btn-danger:hover { background: rgba(255,77,109,0.25); }
+  .btn-success { background: rgba(45,212,191,0.15); color: var(--success); border: 1px solid rgba(45,212,191,0.3); }
+  .btn-sm { padding: 5px 12px; font-size: 0.78rem; border-radius: 7px; }
+
+  /* ── Badge ── */
+  .badge {
+    display: inline-block; padding: 3px 10px;
+    border-radius: 20px; font-size: 0.72rem; font-weight: 600;
+  }
+  .badge-active { background: rgba(45,212,191,0.15); color: var(--success); }
+  .badge-inactive { background: rgba(255,77,109,0.15); color: var(--danger); }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+    z-index: 1000; align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #10101e;
+    border: 1px solid var(--border);
+    border-radius: 20px; padding: 28px;
+    width: 100%; max-width: 520px;
+    max-height: 90vh; overflow-y: auto;
+    position: relative;
+  }
+  .modal h3 { font-size: 1.1rem; margin-bottom: 20px; }
+  .modal-close {
+    position: absolute; top: 16px; left: 16px;
+    background: none; border: none; color: var(--text-muted);
+    font-size: 1.2rem; cursor: pointer;
+  }
+
+  /* ── Progress ── */
+  .progress-bar {
+    height: 6px; background: rgba(255,255,255,0.08);
+    border-radius: 3px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width .3s;
+  }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+    background: rgba(30,30,50,0.95); backdrop-filter: var(--glass);
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 24px; font-size: 0.88rem;
+    z-index: 9999; opacity: 0; transition: opacity .3s;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; }
+  #toast.success { border-color: var(--success); color: var(--success); }
+  #toast.error { border-color: var(--danger); color: var(--danger); }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { margin-right: 0; padding: 16px; }
+    .form-row { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Auth -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="logo-icon" style="margin:0 auto 16px;width:52px;height:52px;border-radius:16px;font-size:24px;">🛡️</div>
+    <h1>پنل مدیریت</h1>
+    <p>ورود به حساب ادمین</p>
+    <div class="form-group">
+      <label>نام کاربری</label>
+      <input id="login-user" type="text" placeholder="admin" dir="ltr">
+    </div>
+    <div class="form-group">
+      <label>رمز عبور</label>
+      <input id="login-pass" type="password" placeholder="••••••••" dir="ltr">
+    </div>
+    <button class="btn btn-primary" style="width:100%;padding:12px" onclick="doLogin()">ورود</button>
+    <p id="login-err" style="color:var(--danger);margin-top:12px;font-size:.85rem"></p>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">𝓐</div>
+      <div>
+        <div class="logo-text">VPN Panel</div>
+        <div class="logo-sub">VPN Reseller</div>
+      </div>
+    </div>
+
+    <nav>
+      <div class="nav-item active" onclick="showPage('dashboard')">
+        <span class="icon">📊</span> داشبورد
+      </div>
+      <div class="nav-item" onclick="showPage('resellers')">
+        <span class="icon">👥</span> نمایندگان
+      </div>
+      <div class="nav-item" onclick="showPage('clients')">
+        <span class="icon">🌐</span> همه کاربران
+      </div>
+      <div class="nav-item" onclick="showPage('inbounds')">
+        <span class="icon">🔌</span> اینباندها
+      </div>
+            <div class="nav-item" onclick="showPage('charge-requests')">
+        <span class="icon">💰</span> شارژ نمایندها
+      </div>
+      <div class="nav-item" onclick="showPage('panel-orders')">
+        <span class="icon">🛒</span> درخواست پنل
+      </div>
+<div class="nav-item" onclick="showPage('transactions')">
+        <span class="icon">💳</span> تراکنش‌ها
+      </div>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="nav-item" onclick="logout()">
+        <span class="icon">🚪</span> خروج
+      </div>
+    </div>
+  </div>
+
+  <main class="main">
+    <!-- Dashboard -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <h2>داشبورد</h2>
+        <button class="btn btn-secondary btn-sm" onclick="loadDashboard()">🔄 بروزرسانی</button>
+      </div>
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card accent"><div class="stat-label">نمایندگان کل</div><div class="stat-value" id="s-resellers">-</div></div>
+        <div class="stat-card success"><div class="stat-label">نمایندگان فعال</div><div class="stat-value" id="s-active-r">-</div></div>
+        <div class="stat-card"><div class="stat-label">کاربران کل</div><div class="stat-value" id="s-clients">-</div></div>
+        <div class="stat-card warning"><div class="stat-label">ترافیک مصرفی</div><div class="stat-value" id="s-traffic">-</div><div class="stat-sub">گیگابایت</div></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header"><h3>آخرین نمایندگان</h3></div>
+        <table>
+          <thead><tr><th>نماینده</th><th>کاربران</th><th>مصرف</th><th>موجودی</th></tr></thead>
+          <tbody id="recent-resellers"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Resellers -->
+    <div class="page" id="page-resellers">
+      <div class="page-header">
+        <h2>مدیریت نمایندگان</h2>
+        <button class="btn btn-primary" onclick="openAddReseller()">➕ نماینده جدید</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>نام</th><th>یوزر</th><th>موجودی</th><th>ترافیک</th><th>کاربران</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+          <tbody id="resellers-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Clients -->
+    <div class="page" id="page-clients">
+      <div class="page-header"><h2>همه کاربران</h2></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>کاربر</th><th>نماینده</th><th>مصرف</th><th>انقضا</th><th>وضعیت</th></tr></thead>
+          <tbody id="clients-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Inbounds -->
+    <div class="page" id="page-inbounds">
+      <div class="page-header">
+        <h2>اینباندها</h2>
+        <button class="btn btn-secondary" onclick="loadInbounds()">🔄 همگام‌سازی</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>نام</th><th>پروتکل</th><th>پورت</th><th>وضعیت</th></tr></thead>
+          <tbody id="inbounds-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Transactions -->
+    <div class="page" id="page-transactions">
+      <div class="page-header"><h2>تراکنش‌ها</h2></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>نماینده</th><th>نوع</th><th>مبلغ</th><th>توضیح</th><th>تاریخ</th></tr></thead>
+          <tbody id="transactions-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  <div class="page" id="page-charge-requests">
+    <div class="page-header">
+      <h2>درخواست‌های شارژ</h2>
+      <div style="display:flex;gap:8px">
+        <select id="cr-status-filter" onchange="loadChargeRequests()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 12px;font-size:.85rem">
+          <option value="pending">در انتظار</option>
+          <option value="approved">تایید شده</option>
+          <option value="rejected">رد شده</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" onclick="loadChargeRequests()">🔄</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>نماینده</th><th>مبلغ</th><th>رسید</th><th>تاریخ</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+        <tbody id="cr-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="page" id="page-panel-orders">
+    <div class="page-header">
+      <h2>درخواست‌های پنل</h2>
+      <div style="display:flex;gap:8px">
+        <select id="po-status-filter" onchange="loadPanelOrders()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 12px;font-size:.85rem">
+          <option value="pending">در انتظار</option>
+          <option value="approved">تایید شده</option>
+          <option value="rejected">رد شده</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" onclick="loadPanelOrders()">🔄</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>نام</th><th>یوزرنیم</th><th>تلگرام</th><th>مبلغ</th><th>تاریخ</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+        <tbody id="po-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  </main>
+</div>
+
+<!-- Add/Edit Reseller Modal -->
+<div class="modal-overlay" id="modal-reseller">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-reseller')">✕</button>
+    <h3 id="modal-reseller-title">نماینده جدید</h3>
+    <input type="hidden" id="r-id">
+    <div class="form-row">
+      <div class="form-group">
+        <label>نام</label><input id="r-name" placeholder="علی احمدی">
+      </div>
+      <div class="form-group">
+        <label>نام کاربری</label><input id="r-username" placeholder="reseller1" dir="ltr">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>رمز عبور</label><input id="r-password" type="password" placeholder="••••••••" dir="ltr">
+      </div>
+      <div class="form-group">
+        <label>آیدی تلگرام</label><input id="r-telegram" placeholder="123456789" dir="ltr">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>حجم کل (GB)</label><input id="r-traffic" type="number" value="100" dir="ltr">
+      </div>
+      <div class="form-group">
+        <label>حداکثر کاربر</label><input id="r-maxclients" type="number" value="10" dir="ltr">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>قیمت هر GB (تومان)</label><input id="r-pricepergb" type="number" value="0" dir="ltr">
+      </div>
+      <div class="form-group">
+        <label>تاریخ انقضا (اختیاری)</label><input id="r-expires" type="datetime-local" dir="ltr">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>اینباندهای مجاز (با کاما جدا کن، خالی = همه)</label>
+      <input id="r-inbounds" placeholder="1,2,3" dir="ltr">
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-secondary" onclick="closeModal('modal-reseller')">انصراف</button>
+      <button class="btn btn-primary" onclick="saveReseller()">ذخیره</button>
+    </div>
+  </div>
+</div>
+
+<!-- Balance Modal -->
+<div class="modal-overlay" id="modal-balance">
+  <div class="modal" style="max-width:360px">
+    <button class="modal-close" onclick="closeModal('modal-balance')">✕</button>
+    <h3>شارژ کیف پول</h3>
+    <input type="hidden" id="bal-id">
+    <div class="form-group">
+      <label>مبلغ (تومان)</label>
+      <input id="bal-amount" type="number" placeholder="50000" dir="ltr">
+    </div>
+    <div class="form-group">
+      <label>توضیح</label>
+      <input id="bal-desc" placeholder="شارژ دستی">
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-secondary" onclick="closeModal('modal-balance')">انصراف</button>
+      <button class="btn btn-success" onclick="doAddBalance()">شارژ</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = '/api';
+let token = localStorage.getItem('admin_token');
+
+// ── Auth ──────────────────────────────────────
+if (token) initApp();
+
+async function doLogin() {
+  const u = document.getElementById('login-user').value;
+  const p = document.getElementById('login-pass').value;
+  try {
+    const r = await post('/auth/admin/login', { username: u, password: p });
+    if (r.success) {
+      token = r.token;
+      localStorage.setItem('admin_token', token);
+      initApp();
+    } else {
+      document.getElementById('login-err').textContent = r.message;
+    }
+  } catch { document.getElementById('login-err').textContent = 'خطا در اتصال'; }
+}
+
+function initApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  loadDashboard();
+}
+
+function logout() {
+  localStorage.removeItem('admin_token');
+  location.reload();
+}
+
+// ── Navigation ────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (name === 'charge-requests') loadChargeRequests();
+  if (name === 'panel-orders') loadPanelOrders();
+  event.currentTarget.classList.add('active');
+  const loaders = { dashboard: loadDashboard, resellers: loadResellers, clients: loadClients, inbounds: loadInbounds, transactions: loadTransactions };
+  if (loaders[name]) loaders[name]();
+}
+
+// ── API helpers ───────────────────────────────
+async function get(path) {
+  const r = await fetch(API + path, { headers: { Authorization: 'Bearer ' + token } });
+  if (r.status === 401) { logout(); return {}; }
+  return r.json();
+}
+async function post(path, body) {
+  const r = await fetch(API + path, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+    body: JSON.stringify(body)
+  });
+  return r.json();
+}
+async function put(path, body) {
+  const r = await fetch(API + path, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+    body: JSON.stringify(body)
+  });
+  return r.json();
+}
+async function del(path) {
+  const r = await fetch(API + path, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
+  return r.json();
+}
+
+function toast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show ' + type;
+  setTimeout(() => t.className = '', 3000);
+}
+
+function fmt(gb) { return typeof gb === 'number' ? gb.toFixed(1) + ' GB' : '-'; }
+function fmtDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('fa-IR'); }
+
+// ── Dashboard ─────────────────────────────────
+async function loadDashboard() {
+  const r = await get('/admin/stats');
+  if (!r.success) return;
+  const d = r.data;
+  document.getElementById('s-resellers').textContent = d.totalResellers;
+  document.getElementById('s-active-r').textContent = d.activeResellers;
+  document.getElementById('s-clients').textContent = d.totalClients;
+  document.getElementById('s-traffic').textContent = d.totalTraffic?.toFixed(1) || '0';
+  const tbody = document.getElementById('recent-resellers');
+  tbody.innerHTML = (d.recentActivity || []).map(r => `
+    <tr>
+      <td><strong>${r.name}</strong><br><small style="color:var(--text-muted)">${r.username}</small></td>
+      <td>${r.current_clients}</td>
+      <td>${fmt(r.traffic_used_gb)}</td>
+      <td>${(r.balance || 0).toLocaleString()} تومان</td>
+    </tr>
+  `).join('');
+}
+
+// ── Resellers ─────────────────────────────────
+async function loadResellers() {
+  const r = await get('/admin/resellers');
+  if (!r.success) return;
+  document.getElementById('resellers-tbody').innerHTML = r.data.map(rs => `
+    <tr>
+      <td><strong>${rs.name}</strong></td>
+      <td dir="ltr">${rs.username}</td>
+      <td>${(rs.balance||0).toLocaleString()} ت</td>
+      <td>
+        ${fmt(rs.traffic_used_gb)} / ${fmt(rs.traffic_limit_gb)}
+        <div class="progress-bar" style="margin-top:5px">
+          <div class="progress-fill" style="width:${rs.traffic_limit_gb > 0 ? Math.min(100,(rs.traffic_used_gb/rs.traffic_limit_gb)*100) : 0}%"></div>
+        </div>
+      </td>
+      <td>${rs.current_clients} / ${rs.max_clients}</td>
+      <td><span class="badge ${rs.is_active ? 'badge-active' : 'badge-inactive'}">${rs.is_active ? 'فعال' : 'غیرفعال'}</span></td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-success btn-sm" onclick="openBalance(${rs.id})">💰 شارژ</button>
+        <button class="btn btn-secondary btn-sm" onclick="editReseller(${JSON.stringify(rs).replace(/"/g,'&quot;')})">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteReseller(${rs.id},'${rs.name}')">🗑️</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openAddReseller() {
+  document.getElementById('r-id').value = '';
+  document.getElementById('modal-reseller-title').textContent = 'نماینده جدید';
+  ['r-name','r-username','r-password','r-telegram','r-inbounds'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('r-traffic').value = 100;
+  document.getElementById('r-maxclients').value = 10;
+  document.getElementById('r-pricepergb').value = 0;
+  document.getElementById('r-expires').value = '';
+  openModal('modal-reseller');
+}
+
+function editReseller(rs) {
+  document.getElementById('r-id').value = rs.id;
+  document.getElementById('modal-reseller-title').textContent = 'ویرایش نماینده';
+  document.getElementById('r-name').value = rs.name;
+  document.getElementById('r-username').value = rs.username;
+  document.getElementById('r-password').value = '';
+  document.getElementById('r-telegram').value = rs.telegram_id || '';
+  document.getElementById('r-traffic').value = rs.traffic_limit_gb;
+  document.getElementById('r-maxclients').value = rs.max_clients;
+  document.getElementById('r-pricepergb').value = rs.price_per_gb || 0;
+  document.getElementById('r-expires').value = rs.expires_at ? rs.expires_at.replace(' ','T').substring(0,16) : '';
+  const inbs = JSON.parse(rs.allowed_inbounds || '[]');
+  document.getElementById('r-inbounds').value = inbs.join(',');
+  openModal('modal-reseller');
+}
+
+async function saveReseller() {
+  const id = document.getElementById('r-id').value;
+  const inbStr = document.getElementById('r-inbounds').value.trim();
+  const allowed_inbounds = inbStr ? inbStr.split(',').map(x => parseInt(x.trim())).filter(Boolean) : [];
+  const body = {
+    name: document.getElementById('r-name').value,
+    username: document.getElementById('r-username').value,
+    password: document.getElementById('r-password').value,
+    telegram_id: document.getElementById('r-telegram').value,
+    traffic_limit_gb: parseFloat(document.getElementById('r-traffic').value),
+    max_clients: parseInt(document.getElementById('r-maxclients').value),
+    price_per_gb: parseFloat(document.getElementById('r-pricepergb').value),
+    expires_at: document.getElementById('r-expires').value || null,
+    allowed_inbounds, is_active: 1,
+  };
+  const r = id ? await put(`/admin/resellers/${id}`, body) : await post('/admin/resellers', body);
+  if (r.success) { toast('✅ ذخیره شد'); closeModal('modal-reseller'); loadResellers(); }
+  else toast(r.message || 'خطا', 'error');
+}
+
+async function deleteReseller(id, name) {
+  if (!confirm(`نماینده "${name}" و همه کاربرانش حذف شوند؟`)) return;
+  const r = await del(`/admin/resellers/${id}`);
+  if (r.success) { toast('✅ حذف شد'); loadResellers(); }
+  else toast(r.message, 'error');
+}
+
+function openBalance(id) {
+  document.getElementById('bal-id').value = id;
+  document.getElementById('bal-amount').value = '';
+  document.getElementById('bal-desc').value = '';
+  openModal('modal-balance');
+}
+
+async function doAddBalance() {
+  const id = document.getElementById('bal-id').value;
+  const amount = parseFloat(document.getElementById('bal-amount').value);
+  const description = document.getElementById('bal-desc').value;
+  const r = await post(`/admin/resellers/${id}/balance`, { amount, description });
+  if (r.success) { toast('✅ کیف شارژ شد'); closeModal('modal-balance'); loadResellers(); }
+  else toast(r.message, 'error');
+}
+
+// ── Clients ───────────────────────────────────
+async function loadClients() {
+  const r = await get('/admin/clients');
+  if (!r.success) return;
+  document.getElementById('clients-tbody').innerHTML = r.data.map(c => `
+    <tr>
+      <td>${c.username}<br><small style="color:var(--text-muted)" dir="ltr">${c.email}</small></td>
+      <td>${c.reseller_name || '-'}</td>
+      <td>${fmt(c.traffic_used_gb)} / ${fmt(c.traffic_limit_gb)}</td>
+      <td>${fmtDate(c.expires_at)}</td>
+      <td><span class="badge ${c.is_active ? 'badge-active' : 'badge-inactive'}">${c.is_active ? 'فعال' : 'غیرفعال'}</span></td>
+    </tr>
+  `).join('');
+}
+
+// ── Inbounds ──────────────────────────────────
+async function loadInbounds() {
+  const r = await get('/admin/inbounds');
+  if (!r.success) return;
+  document.getElementById('inbounds-tbody').innerHTML = r.data.map(ib => `
+    <tr>
+      <td>${ib.id}</td>
+      <td>${ib.remark || ib.tag || '-'}</td>
+      <td dir="ltr">${ib.protocol}</td>
+      <td dir="ltr">${ib.port}</td>
+      <td><span class="badge ${ib.enable ? 'badge-active' : 'badge-inactive'}">${ib.enable ? 'فعال' : 'غیرفعال'}</span></td>
+    </tr>
+  `).join('');
+}
+
+// ── Transactions ──────────────────────────────
+async function loadTransactions() {
+  const r = await get('/admin/transactions');
+  if (!r.success) return;
+  document.getElementById('transactions-tbody').innerHTML = r.data.map(t => `
+    <tr>
+      <td>${t.reseller_username || '-'}</td>
+      <td><span class="badge ${t.type==='credit' ? 'badge-active' : 'badge-inactive'}">${t.type==='credit' ? 'واریز' : 'برداشت'}</span></td>
+      <td>${t.amount.toLocaleString()} ت</td>
+      <td>${t.description || '-'}</td>
+      <td>${fmtDate(t.created_at)}</td>
+    </tr>
+  `).join('');
+}
+
+// ── Modal helpers ─────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('auth-screen').style.display !== 'none') doLogin();
+});
+
+// ─── Charge Requests ───
+async function loadChargeRequests() {
+  var status = document.getElementById('cr-status-filter').value;
+  var r = await get('/admin/charge-requests?status=' + status);
+  var tbody = document.getElementById('cr-tbody');
+  if (!r || !r.success) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--danger)">خطا در بارگذاری</td></tr>';
+    return;
+  }
+  var statusLabel = { pending: 'در انتظار', approved: 'تایید شده', rejected: 'رد شده' };
+  var statusClr   = { pending: 'var(--warning)', approved: 'var(--success)', rejected: 'var(--danger)' };
+  if (!r.data.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">درخواستی وجود ندارد</td></tr>';
+    return;
+  }
+  tbody.innerHTML = r.data.map(function(cr) {
+    var rcpt = cr.card_receipt
+      ? '<button class="btn btn-secondary btn-sm" data-rid="cr-' + cr.id + '" onclick="openReceipt(this)">\u{1F4F8} رسید</button>'
+        + '<img id="cr-' + cr.id + '" src="' + cr.card_receipt + '" style="display:none">'
+      : '-';
+    var acts = cr.status === 'pending'
+      ? '<button class="btn btn-success btn-sm" style="margin-left:4px" onclick="approveCharge(' + cr.id + ')">\u2705 تأیید</button>'
+        + '<button class="btn btn-danger btn-sm" onclick="rejectCharge(' + cr.id + ')">\u274C رد</button>'
+      : '-';
+    return '<tr>'
+      + '<td><strong>' + (cr.reseller_name || '-') + '</strong><br>'
+      + '<span style="font-size:.75rem;color:var(--text-muted)">' + (cr.reseller_username || '') + '</span></td>'
+      + '<td style="font-weight:700;color:var(--accent)">' + Number(cr.amount || 0).toLocaleString('fa-IR') + ' ت</td>'
+      + '<td>' + rcpt + '</td>'
+      + '<td style="font-size:.8rem">' + fmtDate(cr.created_at) + '</td>'
+      + '<td><span style="color:' + (statusClr[cr.status] || 'var(--text-muted)') + '">● ' + (statusLabel[cr.status] || cr.status) + '</span></td>'
+      + '<td>' + acts + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
+function openReceipt(btn) {
+  var imgId = btn.getAttribute('data-rid');
+  var img = document.getElementById(imgId);
+  if (!img) return;
+  var w = window.open('', '_blank');
+  w.document.write('<body style="margin:0;background:#000"><img src="' + img.src + '" style="max-width:100%"></body>');
+}
+
+async function approveCharge(id) {
+  if (!confirm('تأیید درخواست شارژ و افزودن اعتبار؟')) return;
+  var r = await post('/admin/charge-requests/' + id + '/approve', {});
+  if (r.success) { toast('\u2705 ' + (r.message || 'شارژ تأیید شد')); loadChargeRequests(); }
+  else toast(r.message || 'خطا', 'error');
+}
+
+async function rejectCharge(id) {
+  var note = prompt('دلیل رد (اختیاری):') || '';
+  var r = await post('/admin/charge-requests/' + id + '/reject', { note: note });
+  if (r.success) { toast('درخواست رد شد'); loadChargeRequests(); }
+  else toast(r.message || 'خطا', 'error');
+}
+
+// ─── Panel Orders ───
+async function loadPanelOrders() {
+  var status = document.getElementById('po-status-filter').value;
+  var r = await get('/admin/panel-orders?status=' + status);
+  var tbody = document.getElementById('po-tbody');
+  if (!r || !r.success) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--danger)">خطا در بارگذاری</td></tr>';
+    return;
+  }
+  var statusLabel = { pending: 'در انتظار', approved: 'تایید شده', rejected: 'رد شده' };
+  var statusClr   = { pending: 'var(--warning)', approved: 'var(--success)', rejected: 'var(--danger)' };
+  if (!r.data.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">درخواستی وجود ندارد</td></tr>';
+    return;
+  }
+  tbody.innerHTML = r.data.map(function(po) {
+    var acts = '-';
+    if (po.status === 'pending') {
+      acts = '<button class="btn btn-success btn-sm" style="margin-left:4px"'
+           + ' data-poid="' + po.id + '" onclick="approvePanelOrder(this)">\u2705 بساز پنل</button>'
+           + '<button class="btn btn-danger btn-sm" data-poid="' + po.id + '" onclick="rejectPanelOrder(this)">\u274C رد</button>';
+    } else if (po.status === 'approved') {
+      acts = '<span style="font-size:.75rem;color:var(--success)">\u2713 ساخته شد</span>';
+    }
+    return '<tr>'
+      + '<td><strong>' + (po.full_name || '-') + '</strong></td>'
+      + '<td><code style="background:rgba(255,255,255,.05);padding:2px 6px;border-radius:4px">' + (po.username || '-') + '</code></td>'
+      + '<td style="font-size:.8rem">' + (po.telegram_id || '-') + '</td>'
+      + '<td style="font-weight:700;color:var(--accent)">' + Number(po.amount || 0).toLocaleString('fa-IR') + ' ت</td>'
+      + '<td style="font-size:.8rem">' + fmtDate(po.created_at) + '</td>'
+      + '<td><span style="color:' + (statusClr[po.status] || 'var(--text-muted)') + '">● ' + (statusLabel[po.status] || po.status) + '</span></td>'
+      + '<td>' + acts + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
+async function approvePanelOrder(btn) {
+  var id = btn.getAttribute('data-poid');
+  if (!confirm('ساخت پنل تأیید شود؟')) return;
+  var r = await post('/admin/panel-orders/' + id + '/approve', {});
+  if (r.success) { toast('\u2705 پنل ساخته شد — آیدی: ' + r.reseller_id); loadPanelOrders(); }
+  else toast(r.message || 'خطا', 'error');
+}
+
+async function rejectPanelOrder(btn) {
+  var id = btn.getAttribute('data-poid');
+  var note = prompt('دلیل رد (اختیاری):') || '';
+  var r = await post('/admin/panel-orders/' + id + '/reject', { note: note });
+  if (r.success) { toast('درخواست رد شد'); loadPanelOrders(); }
+  else toast(r.message || 'خطا', 'error');
+}
+
+</script>
+</body>
+</html>
