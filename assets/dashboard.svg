@@ -1,0 +1,82 @@
+<svg viewBox="0 0 1000 520" xmlns="http://www.w3.org/2000/svg" font-family="Vazirmatn, Segoe UI, Tahoma, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b0714"/><stop offset="1" stop-color="#07040f"/>
+    </linearGradient>
+    <linearGradient id="lime" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#a3e635"/><stop offset="1" stop-color="#4ade80"/>
+    </linearGradient>
+    <linearGradient id="purp" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#c026d3"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1000" height="520" rx="18" fill="url(#bg)"/>
+  <rect x="1" y="1" width="998" height="518" rx="18" fill="none" stroke="#ffffff14"/>
+
+  <!-- top bar -->
+  <circle cx="905" cy="46" r="16" fill="url(#purp)" filter="url(#glow)"/>
+  <text x="878" y="52" text-anchor="end" fill="#e9e6f5" font-size="19" font-weight="700">Amir Panel</text>
+  <rect x="60" y="30" width="120" height="34" rx="10" fill="#111018" stroke="#ffffff10"/>
+  <text x="120" y="52" text-anchor="middle" fill="#a3e635" font-size="13" font-weight="600">۲۹۰٬۰۰۰ ت</text>
+  <rect x="192" y="30" width="92" height="34" rx="10" fill="#1b2a12" stroke="#a3e63530"/>
+  <text x="238" y="52" text-anchor="middle" fill="#a3e635" font-size="12" font-weight="600">نصب اپ</text>
+
+  <!-- title -->
+  <text x="940" y="112" text-anchor="end" fill="#f4f2fb" font-size="22" font-weight="800">داشبورد</text>
+
+  <!-- stat cards -->
+  <g>
+    <!-- card template -->
+    <!-- 1 wallet -->
+    <rect x="770" y="140" width="170" height="112" rx="14" fill="#0f0c1a" stroke="#ffffff12"/>
+    <text x="925" y="172" text-anchor="end" fill="#8a86a0" font-size="12">موجودی کیف پول</text>
+    <text x="925" y="212" text-anchor="end" fill="#a78bfa" font-size="30" font-weight="800">۲۹۰٬۰۰۰</text>
+    <text x="925" y="234" text-anchor="end" fill="#6f6b85" font-size="11">تومان</text>
+    <!-- 2 capacity -->
+    <rect x="586" y="140" width="170" height="112" rx="14" fill="#0f0c1a" stroke="#ffffff12"/>
+    <text x="741" y="172" text-anchor="end" fill="#8a86a0" font-size="12">ظرفیت باقی‌مانده</text>
+    <text x="741" y="212" text-anchor="end" fill="#a3e635" font-size="30" font-weight="800">۹۸۸.۰</text>
+    <text x="741" y="234" text-anchor="end" fill="#6f6b85" font-size="11">گیگابایت</text>
+    <!-- 3 active users -->
+    <rect x="402" y="140" width="170" height="112" rx="14" fill="#0f0c1a" stroke="#ffffff12"/>
+    <text x="557" y="172" text-anchor="end" fill="#8a86a0" font-size="12">کاربران فعال</text>
+    <text x="557" y="212" text-anchor="end" fill="#f4f2fb" font-size="30" font-weight="800">۲</text>
+    <text x="557" y="234" text-anchor="end" fill="#6f6b85" font-size="11">از ۲ کل</text>
+    <!-- 4 online -->
+    <rect x="218" y="140" width="170" height="112" rx="14" fill="#0f0c1a" stroke="#ffffff12"/>
+    <text x="373" y="172" text-anchor="end" fill="#8a86a0" font-size="12">آنلاین الان</text>
+    <text x="373" y="212" text-anchor="end" fill="#f4f2fb" font-size="30" font-weight="800">۰</text>
+    <text x="373" y="234" text-anchor="end" fill="#6f6b85" font-size="11">کاربر</text>
+    <!-- 5 expired -->
+    <rect x="60" y="140" width="146" height="112" rx="14" fill="#0f0c1a" stroke="#ffffff12"/>
+    <text x="191" y="172" text-anchor="end" fill="#8a86a0" font-size="12">منقضی‌شدنی</text>
+    <text x="191" y="212" text-anchor="end" fill="#f4f2fb" font-size="30" font-weight="800">۰</text>
+    <text x="191" y="234" text-anchor="end" fill="#6f6b85" font-size="11">ظرف ۳ روز</text>
+  </g>
+
+  <!-- traffic bar -->
+  <rect x="60" y="278" width="880" height="74" rx="14" fill="#0f0c1a" stroke="#ffffff12"/>
+  <text x="925" y="308" text-anchor="end" fill="#8a86a0" font-size="12">مصرف ترافیک</text>
+  <text x="75" y="308" text-anchor="start" fill="#6f6b85" font-size="12">۱۲.۰ از ۱۰۰۰.۰ GB</text>
+  <rect x="75" y="322" width="850" height="12" rx="6" fill="#1a1726"/>
+  <rect x="915" y="322" width="10" height="12" rx="6" fill="url(#lime)" filter="url(#glow)"/>
+
+  <!-- sidebar chips -->
+  <g fill="#0f0c1a" stroke="#ffffff10">
+    <rect x="60" y="378" width="880" height="118" rx="14"/>
+  </g>
+  <text x="925" y="410" text-anchor="end" fill="#c9c4de" font-size="14" font-weight="700">🐉 نهان — ضدفیلترِ چندلایه فعال</text>
+  <g font-size="12" fill="#8a86a0">
+    <text x="925" y="440" text-anchor="end">تونل XHTTP پشت Cloudflare · خروجی WARP · اسکنر IP تمیز</text>
+    <text x="925" y="464" text-anchor="end">بلاک تبلیغات و تورنت · دو ساب‌لینک · watchdog حافظه</text>
+  </g>
+  <rect x="60" y="470" width="140" height="0.6" fill="#ffffff10"/>
+  <g>
+    <rect x="795" y="452" width="130" height="30" rx="9" fill="url(#purp)"/>
+    <text x="860" y="472" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">✨ باز کردن در اپ</text>
+  </g>
+</svg>

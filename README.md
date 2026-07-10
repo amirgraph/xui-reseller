@@ -28,7 +28,7 @@ _از صفر تا فروش، خودکار — با پرسش‌های ساده._
 
 <div align="center">
 <br>
-<img src="assets/dashboard.png" alt="داشبورد پنل نماینده" width="90%">
+<img src="assets/dashboard.svg" alt="داشبورد پنل نماینده" width="92%">
 <br><em>داشبوردِ پنلِ نماینده — مدرن، RTL، گلَس‌مورفیسم</em>
 </div>
 
