@@ -25,6 +25,14 @@ EOF
 
 # ── سرورِ اصلی nginx روی 443 ──
 cat > /etc/nginx/sites-available/nahan.conf <<EOF
+# استخرِ keepalive به xray — از churnِ اتصال (packet-up) جلوگیری می‌کند
+upstream nahan_xray {
+    server 127.0.0.1:8001;
+    keepalive 512;
+    keepalive_requests 100000;
+    keepalive_timeout 75s;
+}
+
 server {
     listen 0.0.0.0:443 ssl;
     listen [::]:443 ssl;
@@ -37,8 +45,9 @@ server {
 
     # تونل نهان (xhttp) → xray:8001  (بدون XFF تا x-ui اسپم نکند)
     location $XHTTP_PATH {
-        proxy_pass http://127.0.0.1:8001;
+        proxy_pass http://nahan_xray;
         proxy_http_version 1.1;
+        proxy_set_header Connection "";
         proxy_set_header Host \$host;
         proxy_set_header X-Forwarded-For "";
         proxy_set_header X-Real-IP "";
