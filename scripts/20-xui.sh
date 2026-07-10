@@ -9,9 +9,11 @@ DB=/etc/x-ui/x-ui.db
 
 # ── استقرار باینری x-ui (بستهٔ کارکرده) ──
 PKG="$HERE/releases/x-ui-nahan-v3.4.2.tgz"
+XUI_PKG_URL="${XUI_PKG_URL:-https://github.com/amirgraph/xui-reseller/releases/download/v1.0.0/x-ui-nahan-v3.4.2.tgz}"
 if [ ! -f "$PKG" ]; then
-  : "${XUI_PKG_URL:?بستهٔ x-ui نیست. releases/x-ui-nahan-v3.4.2.tgz را بگذار یا XUI_PKG_URL را ست کن}"
-  echo "  دانلود بستهٔ x-ui..."; curl -fsSL -o "$PKG" "$XUI_PKG_URL"
+  mkdir -p "$HERE/releases"
+  echo "  دانلود بستهٔ x-ui از GitHub Release..."
+  curl -fsSL -o "$PKG" "$XUI_PKG_URL" || { echo "دانلود بسته شکست خورد: $XUI_PKG_URL"; exit 1; }
 fi
 systemctl stop x-ui 2>/dev/null || true
 mkdir -p /usr/local /etc/x-ui
