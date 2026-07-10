@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>نهان — دموی زندهٔ برند</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brand:#7c3aed; --brand2:#c026d3; --lime1:#a3e635; --lime2:#4ade80;
+    --bg:#07040f; --bg2:#0b0714; --card:#0f0c1a; --line:#ffffff14;
+    --txt:#f4f2fb; --mut:#8a86a0; --dim:#6f6b85;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Vazirmatn,system-ui,Tahoma,sans-serif;background:
+    radial-gradient(900px 500px at 80% -10%, #23113f55, transparent),
+    radial-gradient(700px 500px at 0% 110%, #0e3a2a55, transparent), var(--bg);
+    color:var(--txt);min-height:100vh;padding:28px 16px 60px}
+  .wrap{max-width:1060px;margin:0 auto}
+  .head{text-align:center;margin-bottom:22px}
+  .head h1{font-size:26px;font-weight:800}
+  .head p{color:var(--mut);font-size:14px;margin-top:6px}
+  .head .logo{font-size:34px}
+
+  .controls{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:16px 18px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:center;margin-bottom:24px}
+  .controls label{font-size:13px;color:var(--mut);margin-inline-end:8px}
+  .controls input[type=text]{background:#0a0713;border:1px solid var(--line);border-radius:10px;
+    color:var(--txt);padding:9px 12px;font-family:inherit;font-size:14px;width:150px;text-align:center}
+  .swatches{display:flex;gap:8px}
+  .sw{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:.15s}
+  .sw.on{border-color:#fff;transform:scale(1.12)}
+  .emojis{display:flex;gap:6px}
+  .em{font-size:20px;cursor:pointer;opacity:.5;transition:.15s;filter:grayscale(.3)}
+  .em.on{opacity:1;transform:scale(1.2);filter:none}
+
+  .stage{display:grid;grid-template-columns:1fr 360px;gap:22px;align-items:start}
+  @media(max-width:820px){.stage{grid-template-columns:1fr}}
+  .accent{background:linear-gradient(135deg,var(--brand),var(--brand2))}
+  .glass{background:var(--card);border:1px solid var(--line);border-radius:16px}
+
+  /* dashboard */
+  .dash{padding:18px}
+  .dtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+  .dtop .name{font-weight:800;font-size:17px}
+  .badge{background:linear-gradient(135deg,var(--brand),var(--brand2));border-radius:10px;padding:6px 12px;font-size:12px;font-weight:600;color:#fff}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .stat{background:#0c0a16;border:1px solid var(--line);border-radius:13px;padding:13px}
+  .stat .l{font-size:11px;color:var(--mut)}
+  .stat .v{font-size:26px;font-weight:800;margin-top:4px}
+  .stat .s{font-size:10px;color:var(--dim);margin-top:2px}
+  .v.br{color:var(--brand)} .v.gr{color:var(--lime1)}
+  .bar{background:#0c0a16;border:1px solid var(--line);border-radius:13px;padding:14px;margin-top:12px}
+  .bar .r{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);margin-bottom:9px}
+  .track{height:12px;background:#1a1726;border-radius:6px;overflow:hidden}
+  .fill{height:100%;width:17%;border-radius:6px;background:linear-gradient(90deg,var(--lime1),var(--lime2))}
+
+  /* phone / sub page */
+  .phone{background:#050309;border:1px solid var(--line);border-radius:30px;padding:12px}
+  .screen{background:linear-gradient(180deg,var(--bg2),#060410);border-radius:22px;padding:18px 16px;overflow:hidden}
+  .shead{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;margin-bottom:16px}
+  .avatar{width:64px;height:64px;border-radius:20px;display:grid;place-items:center;font-size:30px;
+    background:linear-gradient(135deg,var(--brand),var(--brand2))}
+  .shead .bn{font-weight:800;font-size:18px}
+  .shead .tag{color:var(--mut);font-size:12px}
+  .live{display:inline-flex;align-items:center;gap:6px;color:var(--lime1);font-size:11px;
+    background:#12251a;border:1px solid #a3e63530;border-radius:20px;padding:4px 10px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--lime1);box-shadow:0 0 8px var(--lime1)}
+  .ring{position:relative;width:120px;height:120px;margin:14px auto}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .pct{position:absolute;inset:0;display:grid;place-items:center;flex-direction:column;text-align:center}
+  .ring .pct b{font-size:24px;font-weight:800}
+  .ring .pct small{font-size:10px;color:var(--mut);display:block}
+  .srow{display:flex;justify-content:space-between;background:#0c0a16;border:1px solid var(--line);
+    border-radius:12px;padding:11px 13px;margin-top:9px;font-size:12px}
+  .srow .k{color:var(--mut)} .srow .val{font-weight:600}
+  .lbl{font-size:11px;color:var(--dim);margin:14px 4px 7px}
+  .sublink{display:flex;align-items:center;gap:8px;background:#0c0a16;border:1px solid var(--line);border-radius:11px;padding:9px 11px}
+  .sublink .u{flex:1;font-size:11px;color:var(--mut);direction:ltr;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .cbtn{background:linear-gradient(135deg,var(--brand),var(--brand2));border:none;color:#fff;font-family:inherit;
+    font-size:11px;font-weight:600;border-radius:8px;padding:6px 12px;cursor:pointer}
+  .cfg{display:flex;align-items:center;gap:8px;background:#0c0a16;border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-top:8px;font-size:12px}
+  .cfg .flag{font-size:15px} .cfg .nm{flex:1;color:var(--txt)}
+  .cfg .p{background:var(--brand);color:#fff;font-size:9px;font-weight:700;border-radius:5px;padding:2px 7px}
+  .openapp{width:100%;margin-top:14px;border:none;color:#0a0713;font-family:inherit;font-weight:800;font-size:14px;
+    border-radius:13px;padding:13px;cursor:pointer;background:linear-gradient(90deg,var(--lime1),var(--lime2))}
+  .note{text-align:center;color:var(--dim);font-size:12px;margin-top:22px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="logo" id="hlogo">🐉</div>
+    <h1>دموی زندهٔ برندینگ — نهان</h1>
+    <p>برند را عوض کن؛ داشبوردِ نماینده و صفحهٔ ساب هر دو زنده تغییر می‌کنند (White-label)</p>
+  </div>
+
+  <div class="controls">
+    <div><label>نام برند</label><input type="text" id="bname" value="Amir Panel" maxlength="18"></div>
+    <div><label>رنگ</label>
+      <span class="swatches" id="sw">
+        <span class="sw on" style="background:#7c3aed" data-b="#7c3aed" data-b2="#c026d3"></span>
+        <span class="sw" style="background:#16a34a" data-b="#16a34a" data-b2="#4ade80"></span>
+        <span class="sw" style="background:#2563eb" data-b="#2563eb" data-b2="#38bdf8"></span>
+        <span class="sw" style="background:#db2777" data-b="#db2777" data-b2="#fb7185"></span>
+        <span class="sw" style="background:#ea580c" data-b="#ea580c" data-b2="#f59e0b"></span>
+      </span>
+    </div>
+    <div><label>لوگو</label>
+      <span class="emojis" id="em">
+        <span class="em on" data-e="🐉">🐉</span><span class="em" data-e="🚀">🚀</span>
+        <span class="em" data-e="🛡️">🛡️</span><span class="em" data-e="⚡">⚡</span><span class="em" data-e="🦅">🦅</span>
+      </span>
+    </div>
+  </div>
+
+  <div class="stage">
+    <!-- dashboard -->
+    <div class="glass dash">
+      <div class="dtop">
+        <div class="name"><span id="dlogo">🐉</span> <span id="dname">Amir Panel</span></div>
+        <div class="badge">پنل نماینده</div>
+      </div>
+      <div class="cards">
+        <div class="stat"><div class="l">موجودی کیف پول</div><div class="v br">۲۹۰٬۰۰۰</div><div class="s">تومان</div></div>
+        <div class="stat"><div class="l">ظرفیت باقی‌مانده</div><div class="v gr">۹۸۸.۰</div><div class="s">گیگابایت</div></div>
+        <div class="stat"><div class="l">کاربران فعال</div><div class="v">۲</div><div class="s">از ۲ کل</div></div>
+      </div>
+      <div class="bar">
+        <div class="r"><span>مصرف ترافیک</span><span>۱۲.۰ از ۱۰۰۰.۰ GB</span></div>
+        <div class="track"><div class="fill"></div></div>
+      </div>
+      <div class="cards" style="margin-top:12px">
+        <div class="stat"><div class="l">آنلاین الان</div><div class="v">۰</div><div class="s">کاربر</div></div>
+        <div class="stat"><div class="l">منقضی‌شدنی</div><div class="v">۰</div><div class="s">ظرف ۳ روز</div></div>
+        <div class="stat"><div class="l">پینگ</div><div class="v gr">۱۰</div><div class="s">ms</div></div>
+      </div>
+    </div>
+
+    <!-- sub page -->
+    <div class="phone">
+      <div class="screen">
+        <div class="shead">
+          <div class="avatar" id="savatar">🐉</div>
+          <div class="bn" id="sname">Amir Panel</div>
+          <div class="tag">سرویس VPN اختصاصی</div>
+          <span class="live"><span class="dot"></span> سرور فعال · ۱۰ms</span>
+        </div>
+        <div class="ring">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="52" fill="none" stroke="#1a1726" stroke-width="10"/>
+            <circle cx="60" cy="60" r="52" fill="none" stroke="var(--brand)" stroke-width="10"
+              stroke-linecap="round" stroke-dasharray="327" stroke-dashoffset="271"/>
+          </svg>
+          <div class="pct"><span><b>۱۷٪</b><small>۱۵.۶ از ۹۰ GB</small></span></div>
+        </div>
+        <div class="srow"><span class="k">اشتراک</span><span class="val" style="color:var(--brand)">PREMIUM · فعال</span></div>
+        <div class="srow"><span class="k">زمان باقی‌مانده</span><span class="val">۲۴ روز ۱۷:۴۶</span></div>
+
+        <div class="lbl">ساب‌لینک اشتراک</div>
+        <div class="sublink"><span class="u">https://sub.example.com/sub/a0dd…</span><button class="cbtn">کپی</button></div>
+
+        <div class="lbl">کانفیگ‌ها</div>
+        <div class="cfg"><span class="flag">🇩🇪</span><span class="nm">germany-fast-tunnel</span><span class="p">vless</span></div>
+        <div class="cfg"><span class="flag">🔒</span><span class="nm">نهان — کلادفلر</span><span class="p">vless</span></div>
+
+        <button class="openapp">✨ باز کردن در اپ</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">همین صفحه در نصبِ واقعی، با برندِ هر نماینده به‌صورت خودکار شخصی‌سازی می‌شود.</div>
+</div>
+
+<script>
+  var root=document.documentElement;
+  function setName(v){v=v||'برند شما';['dname','sname'].forEach(function(id){document.getElementById(id).textContent=v});}
+  document.getElementById('bname').addEventListener('input',function(e){setName(e.target.value.trim());});
+  document.getElementById('sw').addEventListener('click',function(e){
+    var s=e.target.closest('.sw'); if(!s)return;
+    document.querySelectorAll('.sw').forEach(function(x){x.classList.remove('on')}); s.classList.add('on');
+    root.style.setProperty('--brand',s.dataset.b); root.style.setProperty('--brand2',s.dataset.b2);
+  });
+  document.getElementById('em').addEventListener('click',function(e){
+    var m=e.target.closest('.em'); if(!m)return;
+    document.querySelectorAll('.em').forEach(function(x){x.classList.remove('on')}); m.classList.add('on');
+    var v=m.dataset.e; ['hlogo','dlogo','savatar'].forEach(function(id){document.getElementById(id).textContent=v});
+  });
+</script>
+</body>
+</html>
