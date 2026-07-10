@@ -15,6 +15,12 @@ _از صفر تا فروش، خودکار — با پرسش‌های ساده._
 ![Xray](https://img.shields.io/badge/Xray-XHTTP-7c3aed?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-MIT-black?style=for-the-badge)
 
+<br>
+
+### 🔴 [دموی زندهٔ برندینگ →](https://amirgraph.github.io/xui-reseller/demo/)
+
+_برند (اسم و رنگ) را عوض کن — داشبوردِ نماینده و صفحهٔ ساب **هر دو زنده** تغییر می‌کنند_
+
 </div>
 
 ---
