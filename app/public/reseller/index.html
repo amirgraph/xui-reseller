@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VPN Panel</title>
+<link rel="manifest" href="/reseller/manifest.json">
+<meta name="theme-color" content="#7C5CFC">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="پنل">
+<link rel="apple-touch-icon" href="/reseller/icon-192.png">
+<style>
+:root{--bg:#080810;--surface:rgba(255,255,255,0.04);--surface-hover:rgba(255,255,255,0.07);--border:rgba(255,255,255,0.08);--accent:#7C5CFC;--accent2:#5eead4;--text:#f0f0ff;--text-muted:rgba(240,240,255,0.45);--danger:#ff4d6d;--success:#2dd4bf;--warning:#fbbf24;--radius:14px;--glass:blur(20px)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+body::before{content:'';position:fixed;top:-20%;right:-10%;width:500px;height:500px;background:radial-gradient(circle,rgba(124,92,252,0.1) 0%,transparent 70%);pointer-events:none;z-index:0}
+#auth-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:100;flex-direction:column;gap:14px;padding:20px}
+.auth-card{background:rgba(255,255,255,0.05);backdrop-filter:var(--glass);border:1px solid var(--border);border-radius:24px;padding:36px 32px 28px;width:100%;max-width:380px;text-align:center}
+.auth-top-actions{display:flex;gap:10px;justify-content:center;margin-bottom:20px}
+.auth-action-btn{display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:12px;font-size:.82rem;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .2s}
+.auth-action-btn svg{width:16px;height:16px;stroke:currentColor;flex-shrink:0}
+.auth-install-btn{background:rgba(94,234,212,0.12);border:1px solid rgba(94,234,212,0.3);color:var(--accent2)}
+.auth-install-btn:hover{background:rgba(94,234,212,0.22)}
+.auth-buy-btn{background:rgba(124,92,252,0.15);border:1px solid rgba(124,92,252,0.35);color:var(--accent)}
+.auth-buy-btn:hover{background:rgba(124,92,252,0.25)}
+.brand-logo{font-size:2.6rem;margin-bottom:10px}
+.auth-card h1{font-size:1.35rem;margin-bottom:4px}
+.auth-card>p{color:var(--text-muted);margin-bottom:24px;font-size:.84rem}
+#app{display:none;min-height:100vh;position:relative;z-index:1}
+.topbar{position:sticky;top:0;z-index:50;background:rgba(8,8,16,0.85);backdrop-filter:var(--glass);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between}
+.topbar-center{position:absolute;left:50%;transform:translateX(-50%);font-weight:800;font-size:1.1rem;letter-spacing:1px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.topbar-brand{display:flex;align-items:center;gap:10px}
+.topbar-logo-placeholder{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#a78bfa);display:flex;align-items:center;justify-content:center;font-size:16px}
+.topbar-name{font-weight:700;font-size:.95rem}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.balance-pill{background:rgba(124,92,252,0.15);border:1px solid rgba(124,92,252,0.3);border-radius:20px;padding:5px 12px;font-size:.82rem;color:var(--accent);font-weight:600;display:flex;align-items:center;gap:5px;cursor:pointer}
+.balance-pill:hover{background:rgba(124,92,252,0.25)}
+.topbar-install-btn{background:rgba(94,234,212,0.12);border:1px solid rgba(94,234,212,0.3);border-radius:20px;padding:5px 10px;font-size:.75rem;color:var(--accent2);font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.topbar-install-btn:hover{background:rgba(94,234,212,0.2)}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(10,10,20,0.95);backdrop-filter:var(--glass);border-top:1px solid var(--border);display:none;z-index:50}
+.bottom-nav-items{display:flex;align-items:center;justify-content:space-around;padding:8px 0 12px}
+.bn-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 12px;border-radius:10px;cursor:pointer;font-size:.64rem;color:var(--text-muted);transition:color .2s}
+.bn-item svg{width:20px;height:20px;stroke:currentColor}
+.bn-item.active{color:var(--accent)}
+.sidebar{position:fixed;top:60px;right:0;width:220px;height:calc(100vh - 60px);background:rgba(255,255,255,0.02);border-left:1px solid var(--border);padding:20px 12px;display:flex;flex-direction:column;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;color:var(--text-muted);font-size:.86rem;transition:all .2s;margin-bottom:2px}
+.nav-item svg{width:18px;height:18px;stroke:currentColor;flex-shrink:0}
+.nav-item:hover{background:var(--surface-hover);color:var(--text)}
+.nav-item.active{background:rgba(124,92,252,0.15);color:var(--accent)}
+.main{margin-right:220px;padding:24px;min-height:calc(100vh - 60px)}
+.page{display:none}.page.active{display:block}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:10px}
+.page-header h2{font-size:1.3rem;font-weight:700}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:24px}
+.stat-card{background:var(--surface);backdrop-filter:var(--glass);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.stat-label{font-size:.75rem;color:var(--text-muted);margin-bottom:6px}
+.stat-value{font-size:1.7rem;font-weight:700}
+.stat-sub{font-size:.7rem;color:var(--text-muted);margin-top:3px}
+.stat-card.c-accent .stat-value{color:var(--accent)}
+.stat-card.c-success .stat-value{color:var(--success)}
+.stat-card.c-warning .stat-value{color:var(--warning)}
+.stat-card.c-danger .stat-value{color:var(--danger)}
+.table-wrap{background:var(--surface);backdrop-filter:var(--glass);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:400px}
+th{text-align:right;padding:11px 14px;font-size:.73rem;color:var(--text-muted);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:12px 14px;font-size:.83rem;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--surface-hover)}
+input,select,textarea{width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:9px;padding:9px 12px;color:var(--text);font-size:.86rem;outline:none;transition:border-color .2s;font-family:inherit}
+input:focus,select:focus{border-color:var(--accent);background:rgba(124,92,252,0.08)}
+select option{background:#1a1a2e}
+label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
+.form-group{margin-bottom:14px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:9px;font-size:.83rem;font-weight:600;cursor:pointer;border:none;transition:all .2s;font-family:inherit;white-space:nowrap}
+.btn svg{width:15px;height:15px;stroke:currentColor;flex-shrink:0}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#6d4ff0}
+.btn-secondary{background:var(--surface-hover);border:1px solid var(--border);color:var(--text)}
+.btn-danger{background:rgba(255,77,109,0.12);color:var(--danger);border:1px solid rgba(255,77,109,0.25)}
+.btn-success{background:rgba(45,212,191,0.12);color:var(--success);border:1px solid rgba(45,212,191,0.25)}
+.btn-warning{background:rgba(251,191,36,0.12);color:var(--warning);border:1px solid rgba(251,191,36,0.25)}
+.btn-sm{padding:4px 10px;font-size:.75rem;border-radius:6px}
+.btn-sm svg{width:13px;height:13px}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.7rem;font-weight:600}
+.badge-active{background:rgba(45,212,191,0.15);color:var(--success)}
+.badge-inactive{background:rgba(255,77,109,0.15);color:var(--danger)}
+.badge-pending{background:rgba(251,191,36,0.15);color:var(--warning)}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal{background:#0f0f1e;border:1px solid var(--border);border-radius:20px;padding:26px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;position:relative}
+.modal h3{font-size:1rem;margin-bottom:18px;font-weight:700}
+.modal-close{position:absolute;top:14px;left:14px;background:none;border:none;color:var(--text-muted);cursor:pointer;display:flex;align-items:center}
+.modal-close svg{width:20px;height:20px;stroke:currentColor}
+.progress-bar{height:5px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s}
+.sub-box{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:9px;padding:10px 14px;font-size:.8rem;font-family:monospace;word-break:break-all;color:var(--accent2);cursor:pointer;transition:background .2s;direction:ltr;text-align:left;margin-bottom:6px}
+.sub-box:hover{background:rgba(255,255,255,0.07)}
+.emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-top:8px}
+.emoji-btn{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:1.3rem;cursor:pointer;transition:all .2s;text-align:center}
+.emoji-btn:hover,.emoji-btn.selected{background:rgba(124,92,252,0.2);border-color:var(--accent)}
+.motion-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.motion-btn{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;cursor:pointer;transition:all .2s;text-align:center;font-size:.8rem}
+.motion-btn:hover,.motion-btn.selected{background:rgba(124,92,252,0.2);border-color:var(--accent)}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(20,20,40,.95);backdrop-filter:var(--glass);border:1px solid var(--border);border-radius:12px;padding:10px 22px;font-size:.85rem;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1}
+#toast.success{border-color:var(--success);color:var(--success)}
+#toast.error{border-color:var(--danger);color:var(--danger)}
+.quick-dates{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.quick-date-btn{padding:4px 10px;border-radius:6px;font-size:.75rem;cursor:pointer;background:var(--surface);border:1px solid var(--border);color:var(--text-muted);transition:all .2s}
+.quick-date-btn:hover{border-color:var(--accent);color:var(--accent)}
+.action-btns{display:flex;gap:6px;flex-wrap:wrap}
+.info-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:.83rem}
+.info-row:last-child{border-bottom:none}
+.info-label{color:var(--text-muted)}
+.change-pass-section{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:16px}
+.amount-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+.amount-btn{background:var(--surface);border:2px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;text-align:center;transition:all .2s;font-size:.9rem;font-weight:600}
+.amount-btn:hover,.amount-btn.selected{border-color:var(--accent);background:rgba(124,92,252,0.15);color:var(--accent)}
+.card-display{background:rgba(124,92,252,0.08);border:1px solid rgba(124,92,252,0.25);border-radius:12px;padding:16px;margin-bottom:16px;text-align:center;cursor:pointer}
+.card-number{font-size:1.15rem;font-weight:700;letter-spacing:3px;direction:ltr;color:var(--accent2);margin-bottom:4px}
+.card-owner{font-size:.8rem;color:var(--text-muted)}
+.receipt-upload{border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:14px}
+.receipt-upload:hover{border-color:var(--accent);background:rgba(124,92,252,0.05)}
+.receipt-upload input{display:none}
+.receipt-preview{max-width:100%;max-height:180px;border-radius:8px;margin-top:10px;display:none}
+.charge-history-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.charge-history-item:last-child{border-bottom:none}
+.step-indicator{display:flex;align-items:center;gap:0;margin-bottom:24px}
+.step{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--text-muted)}
+.step.active{color:var(--accent)}
+.step.done{color:var(--success)}
+.step-num{width:24px;height:24px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0}
+.step-line{flex:1;height:2px;background:rgba(255,255,255,0.08);margin:0 6px}
+.step.done .step-line{background:var(--success)}
+.ios-install-banner{background:rgba(94,234,212,0.08);border:1px solid rgba(94,234,212,0.2);border-radius:12px;padding:14px 16px;font-size:.84rem;line-height:1.6;display:none}
+.ios-install-banner.show{display:block}
+@media(max-width:768px){
+  .sidebar{display:none}.bottom-nav{display:block}
+  .main{margin-right:0;padding:16px;padding-bottom:80px}
+  .form-row{grid-template-columns:1fr}
+  .topbar-center{display:none}
+}
+</style>
+</head>
+<body>
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-top-actions">
+      <a class="auth-action-btn auth-install-btn" href="https://__MAIN_DOMAIN__/VPN Panel.apk" onclick="installApp(event)" download="VPN Panel.apk">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        دانلود اپ
+      </a>
+      <button class="auth-action-btn auth-buy-btn" onclick="showBuyPanel()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        خرید پنل
+      </button>
+    </div>
+    <div class="brand-logo" id="auth-logo">🌐</div>
+    <h1 id="auth-title">VPN Panel</h1>
+    <p>ورود به پنل نمایندگی</p>
+    <div class="form-group"><label>نام کاربری</label><input id="login-user" type="text" placeholder="username" dir="ltr" autocomplete="username"></div>
+    <div class="form-group"><label>رمز عبور</label><input id="login-pass" type="password" placeholder="••••••••" dir="ltr" autocomplete="current-password"></div>
+    <button class="btn btn-primary" style="width:100%;padding:11px" onclick="doLogin()">ورود</button>
+    <p id="login-err" style="color:var(--danger);margin-top:10px;font-size:.83rem"></p>
+  </div>
+  <div id="ios-install-info" class="ios-install-banner" style="max-width:380px;width:100%">
+    برای نصب اپ در آیفون/آیپد: در Safari دکمه <strong>Share</strong> را بزنید، سپس <strong>Add to Home Screen</strong> را انتخاب کنید.
+    <div style="margin-top:8px;text-align:left"><button class="btn btn-sm btn-secondary" onclick="document.getElementById('ios-install-info').classList.remove('show')">بستن</button></div>
+  </div>
+</div>
+
+<!-- Buy Panel Overlay -->
+<div class="modal-overlay" id="modal-buy-panel">
+  <div class="modal" style="max-width:460px">
+    <button class="modal-close" onclick="closeModal('modal-buy-panel')">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h3>خرید پنل نمایندگی</h3>
+    <div class="step-indicator" id="buy-steps">
+      <div class="step active" id="step1"><div class="step-num">۱</div> اطلاعات</div>
+      <div class="step-line"></div>
+      <div class="step" id="step2"><div class="step-num">۲</div> پرداخت</div>
+      <div class="step-line"></div>
+      <div class="step" id="step3"><div class="step-num">۳</div> تأیید</div>
+    </div>
+
+    <!-- Step 1: Info -->
+    <div id="buy-step-1">
+      <div class="form-group"><label>نام کامل</label><input id="bp-name" placeholder="علی رضایی"></div>
+      <div class="form-group"><label>آیدی عددی تلگرام</label><input id="bp-telegram" placeholder="123456789" dir="ltr" type="tel" inputmode="numeric"></div>
+      <div class="form-row">
+        <div class="form-group"><label>نام کاربری (انگلیسی)</label><input id="bp-username" placeholder="ali_vpn" dir="ltr"></div>
+        <div class="form-group"><label>رمز عبور</label><input id="bp-password" type="password" placeholder="••••••••" dir="ltr"></div>
+      </div>
+      <div style="background:rgba(124,92,252,0.08);border:1px solid rgba(124,92,252,0.2);border-radius:10px;padding:12px 14px;font-size:.82rem;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text-muted)">ظرفیت ترافیک</span><span id="bp-info-traffic">۱۴۵ گیگابایت</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text-muted)">قیمت هر گیگ</span><span id="bp-info-price-gb">۳,۵۰۰ تومان</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">هزینه پنل</span><span style="color:var(--accent);font-weight:700" id="bp-info-price">۵۵۰,۰۰۰ تومان</span></div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;padding:11px" onclick="buyPanelNext()">ادامه</button>
+      <p id="bp-err" style="color:var(--danger);margin-top:10px;font-size:.83rem;text-align:center"></p>
+    </div>
+
+    <!-- Step 2: Payment -->
+    <div id="buy-step-2" style="display:none">
+      <div class="card-display" onclick="copyText(document.getElementById('bp-card-num').textContent,'شماره کارت کپی شد')">
+        <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:8px">واریز <strong id="bp-amount-text">۵۵۰,۰۰۰ تومان</strong> به کارت:</div>
+        <div class="card-number" id="bp-card-num">—</div>
+        <div class="card-owner" id="bp-card-owner">—</div>
+        <div style="margin-top:6px;font-size:.72rem;color:var(--accent2)">برای کپی کلیک کنید</div>
+      </div>
+      <div class="receipt-upload" onclick="document.getElementById('bp-receipt-file').click()">
+        <input type="file" id="bp-receipt-file" accept="image/*" onchange="handleBpReceipt(this)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 8px;opacity:.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+        <div style="font-size:.83rem;color:var(--text-muted)">فیش واریز را آپلود کنید</div>
+        <img class="receipt-preview" id="bp-receipt-preview">
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-secondary" style="flex:1" onclick="buyPanelBack()">برگشت</button>
+        <button class="btn btn-primary" style="flex:2;padding:11px" onclick="submitPanelOrder()">ثبت درخواست</button>
+      </div>
+      <p id="bp-err2" style="color:var(--danger);margin-top:10px;font-size:.83rem;text-align:center"></p>
+    </div>
+
+    <!-- Step 3: Done -->
+    <div id="buy-step-3" style="display:none;text-align:center;padding:20px 0">
+      <div style="font-size:3rem;margin-bottom:16px">✅</div>
+      <h3 style="font-size:1.1rem;margin-bottom:8px">درخواست ثبت شد!</h3>
+      <p style="color:var(--text-muted);font-size:.88rem;line-height:1.7">درخواست شما دریافت شد.<br>پس از بررسی فیش توسط ادمین، پنل شما ساخته میشه.<br>اطلاعات ورود برایتان ارسال خواهد شد.</p>
+      <button class="btn btn-secondary" style="margin-top:20px" onclick="closeModal('modal-buy-panel')">بستن</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-logo-placeholder" id="tb-logo">🌐</div>
+      <span class="topbar-name" id="tb-name">VPN Panel</span>
+    </div>
+    <div class="topbar-center">VPN Panel</div>
+    <div class="topbar-right">
+      <span class="balance-pill" id="tb-balance" onclick="showPage('charge',document.querySelector('.nav-item[data-page=charge]'))" title="افزایش اعتبار">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><circle cx="16" cy="14" r="1"/><path d="M20 7V5a2 2 0 0 0-2-2H4"/></svg>
+        <span id="tb-balance-text">...</span>
+      </span>
+      <a class="topbar-install-btn" id="topbar-install-btn" href="https://__MAIN_DOMAIN__/VPN Panel.apk" onclick="installApp(event)" download="VPN Panel.apk">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        نصب اپ
+      </a>
+      <button class="btn btn-secondary btn-sm" onclick="logout()" style="display:flex;align-items:center;gap:5px">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        خروج
+      </button>
+    </div>
+  </div>
+  <div class="sidebar">
+    <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard',this)">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      داشبورد
+    </div>
+    <div class="nav-item" data-page="clients" onclick="showPage('clients',this)">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      کاربران
+    </div>
+    <div class="nav-item" data-page="transactions" onclick="showPage('transactions',this)">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      تراکنش‌ها
+    </div>
+    <div class="nav-item" data-page="charge" onclick="showPage('charge',this)">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><circle cx="16" cy="14" r="1"/><path d="M20 7V5a2 2 0 0 0-2-2H4"/></svg>
+      افزایش اعتبار
+    </div>
+    <div class="nav-item" data-page="brand" onclick="showPage('brand',this)">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+      برند من
+    </div>
+    <div class="nav-item" data-page="account" onclick="showPage('account',this)">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      حساب من
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="bottom-nav-items">
+      <div class="bn-item active" data-page="dashboard" onclick="showPage('dashboard',this)">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        داشبورد
+      </div>
+      <div class="bn-item" data-page="clients" onclick="showPage('clients',this)">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        کاربران
+      </div>
+      <div class="bn-item" data-page="charge" onclick="showPage('charge',this)">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><circle cx="16" cy="14" r="1"/><path d="M20 7V5a2 2 0 0 0-2-2H4"/></svg>
+        شارژ
+      </div>
+      <div class="bn-item" data-page="brand" onclick="showPage('brand',this)">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+        برند
+      </div>
+      <div class="bn-item" data-page="account" onclick="showPage('account',this)">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        حساب
+      </div>
+    </div>
+  </div>
+  <main class="main">
+    <div class="page active" id="page-dashboard">
+      <div class="unlim-banner" style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.3);border-radius:10px;padding:8px 11px;margin-bottom:14px;display:flex;gap:8px;align-items:flex-start;font-size:.74rem;line-height:1.7">
+        <svg style="flex-shrink:0;color:var(--accent,#7C5CFC);margin-top:1px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <div><b style="color:var(--accent,#7C5CFC)">کاربر نامحدود:</b> برای ساخت، حجم را روی <b>صفر (۰)</b> بگذارید — هر ماه <b>۱۸۰٬۰۰۰ تومان</b>. <b style="color:var(--warning,#f0a020)">توجه:</b> پس از ساخت، حذف نمی‌شود و موجودی بازنمی‌گردد.</div>
+      </div>
+      <div class="page-header">
+        <h2>داشبورد</h2>
+        <button class="btn btn-secondary btn-sm" onclick="loadDashboard()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          بروزرسانی
+        </button>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card c-accent"><div class="stat-label">موجودی کیف پول</div><div class="stat-value" id="ds-balance">-</div><div class="stat-sub">تومان</div></div>
+        <div class="stat-card c-success"><div class="stat-label">ظرفیت باقی‌مانده</div><div class="stat-value" id="ds-remaining">-</div><div class="stat-sub">گیگابایت</div></div>
+        <div class="stat-card"><div class="stat-label">کاربران فعال</div><div class="stat-value" id="ds-active">-</div><div class="stat-sub" id="ds-total-sub">از - کل</div></div>
+        <div class="stat-card c-warning"><div class="stat-label">آنلاین الان</div><div class="stat-value" id="ds-online">-</div><div class="stat-sub">کاربر</div></div>
+        <div class="stat-card c-danger"><div class="stat-label">منقضی شدنی</div><div class="stat-value" id="ds-expiring">-</div><div class="stat-sub">ظرف ۳ روز</div></div>
+      </div>
+      <div class="table-wrap" style="padding:18px;margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:.82rem;color:var(--text-muted)">مصرف ترافیک</span><span style="font-size:.82rem" id="ds-traffic-label">-</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="ds-traffic-bar" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div class="page" id="page-clients">
+      <div class="page-header">
+        <h2>کاربران</h2>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <div style="position:relative">
+            <input id="search-clients" placeholder="جستجو..." style="width:150px;padding:7px 10px 7px 30px" oninput="filterClients()">
+            <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);opacity:.5;pointer-events:none">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </span>
+          </div>
+          <button class="btn btn-primary" onclick="openAddClient()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            کاربر جدید
+          </button>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <div class="stat-card" style="padding:10px 16px;flex:1;min-width:90px"><div class="stat-label">کل</div><div class="stat-value" id="cl-total" style="font-size:1.3rem">-</div></div>
+        <div class="stat-card c-success" style="padding:10px 16px;flex:1;min-width:90px"><div class="stat-label">فعال</div><div class="stat-value" id="cl-active" style="font-size:1.3rem">-</div></div>
+        <div class="stat-card c-danger" style="padding:10px 16px;flex:1;min-width:90px"><div class="stat-label">غیرفعال</div><div class="stat-value" id="cl-inactive" style="font-size:1.3rem">-</div></div>
+        <div class="stat-card c-warning" style="padding:10px 16px;flex:1;min-width:90px"><div class="stat-label">آنلاین</div><div class="stat-value" id="cl-online" style="font-size:1.3rem">-</div></div>
+      </div>
+      <div class="table-wrap">
+        <table><thead><tr><th>نام کاربر</th><th>مصرف</th><th>انقضا</th><th>IP</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+        <tbody id="clients-tbody"></tbody></table>
+      </div>
+    </div>
+    <div class="page" id="page-transactions">
+      <div class="page-header"><h2>تراکنش‌ها</h2></div>
+      <div class="table-wrap">
+        <table><thead><tr><th>نوع</th><th>مبلغ</th><th>توضیح</th><th>تاریخ</th></tr></thead><tbody id="txn-tbody"></tbody></table>
+      </div>
+    </div>
+    <div class="page" id="page-charge">
+      <div class="page-header">
+        <h2>افزایش اعتبار</h2>
+        <button class="btn btn-secondary btn-sm" onclick="loadChargeHistory()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          تاریخچه
+        </button>
+      </div>
+      <div class="table-wrap" style="padding:24px;margin-bottom:20px">
+        <h3 style="font-size:.95rem;margin-bottom:16px;color:var(--text-muted)">مبلغ مورد نظر را انتخاب کنید</h3>
+        <div class="amount-grid" id="amount-grid"></div>
+        <div id="card-info" style="display:none">
+          <div class="card-display" onclick="copyText(document.getElementById('charge-card-number').textContent,'شماره کارت کپی شد')">
+            <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:8px">واریز به کارت:</div>
+            <div class="card-number" id="charge-card-number">—</div>
+            <div class="card-owner" id="charge-card-owner">—</div>
+            <div style="margin-top:6px;font-size:.72rem;color:var(--accent2)">برای کپی کلیک کنید</div>
+          </div>
+          <div class="receipt-upload" onclick="document.getElementById('receipt-file').click()">
+            <input type="file" id="receipt-file" accept="image/*" onchange="handleReceiptFile(this)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 8px;opacity:.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+            <div style="font-size:.85rem;color:var(--text-muted)">کلیک کنید و فیش واریز را آپلود کنید</div>
+            <img class="receipt-preview" id="receipt-preview">
+          </div>
+          <button class="btn btn-primary" style="width:100%;padding:11px" onclick="submitChargeRequest()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            ثبت درخواست شارژ
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap" style="padding:18px">
+        <div style="font-size:.82rem;color:var(--text-muted);margin-bottom:12px">تاریخچه درخواست‌های شارژ</div>
+        <div id="charge-history"></div>
+      </div>
+    </div>
+    <div class="page" id="page-brand">
+      <div class="page-header"><h2>برند من</h2></div>
+      <div class="table-wrap" style="padding:24px">
+        <div class="form-row">
+          <div class="form-group"><label>نام برند</label><input id="brand-name" placeholder="VPN Pro"></div>
+          <div class="form-group"><label>آیدی تلگرام پشتیبانی</label><input id="brand-telegram" placeholder="@username" dir="ltr"></div>
+        </div>
+        <div class="form-group">
+          <label>ایموجی/آیکون برند</label>
+          <input id="brand-logo" placeholder="🌐" style="margin-bottom:8px">
+          <div class="emoji-grid" id="emoji-grid"></div>
+        </div>
+        <div class="form-group">
+          <label>انیمیشن پس‌زمینه</label>
+          <div class="motion-grid">
+            <div class="motion-btn selected" onclick="selectMotion('hearts',this)">💜 قلب</div>
+            <div class="motion-btn" onclick="selectMotion('stars',this)">⭐ ستاره</div>
+            <div class="motion-btn" onclick="selectMotion('snow',this)">❄️ برف</div>
+            <div class="motion-btn" onclick="selectMotion('bubbles',this)">🫧 حباب</div>
+            <div class="motion-btn" onclick="selectMotion('sparkles',this)">✨ جرقه</div>
+            <div class="motion-btn" onclick="selectMotion('none',this)">🚫 بدون</div>
+          </div>
+          <input type="hidden" id="brand-motion" value="hearts">
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>رنگ اصلی</label><input id="brand-color" type="color" value="#7C5CFC" style="height:42px;padding:4px"></div>
+          <div class="form-group"><label>رنگ پس‌زمینه</label><input id="brand-bg" type="color" value="#080810" style="height:42px;padding:4px"></div>
+        </div>
+        <button class="btn btn-primary" onclick="saveBrand()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          ذخیره برند
+        </button>
+      </div>
+    </div>
+    <div class="page" id="page-account">
+      <div class="page-header"><h2>حساب من</h2></div>
+      <div class="table-wrap" style="padding:24px">
+        <div id="account-info"></div>
+        <div class="change-pass-section">
+          <h3 style="font-size:.95rem;margin-bottom:14px;display:flex;align-items:center;gap:8px">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+            تغییر رمز عبور
+          </h3>
+          <div class="form-group"><label>رمز فعلی</label><input id="cp-old" type="password" placeholder="••••••••" dir="ltr"></div>
+          <div class="form-row">
+            <div class="form-group"><label>رمز جدید</label><input id="cp-new" type="password" placeholder="••••••••" dir="ltr"></div>
+            <div class="form-group"><label>تکرار رمز جدید</label><input id="cp-new2" type="password" placeholder="••••••••" dir="ltr"></div>
+          </div>
+          <button class="btn btn-primary" onclick="changePassword()">تغییر رمز</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="modal-overlay" id="modal-client">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-client')">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h3 id="modal-client-title">کاربر جدید</h3>
+    <input type="hidden" id="c-id">
+    <input type="hidden" id="c-used-gb" value="0">
+    <div class="form-group"><label>نام کاربر</label><input id="c-name" placeholder="ali123"></div>
+    <div class="form-group" id="c-inbounds-wrap">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <label style="margin:0">اینباندها</label>
+        <button type="button" style="background:rgba(124,92,252,.15);border:1px solid rgba(124,92,252,.3);color:var(--accent);border-radius:6px;padding:3px 10px;font-size:.75rem;cursor:pointer" onclick="toggleAllInbounds(this)">همه / هیچ</button>
+      </div>
+      <div id="c-inbounds-list" style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:6px 10px;max-height:120px;overflow-y:auto"></div>
+      <select id="c-inbound" style="display:none"></select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>حجم (GB) — ۰ = نامحدود ♾</label>
+        <input id="c-traffic" type="number" value="30" dir="ltr" min="0" oninput="updateClientCost()">
+        <div style="font-size:.72rem;color:var(--warning);margin-top:4px" id="c-cost-hint"></div>
+      </div>
+      <div class="form-group"><label>محدودیت IP (0=نامحدود)</label><input id="c-ip" type="number" value="0" min="0" dir="ltr"></div>
+    </div>
+    <div class="form-group">
+      <label>تاریخ انقضا</label>
+      <div class="quick-dates">
+        <button type="button" class="quick-date-btn" onclick="setExpiry(7)">۷ روز</button>
+        <button type="button" class="quick-date-btn" onclick="setExpiry(15)">۱۵ روز</button>
+        <button type="button" class="quick-date-btn" onclick="setExpiry(30)">۱ ماه</button>
+        <button type="button" class="quick-date-btn" onclick="setExpiry(60)">۲ ماه</button>
+        <button type="button" class="quick-date-btn" onclick="setExpiry(90)">۳ ماه</button>
+        <button type="button" class="quick-date-btn" onclick="setExpiry(0)">نامحدود</button>
+      </div>
+      <input id="c-expires" type="datetime-local" dir="ltr" onchange="updateClientCost()">
+    </div>
+    <div class="form-group"><label>آیدی تلگرام (اختیاری)</label><input id="c-telegram" placeholder="123456789" dir="ltr"></div>
+    <div style="background:rgba(124,92,252,0.08);border:1px solid rgba(124,92,252,0.2);border-radius:9px;padding:10px 14px;margin-bottom:14px;font-size:.82rem" id="c-balance-info"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeModal('modal-client')">انصراف</button>
+      <button class="btn btn-primary" id="c-save-btn" onclick="saveClient()">ایجاد کاربر</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-sub">
+  <div class="modal" style="max-width:480px">
+    <button class="modal-close" onclick="closeModal('modal-sub')">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h3 id="sub-username">اطلاعات کاربر</h3>
+    <div id="sub-details" style="margin-bottom:14px"></div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:4px">لینک صفحه کاربری</div>
+      <div class="sub-box" id="view-link" onclick="copyBoxText('view-link','لینک صفحه کپی شد')">...</div>
+    </div>
+    <div class="action-btns">
+      <button class="btn btn-secondary btn-sm" onclick="copyBoxText('view-link','لینک صفحه کپی شد')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        کپی صفحه
+      </button>
+      <button class="btn btn-warning btn-sm" id="sub-toggle-btn" onclick="toggleCurrentClient()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+        غیرفعال
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="openEditClient()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        ویرایش
+      </button>
+      <button class="btn btn-danger btn-sm" id="btn-delete-client" onclick="deleteCurrentClient()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        حذف
+      </button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<script src="/qrcode.min.js"></script>
+<script>
+const API='/api';
+let token=localStorage.getItem('reseller_token');
+let profile=null,currentClient=null,allClients=[];
+let selectedMotion='hearts';
+let chargeSettings=null,selectedAmount=0,receiptB64=null;
+let deferredInstallPrompt=null;
+let bpReceiptB64=null,panelSettings=null;
+const EMOJIS=['🌐','🚀','⚡','💎','🔥','🌟','🛡️','💜','🌈','🦋','🌸','🎯','💫','🔮','🌙','☀️','🎪','🎭','🦄','🐉'];
+const PRICE_PER_GB=3500;
+
+// PWA install
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+});
+window.addEventListener('appinstalled', () => { deferredInstallPrompt = null; });
+
+// Hide topbar install btn if already installed as standalone
+(function(){
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  if (isStandalone) document.getElementById('topbar-install-btn').style.display = 'none';
+})();
+
+function installApp(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isAndroid = /Android/.test(navigator.userAgent);
+  const apkUrl = 'https://__MAIN_DOMAIN__/VPN Panel.apk';
+  if (isAndroid) {
+    window.location.href = apkUrl;
+    toast('در حال دانلود اپ...');
+  } else if (isIOS) {
+    document.getElementById('ios-install-info').classList.add('show');
+  } else if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then(() => { deferredInstallPrompt = null; });
+  } else {
+    window.open(apkUrl, '_blank');
+  }
+}
+
+// Load buy panel settings on page load (background)
+fetch(API+'/auth/panel-order/settings').then(r=>r.json()).then(d=>{
+  if(d.success) {
+    panelSettings = d.data;
+    const price = parseInt(panelSettings.panel_price||'550000');
+    const trafficGb = panelSettings.panel_traffic_gb||'145';
+    const priceGb = parseInt(panelSettings.panel_price_per_gb||'3500');
+    document.getElementById('bp-info-traffic').textContent = trafficGb + ' گیگابایت';
+    document.getElementById('bp-info-price-gb').textContent = priceGb.toLocaleString() + ' تومان';
+    document.getElementById('bp-info-price').textContent = price.toLocaleString() + ' تومان';
+    document.getElementById('bp-amount-text').textContent = price.toLocaleString() + ' تومان';
+    document.getElementById('bp-card-num').textContent = panelSettings.charge_card_number || '—';
+    document.getElementById('bp-card-owner').textContent = panelSettings.charge_card_owner || '—';
+  }
+}).catch(()=>{});
+
+const savedBrand=localStorage.getItem('reseller_brand');
+if(savedBrand){try{applyBrand(JSON.parse(savedBrand));}catch(e){}}
+if(token) initApp();
+
+async function doLogin(){
+  const u=document.getElementById('login-user').value.trim();
+  const p=document.getElementById('login-pass').value;
+  if(!u||!p){document.getElementById('login-err').textContent='یوزر و پسورد وارد کنید';return;}
+  try{
+    const r=await fetch(API+'/auth/reseller/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
+    const d=await r.json();
+    if(d.success){
+      token=d.token;localStorage.setItem('reseller_token',token);
+      if(d.reseller) localStorage.setItem('reseller_brand',JSON.stringify(d.reseller));
+      applyBrand(d.reseller);initApp();
+    } else document.getElementById('login-err').textContent=d.message||'خطا در ورود';
+  }catch{document.getElementById('login-err').textContent='خطا در اتصال به سرور';}
+}
+
+function applyBrand(rs){
+  if(!rs) return;
+  if(rs.brand_color) document.documentElement.style.setProperty('--accent',rs.brand_color);
+  if(rs.brand_bg_color) document.documentElement.style.setProperty('--bg',rs.brand_bg_color);
+  const name=rs.brand_name||'VPN Panel';
+  document.getElementById('auth-title').textContent=name;
+  document.getElementById('tb-name').textContent=name;
+  document.title=name;
+  if(rs.brand_logo){document.getElementById('auth-logo').textContent=rs.brand_logo;document.getElementById('tb-logo').textContent=rs.brand_logo;}
+}
+
+async function initApp(){
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  buildEmojiGrid();
+  await loadProfile();
+  loadDashboard();
+  loadInbounds();
+}
+
+function buildEmojiGrid(){
+  document.getElementById('emoji-grid').innerHTML=EMOJIS.map(e=>`<div class="emoji-btn" onclick="selectEmoji('${e}',this)">${e}</div>`).join('');
+}
+function selectEmoji(emoji,el){
+  document.querySelectorAll('.emoji-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('brand-logo').value=emoji;
+}
+function selectMotion(motion,el){
+  document.querySelectorAll('.motion-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('brand-motion').value=motion;
+}
+
+async function loadProfile(){
+  const r=await apiGet('/reseller/profile');
+  if(!r.success) return;
+  profile=r.data;
+  localStorage.setItem('reseller_brand',JSON.stringify(profile));
+  applyBrand(profile);
+  document.getElementById('tb-balance-text').textContent=(profile.balance||0).toLocaleString()+' ت';
+  document.getElementById('brand-name').value=profile.brand_name||'';
+  document.getElementById('brand-logo').value=profile.brand_logo||'';
+  document.getElementById('brand-color').value=profile.brand_color||'#7C5CFC';
+  document.getElementById('brand-bg').value=profile.brand_bg_color||'#080810';
+  document.getElementById('brand-telegram').value=profile.telegram_support||'';
+  const motion=profile.brand_motion||'hearts';
+  document.getElementById('brand-motion').value=motion;
+  document.querySelectorAll('.motion-btn').forEach(b=>{
+    if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+motion+"'")) b.classList.add('selected');
+    else b.classList.remove('selected');
+  });
+  document.getElementById('account-info').innerHTML=`
+    <div class="info-row"><span class="info-label">نام کاربری</span><span>${profile.username}</span></div>
+    <div class="info-row"><span class="info-label">نام</span><span>${profile.name||'-'}</span></div>
+    <div class="info-row"><span class="info-label">موجودی</span><span style="color:var(--accent)">${(profile.balance||0).toLocaleString()} تومان</span></div>
+    <div class="info-row"><span class="info-label">قیمت هر GB</span><span>${(profile.price_per_gb||PRICE_PER_GB).toLocaleString()} تومان</span></div>
+    <div class="info-row"><span class="info-label">کاربران</span><span>${profile.current_clients||0} نفر</span></div>
+  `;
+}
+
+function logout(){localStorage.removeItem('reseller_token');location.reload();}
+
+function showPage(name,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item,.bn-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(el) el.classList.add('active');
+  const loaders={dashboard:loadDashboard,clients:loadClients,transactions:loadTransactions,account:loadProfile,charge:loadChargePage};
+  if(loaders[name]) loaders[name]();
+}
+
+async function apiReq(method,path,body){
+  const opts={method,headers:{Authorization:'Bearer '+token}};
+  if(body){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(body);}
+  const r=await fetch(API+path,opts);
+  if(r.status===401){logout();return{};}
+  return r.json();
+}
+const apiGet=p=>apiReq('GET',p);
+const apiPost=(p,b)=>apiReq('POST',p,b);
+const apiPut=(p,b)=>apiReq('PUT',p,b);
+const apiDel=p=>apiReq('DELETE',p);
+
+function toast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='show '+type;
+  clearTimeout(window._tt);window._tt=setTimeout(()=>t.className='',3500);
+}
+function fmt(gb){const n=parseFloat(gb);return isNaN(n)?'0.0 GB':n.toFixed(1)+' GB';}
+function fmtDate(d){if(!d) return 'نامحدود';return new Date(d).toLocaleDateString('fa-IR');}
+function copyText(txt,msg){
+  const clean = txt.replace(/[-\s]/g,'');
+  if(navigator.clipboard){navigator.clipboard.writeText(clean).then(()=>toast(msg));}
+  else{const ta=document.createElement('textarea');ta.value=clean;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast(msg);}
+}
+
+async function loadDashboard(){
+  const r=await apiGet('/reseller/stats');
+  if(!r.success) return;
+  const d=r.data;
+  document.getElementById('ds-balance').textContent=(d.balance||0).toLocaleString();
+  document.getElementById('ds-remaining').textContent=(d.traffic_remaining_gb||0).toFixed(1);
+  document.getElementById('ds-active').textContent=d.active_clients||0;
+  document.getElementById('ds-total-sub').textContent='از '+(d.total_clients||0)+' کل';
+  document.getElementById('ds-online').textContent=d.online_clients||0;
+  document.getElementById('ds-expiring').textContent=d.expiring_soon||0;
+  const pct=d.traffic_limit_gb>0?Math.min(100,(d.traffic_used_gb/d.traffic_limit_gb)*100):0;
+  document.getElementById('ds-traffic-bar').style.width=pct+'%';
+  document.getElementById('ds-traffic-label').textContent=fmt(d.traffic_used_gb)+' از '+fmt(d.traffic_limit_gb);
+}
+
+let inbounds=[];
+async function loadInbounds(){
+  const r=await apiGet('/reseller/inbounds');
+  if(!r.success) return;
+  inbounds=r.data;
+  // ساخت چک‌باکس برای هر اینباند، پیش‌فرض همه چک
+  const list=document.getElementById('c-inbounds-list');
+  if(list){
+    list.innerHTML=inbounds.map(ib=>{
+      const lbl=(ib.remark||ib.tag||'Inbound '+ib.id);
+      return `<label style="display:flex;align-items:center;gap:8px;padding:5px 2px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05)">`
+        +`<input type="checkbox" class="inbound-cb" value="${ib.id}" checked style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer">`
+        +`<span style="font-size:.82rem">${lbl} <span style="opacity:.45;font-size:.75rem">(${ib.protocol}:${ib.port})</span></span>`
+        +`</label>`;
+    }).join('');
+  }
+  // dropdown مخفی هم پر کن (برای حالت ویرایش)
+  const sel=document.getElementById('c-inbound');
+  if(sel) sel.innerHTML=inbounds.map(ib=>`<option value="${ib.id}">${ib.remark||ib.tag}</option>`).join('');
+}
+function toggleAllInbounds(btn){
+  const cbs=[...document.querySelectorAll('.inbound-cb')];
+  const allChecked=cbs.every(c=>c.checked);
+  cbs.forEach(c=>c.checked=!allChecked);
+}
+
+async function loadClients(){
+  const r=await apiGet('/reseller/clients');
+  if(!r.success) return;
+  allClients=r.data;
+  renderClients(allClients);
+  const total=allClients.length,active=allClients.filter(c=>c.is_active).length;
+  document.getElementById('cl-total').textContent=total;
+  document.getElementById('cl-active').textContent=active;
+  document.getElementById('cl-inactive').textContent=total-active;
+  document.getElementById('cl-online').textContent=allClients.filter(c=>c.is_online).length;
+}
+
+function filterClients(){
+  const q=document.getElementById('search-clients').value.toLowerCase();
+  renderClients(allClients.filter(c=>c.username.toLowerCase().includes(q)));
+}
+
+function renderClients(clients){
+  document.getElementById('clients-tbody').innerHTML=clients.map(c=>{
+    const pct=c.traffic_limit_gb>0?Math.min(100,(c.traffic_used_gb/c.traffic_limit_gb)*100):0;
+    return `<tr>
+      <td><strong>${c.username}</strong>${c.is_online?'<br><span style="color:var(--success);font-size:.7rem">&#9679; آنلاین</span>':''}</td>
+      <td style="min-width:110px">${fmt(c.traffic_used_gb)} / ${fmt(c.traffic_limit_gb)}<div class="progress-bar" style="margin-top:4px"><div class="progress-fill" style="width:${pct}%"></div></div></td>
+      <td style="white-space:nowrap">${fmtDate(c.expires_at)}</td>
+      <td>${c.ip_limit==0?'&#8734;':c.ip_limit}</td>
+      <td><span class="badge ${c.is_active?'badge-active':'badge-inactive'}">${c.is_active?'فعال':'غیرفعال'}</span></td>
+      <td><button class="btn btn-secondary btn-sm" onclick="openClientInfo(${c.id})">جزئیات</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function setExpiry(days){
+  if(days===0){document.getElementById('c-expires').value='';updateClientCost();return;}
+  const d=new Date();d.setDate(d.getDate()+days);
+  const pad=n=>String(n).padStart(2,'0');
+  document.getElementById('c-expires').value=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  updateClientCost();
+}
+
+function updateClientCost(){
+  const gb=parseFloat(document.getElementById('c-traffic').value)||0;
+  const pricePerGb=(profile&&profile.price_per_gb)||PRICE_PER_GB;
+  const balance=(profile&&profile.balance)||0;
+  const isEdit=document.getElementById('c-id').value!=='';
+  const UNLIMITED_MONTHLY=180000;
+  if(gb===0 && !isEdit){
+    const exp=document.getElementById('c-expires').value;
+    if(exp){
+      const days=Math.max(1,Math.round((new Date(exp).getTime()-Date.now())/86400000));
+      const months=Math.max(1,Math.round(days/30));
+      const cost=months*UNLIMITED_MONTHLY;
+      document.getElementById('c-cost-hint').textContent=`♾ نامحدود: ${months} ماه × ۱۸۰,۰۰۰ = ${cost.toLocaleString()} تومان`;
+      document.getElementById('c-balance-info').textContent=`موجودی: ${balance.toLocaleString()} ت | هزینه: ${cost.toLocaleString()} ت | باقی: ${(balance-cost).toLocaleString()} ت`;
+    } else {
+      document.getElementById('c-cost-hint').textContent='♾ کاربر نامحدود — تاریخ انقضا (ماه) را انتخاب کنید';
+      document.getElementById('c-balance-info').textContent=`قیمت نامحدود: هر ماه ۱۸۰,۰۰۰ تومان | موجودی: ${balance.toLocaleString()} ت`;
+    }
+    return;
+  }
+  if(isEdit){
+    const diff=gb-parseFloat(document.getElementById('c-used-gb').dataset.limit||0);
+    const cost=Math.abs(diff)*pricePerGb;
+    document.getElementById('c-cost-hint').textContent=diff>0?`هزینه +${diff.toFixed(1)}GB: ${cost.toLocaleString()} ت`:diff<0?`بازگشت ${cost.toLocaleString()} ت`:'بدون تغییر هزینه';
+    document.getElementById('c-balance-info').textContent=`موجودی: ${balance.toLocaleString()} ت`;
+  } else {
+    const cost=gb*pricePerGb;
+    document.getElementById('c-cost-hint').textContent=`هزینه: ${cost.toLocaleString()} تومان`;
+    document.getElementById('c-balance-info').textContent=`موجودی: ${balance.toLocaleString()} ت | هزینه: ${cost.toLocaleString()} ت | باقی: ${(balance-cost).toLocaleString()} ت`;
+  }
+}
+
+function openAddClient(){
+  loadInbounds();
+  document.getElementById('c-id').value='';
+  document.getElementById('c-used-gb').value='0';
+  document.getElementById('c-used-gb').dataset.limit='0';
+  document.getElementById('modal-client-title').textContent='کاربر جدید';
+  document.getElementById('c-save-btn').textContent='ایجاد کاربر';
+  ['c-name','c-telegram'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('c-traffic').value=30;
+  document.getElementById('c-ip').value=0;
+  document.getElementById('c-expires').value='';
+  updateClientCost();
+  openModal('modal-client');
+}
+
+function openEditClient(){
+  if(!currentClient) return;
+  closeModal('modal-sub');
+  document.getElementById('c-id').value=currentClient.id;
+  document.getElementById('c-used-gb').value=currentClient.traffic_used_gb||0;
+  document.getElementById('c-used-gb').dataset.limit=currentClient.traffic_limit_gb||0;
+  document.getElementById('modal-client-title').textContent='ویرایش: '+currentClient.username;
+  document.getElementById('c-save-btn').textContent='ذخیره تغییرات';
+  document.getElementById('c-name').value=currentClient.username;
+  document.getElementById('c-traffic').value=currentClient.traffic_limit_gb;
+  document.getElementById('c-ip').value=currentClient.ip_limit||0;
+  document.getElementById('c-telegram').value=currentClient.telegram_id||'';
+  if(currentClient.expires_at){
+    const d=new Date(currentClient.expires_at);
+    const pad=n=>String(n).padStart(2,'0');
+    document.getElementById('c-expires').value=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } else document.getElementById('c-expires').value='';
+  if(currentClient.xui_inbound_id) document.getElementById('c-inbound').value=currentClient.xui_inbound_id;
+  updateClientCost();
+  openModal('modal-client');
+}
+
+async function saveClient(){
+  const id=document.getElementById('c-id').value;
+  const isEdit=id!=='';
+  const gb=parseFloat(document.getElementById('c-traffic').value);
+  const usedGb=parseFloat(document.getElementById('c-used-gb').value)||0;
+  if(isEdit&&gb<usedGb){toast('حجم نمیتواند کمتر از مصرف شده باشد','error');return;}
+  // جمع‌آوری اینباندهای انتخابی
+  const checkedCbs=[...document.querySelectorAll('.inbound-cb:checked')];
+  const selectedInboundIds=checkedCbs.map(cb=>parseInt(cb.value));
+  if(!isEdit&&!selectedInboundIds.length) return toast('حداقل یک اینباند انتخاب کنید','error');
+  const body={
+    username:document.getElementById('c-name').value,
+    inbound_ids:isEdit?undefined:selectedInboundIds,
+    inbound_id:isEdit?parseInt(document.getElementById('c-inbound').value):selectedInboundIds[0],
+    traffic_limit_gb:gb,
+    ip_limit:parseInt(document.getElementById('c-ip').value)||0,
+    expires_at:document.getElementById('c-expires').value||null,
+    telegram_id:document.getElementById('c-telegram').value||null,
+  };
+  if(!body.username) return toast('نام الزامی است','error');
+  const r=isEdit?await apiPut('/reseller/clients/'+id,body):await apiPost('/reseller/clients',body);
+  if(r.success){toast(isEdit?'ویرایش شد':'کاربر ساخته شد');closeModal('modal-client');loadClients();loadDashboard();loadProfile();}
+  else toast(r.message||'خطا','error');
+}
+
+function openClientInfo(id){
+  const c=allClients.find(x=>x.id===id);
+  if(!c) return;
+  currentClient=c;
+  document.getElementById('sub-username').textContent=c.username;
+  const pct=c.traffic_limit_gb>0?Math.min(100,(c.traffic_used_gb/c.traffic_limit_gb)*100):0;
+  document.getElementById('sub-details').innerHTML=`
+    <div class="info-row"><span class="info-label">مصرف</span><span>${fmt(c.traffic_used_gb)} / ${fmt(c.traffic_limit_gb)} (${pct.toFixed(0)}%)</span></div>
+    <div class="info-row"><span class="info-label">انقضا</span><span>${fmtDate(c.expires_at)}</span></div>
+    <div class="info-row"><span class="info-label">IP</span><span>${c.ip_limit==0?'نامحدود':c.ip_limit}</span></div>
+    <div class="info-row"><span class="info-label">وضعیت</span><span class="badge ${c.is_active?'badge-active':'badge-inactive'}">${c.is_active?'فعال':'غیرفعال'}</span></div>
+  `;
+  document.getElementById('view-link').textContent=location.origin+'/view/'+c.xui_uuid;
+(function(){var su='https://__VOICE_DOMAIN__/sub/'+c.xui_uuid.replace(/-/g,'').substring(0,16);var m=document.getElementById('sub-details');if(!m)return;var box=document.getElementById('xtra-sub');if(!box){box=document.createElement('div');box.id='xtra-sub';box.style.marginBottom='14px';m.parentNode.insertBefore(box,m.nextSibling);}box.innerHTML='<div style="font-size:.75rem;color:var(--text-muted);margin:8px 0 4px">لینک اشتراک (ساب)</div><div class="sub-box" style="cursor:pointer;word-break:break-all" onclick="copyText(\''+su+'\',\'لینک ساب کپی شد\')">'+su+'</div><div style="text-align:center;margin-top:10px"><div id="xtra-qr" style="display:inline-block;background:#fff;padding:8px;border-radius:8px"></div></div>';var qb=document.getElementById('xtra-qr');qb.innerHTML='';try{new QRCode(qb,{text:su,width:170,height:170});}catch(e){qb.innerHTML='<img width=170 src="https://api.qrserver.com/v1/create-qr-code/?size=170x170&data='+encodeURIComponent(su)+'">';}})();
+  const toggleBtn=document.getElementById('sub-toggle-btn');
+  toggleBtn.innerHTML=c.is_active
+    ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> غیرفعال'
+    : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> فعال';
+  toggleBtn.className=c.is_active?'btn btn-warning btn-sm':'btn btn-success btn-sm';
+  var _del=document.getElementById('btn-delete-client');
+  if(_del) _del.style.display=(Number(c.traffic_limit_gb)===0)?'none':'';
+  openModal('modal-sub');
+}
+
+function copyBoxText(elId,msg){
+  const txt=document.getElementById(elId).textContent;
+  if(navigator.clipboard){navigator.clipboard.writeText(txt).then(()=>toast(msg));}
+  else{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast(msg);}
+}
+
+async function toggleCurrentClient(){
+  if(!currentClient) return;
+  const r=await apiPost('/reseller/clients/'+currentClient.id+'/toggle',{});
+  if(r.success){toast(r.is_active?'فعال شد':'غیرفعال شد');closeModal('modal-sub');loadClients();}
+  else toast(r.message,'error');
+}
+
+async function deleteCurrentClient(){
+  if(!currentClient) return;
+  if(!confirm('کاربر '+currentClient.username+' حذف شود؟\nحجم باقی‌مانده به کیف پول برمیگردد.')) return;
+  const r=await apiDel('/reseller/clients/'+currentClient.id);
+  if(r.success){
+    const msg=r.refunded_gb?'حذف شد — '+Number(r.refunded_gb).toFixed(1)+'GB بازگشت':'حذف شد';
+    toast(msg);closeModal('modal-sub');loadClients();loadDashboard();loadProfile();
+  } else toast(r.message,'error');
+}
+
+async function loadTransactions(){
+  const r=await apiGet('/reseller/transactions');
+  if(!r.success) return;
+  document.getElementById('txn-tbody').innerHTML=r.data.map(t=>`
+    <tr>
+      <td><span class="badge ${t.type==='credit'?'badge-active':'badge-inactive'}">${t.type==='credit'?'واریز':'برداشت'}</span></td>
+      <td>${t.amount.toLocaleString()} ت</td>
+      <td>${t.description||'-'}</td>
+      <td>${fmtDate(t.created_at)}</td>
+    </tr>
+  `).join('');
+}
+
+async function saveBrand(){
+  const r=await apiPut('/reseller/brand',{
+    brand_name:document.getElementById('brand-name').value,
+    brand_color:document.getElementById('brand-color').value,
+    brand_bg_color:document.getElementById('brand-bg').value,
+    brand_logo:document.getElementById('brand-logo').value,
+    telegram_support:document.getElementById('brand-telegram').value,
+    brand_motion:document.getElementById('brand-motion').value,
+  });
+  if(r.success){
+    const bd={brand_name:document.getElementById('brand-name').value,brand_color:document.getElementById('brand-color').value,brand_bg_color:document.getElementById('brand-bg').value,brand_logo:document.getElementById('brand-logo').value};
+    localStorage.setItem('reseller_brand',JSON.stringify(bd));
+    applyBrand(bd);toast('برند ذخیره شد');
+  } else toast(r.message||'خطا','error');
+}
+
+async function changePassword(){
+  const old=document.getElementById('cp-old').value;
+  const n1=document.getElementById('cp-new').value;
+  const n2=document.getElementById('cp-new2').value;
+  if(!old||!n1||!n2) return toast('همه فیلدها را پر کنید','error');
+  if(n1!==n2) return toast('رمز جدید با تکرارش یکسان نیست','error');
+  if(n1.length<6) return toast('رمز جدید حداقل ۶ کاراکتر','error');
+  const r=await apiPost('/auth/reseller/change-password',{oldPassword:old,newPassword:n1});
+  if(r.success){toast('رمز تغییر کرد');['cp-old','cp-new','cp-new2'].forEach(id=>document.getElementById(id).value='');}
+  else toast(r.message||'خطا','error');
+}
+
+// ─── Charge / Wallet ────────────────────────────────────────
+
+async function loadChargePage(){
+  if(!chargeSettings){
+    const r=await apiGet('/reseller/charge/settings');
+    if(r.success) chargeSettings=r.data;
+  }
+  if(chargeSettings){
+    const grid=document.getElementById('amount-grid');
+    grid.innerHTML=chargeSettings.amounts.map(a=>`
+      <div class="amount-btn" onclick="selectChargeAmount(${a},this)">${a>=1000000 ? (a/1000000)%1===0 ? (a/1000000).toLocaleString('fa-IR')+' میلیون' : (a/1000000).toLocaleString('fa-IR')+' میلیون' : (a/1000).toLocaleString('fa-IR')+' هزار'} تومان</div>
+    `).join('');
+    document.getElementById('charge-card-number').textContent=chargeSettings.card_number||'—';
+    document.getElementById('charge-card-owner').textContent=chargeSettings.card_owner||'—';
+  }
+  loadChargeHistory();
+}
+
+function selectChargeAmount(amount,el){
+  document.querySelectorAll('.amount-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedAmount=amount;
+  receiptB64=null;
+  document.getElementById('receipt-preview').style.display='none';
+  document.getElementById('receipt-file').value='';
+  document.getElementById('card-info').style.display='block';
+}
+
+function handleReceiptFile(input){
+  const file=input.files[0];
+  if(!file) return;
+  if(file.size>5*1024*1024){toast('فایل نباید بیشتر از ۵MB باشد','error');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    receiptB64=e.target.result;
+    const preview=document.getElementById('receipt-preview');
+    preview.src=receiptB64;preview.style.display='block';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitChargeRequest(){
+  if(!selectedAmount){toast('مبلغ را انتخاب کنید','error');return;}
+  if(!receiptB64){toast('لطفاً فیش واریز را آپلود کنید','error');return;}
+  const r=await apiPost('/reseller/charge/request',{amount:selectedAmount,card_receipt:receiptB64});
+  if(r.success){
+    toast('درخواست شارژ ثبت شد');
+    selectedAmount=0;receiptB64=null;
+    document.getElementById('card-info').style.display='none';
+    document.querySelectorAll('.amount-btn').forEach(b=>b.classList.remove('selected'));
+    document.getElementById('receipt-preview').style.display='none';
+    loadChargeHistory();
+  } else toast(r.message||'خطا در ثبت درخواست','error');
+}
+
+async function loadChargeHistory(){
+  const r=await apiGet('/reseller/charge/history');
+  if(!r.success) return;
+  const statusMap={pending:'در انتظار بررسی',approved:'تأیید شد',rejected:'رد شد'};
+  const statusClass={pending:'badge-pending',approved:'badge-active',rejected:'badge-inactive'};
+  const el=document.getElementById('charge-history');
+  if(!r.data.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:.85rem">درخواستی ثبت نشده</div>';return;}
+  el.innerHTML=r.data.map(cr=>`
+    <div class="charge-history-item">
+      <div>
+        <div style="font-weight:600">${(cr.amount||0).toLocaleString()} تومان</div>
+        <div style="font-size:.75rem;color:var(--text-muted)">${fmtDate(cr.created_at)}</div>
+        ${cr.admin_note?`<div style="font-size:.75rem;color:var(--danger);margin-top:2px">${cr.admin_note}</div>`:''}
+      </div>
+      <span class="badge ${statusClass[cr.status]||'badge-pending'}">${statusMap[cr.status]||cr.status}</span>
+    </div>
+  `).join('');
+}
+
+// ─── Buy Panel Flow ────────────────────────────────────────
+
+function showBuyPanel(){
+  bpReceiptB64=null;
+  ['bp-name','bp-telegram','bp-username','bp-password'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('bp-err').textContent='';
+  document.getElementById('bp-err2').textContent='';
+  document.getElementById('bp-receipt-preview').style.display='none';
+  setBuyStep(1);
+  openModal('modal-buy-panel');
+}
+
+function setBuyStep(n){
+  document.getElementById('buy-step-1').style.display=n===1?'block':'none';
+  document.getElementById('buy-step-2').style.display=n===2?'block':'none';
+  document.getElementById('buy-step-3').style.display=n===3?'block':'none';
+  [1,2,3].forEach(i=>{
+    const el=document.getElementById('step'+i);
+    el.className='step'+(i<n?' done':i===n?' active':'');
+  });
+}
+
+function buyPanelNext(){
+  const name=document.getElementById('bp-name').value.trim();
+  const tg=document.getElementById('bp-telegram').value.trim();
+  const uname=document.getElementById('bp-username').value.trim();
+  const pass=document.getElementById('bp-password').value;
+  const err=document.getElementById('bp-err');
+  if(!name){err.textContent='نام کامل وارد کنید';return;}
+  if(!/^\d{5,15}$/.test(tg)){err.textContent='آیدی تلگرام باید عدد باشد (۵ تا ۱۵ رقم)';return;}
+  if(!/^[a-zA-Z0-9_]{4,32}$/.test(uname)){err.textContent='نام کاربری: حروف انگلیسی، عدد، _ (حداقل ۴ کاراکتر)';return;}
+  if(pass.length<6){err.textContent='رمز عبور حداقل ۶ کاراکتر';return;}
+  err.textContent='';
+  setBuyStep(2);
+}
+
+function buyPanelBack(){
+  setBuyStep(1);
+}
+
+function handleBpReceipt(input){
+  const file=input.files[0];
+  if(!file) return;
+  if(file.size>5*1024*1024){toast('فایل نباید بیشتر از ۵MB باشد','error');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    bpReceiptB64=e.target.result;
+    const preview=document.getElementById('bp-receipt-preview');
+    preview.src=bpReceiptB64;preview.style.display='block';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitPanelOrder(){
+  if(!bpReceiptB64){document.getElementById('bp-err2').textContent='لطفاً فیش واریز را آپلود کنید';return;}
+  document.getElementById('bp-err2').textContent='';
+  const body={
+    full_name:document.getElementById('bp-name').value.trim(),
+    telegram_id:document.getElementById('bp-telegram').value.trim(),
+    username:document.getElementById('bp-username').value.trim(),
+    password:document.getElementById('bp-password').value,
+    card_receipt:bpReceiptB64,
+  };
+  try{
+    const r=await fetch(API+'/auth/panel-order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(d.success){setBuyStep(3);}
+    else document.getElementById('bp-err2').textContent=d.message||'خطا در ثبت درخواست';
+  }catch{document.getElementById('bp-err2').textContent='خطا در اتصال به سرور';}
+}
+
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));
+  if(e.key==='Enter'&&document.getElementById('auth-screen').style.display!=='none'&&document.getElementById('modal-buy-panel').style.display==='') doLogin();
+});
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{if(e.target===m) m.classList.remove('open');});
+});
+</script>
+</body>
+</html>

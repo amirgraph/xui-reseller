@@ -1,0 +1,37 @@
+# ── هیچ‌وقت commit نشوند (secret / داده / حالت اجرا) ──
+.env
+*.env
+!.env.example
+
+# دیتابیس‌ها و دادهٔ مشتری
+data/
+*.db
+*.db-journal
+*.sqlite*
+
+# WARP / حساب‌ها / کلیدها
+infra/warp/wgcf-account.toml
+infra/warp/wgcf-profile.conf
+infra/warp/*.conf
+*.key
+*_key
+reality-keys.txt
+
+# خروجی اسکنر و حالت زمان‌اجرا
+infra/scanner/results.json
+*.log
+
+# نود
+node_modules/
+npm-debug.log*
+
+# باینری‌ها/آرشیوها (موقع نصب دانلود می‌شوند)
+*.tgz
+*.tar.gz
+*.apk
+bin/xray*
+wgcf
+wireproxy
+
+# سیستم
+.DS_Store
