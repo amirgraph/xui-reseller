@@ -324,6 +324,9 @@
             <div class="nav-item" onclick="showPage('charge-requests')">
         <span class="icon">💰</span> شارژ نمایندها
       </div>
+      <div class="nav-item" onclick="showPage('plans')">
+        <span class="icon">🏷️</span> پلن‌ها
+      </div>
       <div class="nav-item" onclick="showPage('panel-orders')">
         <span class="icon">🛒</span> درخواست پنل
       </div>
@@ -373,6 +376,24 @@
           <tbody id="resellers-tbody"></tbody>
         </table>
       </div>
+    </div>
+
+    <!-- Plans -->
+    <div class="page" id="page-plans">
+      <div class="page-header">
+        <h2>پلن‌های فروش پنل</h2>
+        <button class="btn btn-primary" onclick="openAddPlan()">➕ پلن جدید</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>نام</th><th>شناسه</th><th>قیمت</th><th>حجم</th><th>کاربر</th><th>نرخ گیگ</th><th>شارژ اولیه</th><th>صورتحساب</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+          <tbody id="plans-tbody"></tbody>
+        </table>
+      </div>
+      <p style="color:var(--text-dim);font-size:.82rem;margin-top:10px">
+        عدد <b>۰</b> یعنی نامحدود — هم برای حجم، هم برای سقف کاربر، هم برای مدت.
+        این پلن‌ها هم در ربات و هم در صفحهٔ «خرید پنل» نمایش داده می‌شوند.
+      </p>
     </div>
 
     <!-- Clients -->
@@ -502,6 +523,71 @@
   </div>
 </div>
 
+<!-- Plan Modal -->
+<div class="modal-overlay" id="modal-plan">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-plan')">✕</button>
+    <h3 id="modal-plan-title">پلن جدید</h3>
+    <input type="hidden" id="p-id">
+    <div class="form-row">
+      <div class="form-group">
+        <label>نام پلن</label><input id="p-name" placeholder="پنل طلایی">
+      </div>
+      <div class="form-group">
+        <label>شناسه (انگلیسی، بعداً تغییر نمی‌کند)</label><input id="p-key" placeholder="gold" dir="ltr">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>توضیح (اختیاری)</label><input id="p-description" placeholder="مناسب نمایندگان متوسط">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>قیمت (تومان)</label><input id="p-price" type="number" value="0" dir="ltr">
+      </div>
+      <div class="form-group">
+        <label>نوع صورتحساب</label>
+        <select id="p-billing">
+          <option value="once">یک‌بار</option>
+          <option value="monthly">ماهانه</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>حجم (GB) — ۰ = نامحدود</label><input id="p-traffic_gb" type="number" value="0" dir="ltr">
+      </div>
+      <div class="form-group">
+        <label>سقف کاربر — ۰ = نامحدود</label><input id="p-max_clients" type="number" value="0" dir="ltr">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>نرخ هر گیگ برای نماینده (تومان)</label><input id="p-price_per_gb" type="number" value="0" dir="ltr">
+      </div>
+      <div class="form-group">
+        <label>شارژ اولیهٔ کیف پول (تومان)</label><input id="p-initial_balance" type="number" value="0" dir="ltr">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>مدت (روز) — ۰ = بدون انقضا</label><input id="p-duration_days" type="number" value="0" dir="ltr">
+      </div>
+      <div class="form-group">
+        <label>ترتیب نمایش</label><input id="p-sort_order" type="number" value="0" dir="ltr">
+      </div>
+    </div>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="p-is_active" checked style="width:auto"> فعال (در ربات و صفحهٔ خرید دیده شود)
+      </label>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-secondary" onclick="closeModal('modal-plan')">انصراف</button>
+      <button class="btn btn-primary" onclick="savePlan()">ذخیره</button>
+    </div>
+  </div>
+</div>
+
 <!-- Balance Modal -->
 <div class="modal-overlay" id="modal-balance">
   <div class="modal" style="max-width:360px">
@@ -566,7 +652,7 @@ function showPage(name) {
   if (name === 'charge-requests') loadChargeRequests();
   if (name === 'panel-orders') loadPanelOrders();
   event.currentTarget.classList.add('active');
-  const loaders = { dashboard: loadDashboard, resellers: loadResellers, clients: loadClients, inbounds: loadInbounds, transactions: loadTransactions };
+  const loaders = { dashboard: loadDashboard, resellers: loadResellers, clients: loadClients, inbounds: loadInbounds, transactions: loadTransactions, plans: loadPlans };
   if (loaders[name]) loaders[name]();
 }
 
@@ -601,6 +687,11 @@ function toast(msg, type = 'success') {
   setTimeout(() => t.className = '', 3000);
 }
 
+// نامِ پلن را ادمین می‌نویسد و مستقیم داخل innerHTML می‌رود
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
 function fmt(gb) { return typeof gb === 'number' ? gb.toFixed(1) + ' GB' : '-'; }
 function fmtDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('fa-IR'); }
 
@@ -625,6 +716,90 @@ async function loadDashboard() {
 }
 
 // ── Resellers ─────────────────────────────────
+// ── پلن‌ها ────────────────────────────────────
+// «۰ = نامحدود» در سه جا معنی دارد: حجم، سقف کاربر، مدت.
+const PLAN_FIELDS = ['name','key','description','price','traffic_gb','max_clients',
+                     'duration_days','billing','price_per_gb','initial_balance','sort_order'];
+const unlim = v => Number(v) > 0 ? Number(v).toLocaleString() : '<span style="color:var(--accent)">نامحدود</span>';
+
+async function loadPlans() {
+  const r = await get('/admin/plans');
+  if (!r.success) return;
+  const tb = document.getElementById('plans-tbody');
+  if (!r.data.length) {
+    tb.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--text-dim);padding:24px">هنوز پلنی نساخته‌ای — با «پلن جدید» شروع کن</td></tr>';
+    return;
+  }
+  tb.innerHTML = r.data.map(p => `
+    <tr>
+      <td><strong>${esc(p.name)}</strong>${p.description ? `<div style="color:var(--text-dim);font-size:.78rem">${esc(p.description)}</div>` : ''}</td>
+      <td dir="ltr">${esc(p.key)}</td>
+      <td>${(p.price||0).toLocaleString()} ت</td>
+      <td>${unlim(p.traffic_gb)}${p.traffic_gb > 0 ? ' GB' : ''}</td>
+      <td>${unlim(p.max_clients)}</td>
+      <td>${(p.price_per_gb||0).toLocaleString()} ت</td>
+      <td>${(p.initial_balance||0).toLocaleString()} ت</td>
+      <td>${p.billing === 'monthly' ? 'ماهانه' + (p.duration_days ? ` (${p.duration_days} روز)` : '') : 'یک‌بار'}</td>
+      <td><span class="badge ${p.is_active ? 'badge-active' : 'badge-inactive'}">${p.is_active ? 'فعال' : 'غیرفعال'}</span></td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-secondary btn-sm" onclick='editPlan(${JSON.stringify(p).replace(/'/g,"&#39;")})'>✏️</button>
+        <button class="btn btn-secondary btn-sm" onclick="togglePlan(${p.id})">${p.is_active ? '⏸' : '▶️'}</button>
+        <button class="btn btn-danger btn-sm" onclick="deletePlan(${p.id},'${esc(p.name)}')">🗑️</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function fillPlan(p) {
+  PLAN_FIELDS.forEach(f => { const el = document.getElementById('p-' + f); if (el) el.value = p[f] != null ? p[f] : ''; });
+  document.getElementById('p-id').value = p.id || '';
+  document.getElementById('p-is_active').checked = p.id ? !!p.is_active : true;
+  document.getElementById('p-key').disabled = !!p.id;   // شناسه پس از ساخت قفل است
+}
+
+function openAddPlan() {
+  document.getElementById('modal-plan-title').textContent = 'پلن جدید';
+  fillPlan({ name:'', key:'', description:'', price:0, traffic_gb:0, max_clients:0,
+             duration_days:0, billing:'once', price_per_gb:0, initial_balance:0, sort_order:0 });
+  openModal('modal-plan');
+}
+
+function editPlan(p) {
+  document.getElementById('modal-plan-title').textContent = 'ویرایش ' + p.name;
+  fillPlan(p);
+  openModal('modal-plan');
+}
+
+async function savePlan() {
+  const body = {};
+  PLAN_FIELDS.forEach(f => { const el = document.getElementById('p-' + f); if (el) body[f] = el.value; });
+  body.is_active = document.getElementById('p-is_active').checked;
+  const id = document.getElementById('p-id').value;
+  const r = id ? await put('/admin/plans/' + id, body) : await post('/admin/plans', body);
+  if (!r.success) return toast(r.message || 'خطا', 'error');
+  closeModal('modal-plan');
+  toast(r.message);
+  loadPlans();
+}
+
+async function togglePlan(id) {
+  const all = await get('/admin/plans');
+  const p = (all.data || []).find(x => x.id === id);
+  if (!p) return;
+  const r = await put('/admin/plans/' + id, { ...p, is_active: !p.is_active });
+  if (!r.success) return toast(r.message || 'خطا', 'error');
+  toast(p.is_active ? 'پلن غیرفعال شد' : 'پلن فعال شد');
+  loadPlans();
+}
+
+async function deletePlan(id, name) {
+  if (!confirm(`پلن «${name}» حذف شود؟\n(اگر فقط نمی‌خواهی فروخته شود، غیرفعالش کن)`)) return;
+  const r = await del('/admin/plans/' + id);
+  if (!r.success) return toast(r.message || 'خطا', 'error');
+  toast(r.message);
+  loadPlans();
+}
+
 async function loadResellers() {
   const r = await get('/admin/resellers');
   if (!r.success) return;
