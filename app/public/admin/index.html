@@ -413,6 +413,27 @@
         <button class="btn btn-primary" onclick="saveSettings(['test_traffic_gb','test_days','test_max_clients','test_enabled'])">ذخیره</button>
       </div>
 
+      <div class="table-wrap" style="padding:20px;margin-bottom:18px">
+        <h3 style="font-size:1rem;margin-bottom:4px">💬 متن‌های ربات</h3>
+        <p style="color:var(--text-dim);font-size:.78rem;margin-bottom:16px">
+          خالی بگذاری، متنِ پیش‌فرض استفاده می‌شود.
+          <b>{name}</b> = نام کاربر، <b>{rate}</b> = نرخ هر گیگ — این‌ها خودکار جایگزین می‌شوند.
+        </p>
+        <div class="form-group">
+          <label>پیام خوش‌آمد (بعد از /start)</label>
+          <textarea id="s-bot_welcome" rows="8" style="resize:vertical;line-height:1.7"></textarea>
+        </div>
+        <div class="form-group">
+          <label>متن راهنما</label>
+          <textarea id="s-bot_help" rows="5" style="resize:vertical;line-height:1.7"></textarea>
+        </div>
+        <div class="form-group">
+          <label>متن پشتیبانی (آیدی تلگرام خودت را این‌جا بگذار)</label>
+          <textarea id="s-bot_support" rows="3" style="resize:vertical;line-height:1.7"></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="saveSettings(['bot_welcome','bot_help','bot_support'])">ذخیره</button>
+      </div>
+
       <div class="table-wrap" style="padding:20px">
         <h3 style="font-size:1rem;margin-bottom:16px">💰 قیمت‌ها و پرداخت</h3>
         <div class="form-row">

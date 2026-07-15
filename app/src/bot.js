@@ -202,6 +202,61 @@ function testClaimOf(phone) {
   return db.prepare('SELECT * FROM test_claims WHERE phone=?').get(phone);
 }
 
+// خبر دادن به ادمین. خودِ ربات است، پس کتابخانهٔ notify لازم ندارد —
+// و مهم‌تر: هیچ‌وقت throw نمی‌کند. قبلاً notifyAdmin صدا زده می‌شد که در
+// bot.js اصلاً import نشده بود؛ ReferenceError می‌داد و چون *بعد* از ساختِ
+// موفقِ تست بود، کاربر پنلش را می‌گرفت و بلافاصله «خطا در ساخت تست» می‌دید.
+function tellAdmin(text) {
+  try { bot.sendMessage(ADMIN_ID, text).catch(function(){}); } catch (e) { /* هرگز جریان را نشکن */ }
+}
+
+// ── متن‌های قابلِ تنظیم توسط ادمین ─────────────────────────
+// قبلاً متنِ خوش‌آمد/راهنما/پشتیبانی در کد هاردکد بود — با آیدیِ تلگرامِ
+// شخصِ سازنده. یعنی هر خریدارِ این پنل، آیدیِ او را به مشتری‌هایش می‌داد.
+// حالا در settings است و ادمین از پنل عوضش می‌کند.
+const TEXT_DEFAULTS = {
+  bot_welcome:
+    '✨ سلام {name}!\n' +
+    'به ربات پنل نمایندگی خوش اومدی\n\n' +
+    '━━━━━━━━━━━━━━━━\n' +
+    '🌐 با پنل نمایندگی چی می‌تونی بکنی؟\n\n' +
+    '◉ سابلینک اختصاصی با برند خودت بساز\n' +
+    '◉ کاربر VPN اضافه کن\n' +
+    '◉ مصرف و انقضا رو لحظه‌ای مانیتور کن\n' +
+    '◉ از ربات یا پنل وب مدیریت کن\n\n' +
+    '━━━━━━━━━━━━━━━━\n' +
+    '💎 نرخ: هر GB = {rate} تومان\n\n' +
+    'برای خرید پنل دکمه زیر رو بزن 👇',
+  bot_help:
+    '❓ راهنمای پنل نمایندگی\n\n' +
+    '1️⃣ یک پلن انتخاب کن\n' +
+    '2️⃣ پرداخت انجام بده\n' +
+    '3️⃣ پس از تایید ادمین پنل فعال میشه\n' +
+    '4️⃣ از همین ربات کاربر بساز\n\n' +
+    '💡 هر گیگابایت = {rate} تومان',
+  bot_support: '📞 پشتیبانی\n\nبرای ارتباط با ما پیام بدید.',
+};
+
+// {name} و {rate} تنها جاهایی‌اند که متن به داده‌ی زنده نیاز دارد
+function botText(key, vars) {
+  const v = setting(key, '');
+  let t = (v && String(v).trim()) ? String(v) : TEXT_DEFAULTS[key];
+  Object.entries(vars || {}).forEach(function(e) {
+    t = t.split('{' + e[0] + '}').join(String(e[1]));
+  });
+  return t;
+}
+
+// سهمیهٔ باقی‌ماندهٔ نماینده بر اساسِ حجمِ *تخصیص‌یافته* به کاربرانش.
+// null یعنی سهمیه نامحدود است (traffic_limit_gb=0) و پول محدودش می‌کند.
+function remainingQuota(reseller) {
+  if (!(reseller.traffic_limit_gb > 0)) return null;
+  const allocated = db.prepare(
+    'SELECT COALESCE(SUM(traffic_limit_gb),0) AS s FROM clients WHERE reseller_id=? AND traffic_limit_gb > 0'
+  ).get(reseller.id).s;
+  return Math.max(0, reseller.traffic_limit_gb - allocated);
+}
+
 const contactBtn = {
   reply_markup: {
     keyboard: [[{ text: '📱 ارسال شماره من', request_contact: true }], ['❌ انصراف']],
@@ -237,20 +292,7 @@ bot.onText(/\/start/, async function(msg) {
   }
   const firstName = msg.from.first_name || '';
   return bot.sendMessage(chatId,
-    '✨ سلام ' + firstName + '!\n' +
-    'به ربات رسمی پنل نمایندگی VPN خوش اومدی\n\n' +
-    '━━━━━━━━━━━━━━━━\n' +
-    '🌐 با پنل نمایندگی چی می‌تونی بکنی?\n\n' +
-    '◉ سابلینک اختصاصی با برند خودت بساز\n' +
-    '◉ کاربران VPN نامحدود اضافه کن\n' +
-    '◉ مصرف و انقضا رو لحظه‌ای مانیتور کن\n' +
-    '◉ از ربات یا پنل وب مدیریت کن\n\n' +
-    '━━━━━━━━━━━━━━━━\n' +
-    '💎 نرخ: هر GB = ' + formatNum(defaultPricePerGb()) + ' تومان\n' +
-    '♾️  کاربران نامحدود به اندازه موجودی\n\n' +
-    '🧪 قبل از خرید می‌خوای تست کنی?\n' +
-    'سابلینک رایگان و تست سرعت: @anastiyavpnbot\n\n' +
-    'برای خرید پنل دکمه زیر رو بزن 👇',
+    botText('bot_welcome', { name: firstName, rate: formatNum(defaultPricePerGb()) }),
     guestMenu()
   );
 });
@@ -339,22 +381,13 @@ async function handleGuest(chatId, text, st, msg) {
   }
   if (text === '❓ راهنما') {
     return bot.sendMessage(chatId,
-      '❓ راهنمای پنل نمایندگی\n\n' +
-      '1️⃣ یک پلن انتخاب کن\n' +
-      '2️⃣ پرداخت انجام بده\n' +
-      '3️⃣ پس از تایید ادمین پنل فعال میشه\n' +
-      '4️⃣ از همین ربات کاربر بساز\n\n' +
-      '💡 موجودی کیف پول = سقف ترافیک قابل فروش\n' +
-      '💡 هر گیگابایت = ' + formatNum(defaultPricePerGb()) + ' تومان',
+      botText('bot_help', { rate: formatNum(defaultPricePerGb()) }),
       guestMenu()
     );
   }
   if (text === '📞 پشتیبانی') {
     return bot.sendMessage(chatId,
-      '📞 پشتیبانی\n\n' +
-      '◉ ادمین: @Vsevolod_i\n\n' +
-      '🧪 تست رایگان VPN:\n' +
-      'سابلینک نمونه و تست سرعت: @anastiyavpnbot',
+      botText('bot_support'),
       guestMenu()
     );
   }
@@ -560,7 +593,7 @@ async function handleReseller(chatId, text, st, reseller, msg) {
   }
   if (text === '📞 پشتیبانی') {
     return bot.sendMessage(chatId,
-      '📞 پشتیبانی\n\n◉ ادمین: @Vsevolod_i',
+      botText('bot_support'),
       resellerMenu()
     );
   }
@@ -603,6 +636,13 @@ async function handleReseller(chatId, text, st, reseller, msg) {
   if (st.step === 'nc_traffic') {
     const gb = parseFloat(text);
     if (isNaN(gb) || gb <= 0) return bot.sendMessage(chatId, '❌ عدد معتبر:', cancelBtn);
+    // ⚠️ ربات سهمیه را اصلاً چک نمی‌کرد و فقط پول را می‌دید؛ روی پنلی که
+    //    نرخش صفر است (مثلِ پنلِ تستی) هزینه صفر می‌شد و هیچ محافظی نمی‌ماند.
+    //    مثلِ reseller.js تخصیص‌یافته را می‌شماریم، نه مصرف‌شده.
+    const avail = remainingQuota(reseller);
+    if (avail !== null && gb > avail) {
+      return bot.sendMessage(chatId, '❌ حجم کافی نیست!\nباقی‌مانده: ' + avail.toFixed(2) + ' GB از ' + reseller.traffic_limit_gb + ' GB', resellerMenu());
+    }
     const cost = gb * rateOf(reseller);
     if (reseller.balance < cost) return bot.sendMessage(chatId, '❌ موجودی کافی نیست!\nهزینه: ' + formatNum(cost) + ' | موجودی: ' + formatNum(reseller.balance), resellerMenu());
     setState(chatId, { step: 'nc_days', inbounds: st.inbounds, username: st.username, traffic_gb: gb, cost: cost });
@@ -717,7 +757,7 @@ bot.on('callback_query', async function(query) {
           '🌐 https://__MAIN_DOMAIN__/panel\n\n' +
           'قیمتِ هر گیگ صفر است، پس آزادانه تست کن. برای نسخهٔ کامل «🛒 خرید پنل نمایندگی» را بزن.',
           resellerMenu());
-        notifyAdmin('🧪 <b>پنل تستی</b>\n📱 ' + phone + '\n👤 ' + username);
+        tellAdmin('🧪 پنل تستی\n📱 ' + phone + '\n👤 ' + username);
       } else {
         const inbounds = await getInbounds();
         if (!inbounds.length) return bot.sendMessage(chatId, '❌ فعلاً سروری در دسترس نیست. بعداً امتحان کن.', guestMenu());
@@ -735,7 +775,7 @@ bot.on('callback_query', async function(query) {
           'این لینک را در v2rayNG / v2box وارد کن.\n' +
           'راضی بودی؟ «🛒 خرید پنل نمایندگی» را بزن.',
           guestMenu());
-        notifyAdmin('🧪 <b>کانفیگ تستی</b>\n📱 ' + phone);
+        tellAdmin('🧪 کانفیگ تستی\n📱 ' + phone);
       }
     } catch (err) {
       // رکوردِ claim فقط بعد از موفقیت ثبت می‌شود، پس شکست شانسِ کاربر را نمی‌سوزاند
