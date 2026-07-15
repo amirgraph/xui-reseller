@@ -22,7 +22,8 @@ mkdir -p "$APP"
 cp -a "$HERE/app/." "$APP/"
 cp "$ENV_FILE" "$APP/.env"
 XHTTP_NAME="${XHTTP_PATH#/}"
-grep -rl '__[A-Z0-9_]*__' "$APP/src" "$APP/public" 2>/dev/null | while read -r f; do
+# `|| true` لازم است: اگر placeholderی نماند grep کد ۱ می‌دهد → pipefail+set -e
+{ grep -rl '__[A-Z0-9_]*__' "$APP/src" "$APP/public" 2>/dev/null || true; } | while read -r f; do
   sed -i \
     -e "s|__MAIN_DOMAIN__|$MAIN_DOMAIN|g" \
     -e "s|__VOICE_DOMAIN__|$MAIN_DOMAIN|g" \
