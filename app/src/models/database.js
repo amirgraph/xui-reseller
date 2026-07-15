@@ -216,6 +216,16 @@ async function initDB() {
   // کدامین پلن خریداری شده — تا تأییدِ ادمین بداند چه ظرفیتی بدهد
   ensureColumn('panel_orders', 'plan_key', "TEXT");
 
+  // ── زیرنمایندگی ──
+  // نماینده می‌تواند خودش پنل بسازد و بابتش از موجودی‌اش کم شود.
+  // پیش‌فرضِ هر دو صفر است: اجازه را ادمین می‌دهد، و زیرنماینده‌ای که
+  // ساخته می‌شود خودش اجازهٔ ساخت ندارد مگر ادمین روشن کند.
+  ensureColumn('resellers', 'parent_id', "INTEGER");             // سازندهٔ این پنل
+  ensureColumn('resellers', 'discount_percent', "REAL DEFAULT 0"); // تخفیفِ شخصی روی قیمتِ پلن
+  ensureColumn('resellers', 'can_create_panels', "INTEGER DEFAULT 0");
+  // کدام پلن‌ها را نماینده حق دارد بفروشد (ادمین تیک می‌زند)
+  ensureColumn('plans', 'resellable', "INTEGER DEFAULT 0");
+
   // ادمینِ پیش‌فرضِ admin/admin123 عمداً ساخته نمی‌شود: نصب‌کننده (30-app.sh)
   // ادمینِ واقعی را با رمزِ خودِ کاربر می‌سازد. وگرنه روی هر نصب یک حسابِ
   // پشتیِ با رمزِ شناخته‌شده می‌ماند.

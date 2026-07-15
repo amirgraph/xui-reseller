@@ -156,6 +156,35 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
   </div>
 </div>
 
+<!-- ساخت پنل زیرمجموعه -->
+<div class="modal-overlay" id="modal-new-panel">
+  <div class="modal" style="max-width:460px">
+    <button class="modal-close" onclick="closeModal('modal-new-panel')">✕</button>
+    <h3>ساخت پنل جدید</h3>
+    <div class="form-group">
+      <label>پلن</label>
+      <div id="np-plans"></div>
+      <p id="np-plans-empty" style="display:none;color:var(--text-muted);font-size:.82rem;padding:12px 0">
+        ادمین هنوز هیچ پلنی را برای فروش توسط نماینده فعال نکرده.
+      </p>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>نام</label><input id="np-name" placeholder="علی رضایی"></div>
+      <div class="form-group"><label>آیدی تلگرام (اختیاری)</label><input id="np-telegram" placeholder="123456789" dir="ltr"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>نام کاربری</label><input id="np-username" placeholder="ali_panel" dir="ltr"></div>
+      <div class="form-group"><label>رمز عبور</label><input id="np-password" type="password" placeholder="••••••••" dir="ltr"></div>
+    </div>
+    <div id="np-cost" style="background:rgba(124,92,252,0.08);border:1px solid rgba(124,92,252,0.2);border-radius:10px;padding:11px 14px;font-size:.83rem;margin-bottom:14px;display:none"></div>
+    <p id="np-err" style="color:var(--danger);font-size:.83rem;margin-bottom:10px"></p>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeModal('modal-new-panel')">انصراف</button>
+      <button class="btn btn-primary" id="np-submit" onclick="createPanel()">ساخت و پرداخت</button>
+    </div>
+  </div>
+</div>
+
 <!-- Buy Panel Overlay -->
 <div class="modal-overlay" id="modal-buy-panel">
   <div class="modal" style="max-width:460px">
@@ -270,6 +299,10 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
     <div class="nav-item" data-page="charge" onclick="showPage('charge',this)">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><circle cx="16" cy="14" r="1"/><path d="M20 7V5a2 2 0 0 0-2-2H4"/></svg>
       افزایش اعتبار
+    </div>
+    <div class="nav-item" id="nav-panels" data-page="panels" onclick="showPage('panels',this)" style="display:none">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      پنل‌های من
     </div>
     <div class="nav-item" data-page="brand" onclick="showPage('brand',this)">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
@@ -397,6 +430,21 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
         <div id="charge-history"></div>
       </div>
     </div>
+    <!-- پنل‌های زیرمجموعه — فقط اگر ادمین اجازه داده باشد -->
+    <div class="page" id="page-panels">
+      <div class="page-header">
+        <h2>پنل‌های من</h2>
+        <button class="btn btn-primary" onclick="openNewPanel()">ساخت پنل جدید</button>
+      </div>
+      <div id="panels-balance" style="background:rgba(124,92,252,0.08);border:1px solid rgba(124,92,252,0.2);border-radius:12px;padding:12px 15px;font-size:.84rem;margin-bottom:16px"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>نام</th><th>یوزر</th><th>ظرفیت</th><th>کاربران</th><th>وضعیت</th><th>ساخت</th></tr></thead>
+          <tbody id="panels-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="page" id="page-brand">
       <div class="page-header"><h2>برند من</h2></div>
       <div class="table-wrap" style="padding:24px">
@@ -561,7 +609,11 @@ fetch(API+'/auth/plans').then(r=>r.json()).then(d=>{ if(d.success){ bpPlans=d.da
 
 const savedBrand=localStorage.getItem('reseller_brand');
 if(savedBrand){try{applyBrand(JSON.parse(savedBrand));}catch(e){}}
-if(token) initApp();
+// ⚠️ initApp این‌جا صدا زده نمی‌شود: apiGet و بقیه پایین‌تر با const تعریف
+// شده‌اند و این‌جا هنوز در temporal dead zone‌اند. صدا زدنش این‌جا باعث
+// «Cannot access 'apiGet' before initialization» می‌شد که چون کسی promise را
+// catch نمی‌کرد بی‌صدا بود — نتیجه: پروفایل هیچ‌وقت لود نمی‌شد و همه‌جا «-»
+// می‌ماند تا کاربر روی یک منو کلیک کند. bootstrap رفته آخرِ همین اسکریپت.
 
 async function doLogin(){
   const u=document.getElementById('login-user').value.trim();
@@ -618,6 +670,8 @@ async function loadProfile(){
   profile=r.data;
   localStorage.setItem('reseller_brand',JSON.stringify(profile));
   applyBrand(profile);
+  // منوی «پنل‌های من» فقط برای کسی که ادمین اجازه‌اش را داده
+  document.getElementById('nav-panels').style.display=profile.can_create_panels?'':'none';
   document.getElementById('tb-balance-text').textContent=(profile.balance||0).toLocaleString()+' ت';
   document.getElementById('brand-name').value=profile.brand_name||'';
   document.getElementById('brand-logo').value=profile.brand_logo||'';
@@ -646,8 +700,94 @@ function showPage(name,el){
   document.querySelectorAll('.nav-item,.bn-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   if(el) el.classList.add('active');
-  const loaders={dashboard:loadDashboard,clients:loadClients,transactions:loadTransactions,account:loadProfile,charge:loadChargePage};
+  const loaders={dashboard:loadDashboard,clients:loadClients,transactions:loadTransactions,account:loadProfile,charge:loadChargePage,panels:loadPanels};
   if(loaders[name]) loaders[name]();
+}
+
+// ── پنل‌های زیرمجموعه ──────────────────────────────
+// منوی «پنل‌های من» فقط وقتی دیده می‌شود که ادمین can_create_panels داده باشد.
+let npPlans=[], npPlan=null, npInfo=null;
+
+async function loadPanels(){
+  const r=await apiReq('GET','/reseller/sellable-plans');
+  if(!r.success) return;
+  npInfo=r; npPlans=r.data||[];
+  document.getElementById('panels-balance').innerHTML=
+    `موجودی شما: <b style="color:var(--accent)">${Number(r.balance||0).toLocaleString()}</b> تومان`+
+    (r.discount_percent>0?` &nbsp;•&nbsp; تخفیف شما: <b style="color:var(--accent2)">${r.discount_percent}٪</b>`:'');
+  const list=await apiReq('GET','/reseller/panels');
+  const tb=document.getElementById('panels-tbody');
+  if(!list.success||!list.data.length){
+    tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:22px">هنوز پنلی نساخته‌ای</td></tr>';
+    return;
+  }
+  tb.innerHTML=list.data.map(p=>`
+    <tr>
+      <td><strong>${escHtml(p.name)}</strong></td>
+      <td dir="ltr">${escHtml(p.username)}</td>
+      <td>${Number(p.traffic_limit_gb)>0?Number(p.traffic_used_gb||0).toFixed(1)+' / '+Number(p.traffic_limit_gb).toLocaleString()+' GB':'<span style="color:var(--accent)">نامحدود</span>'}</td>
+      <td>${p.current_clients||0}${Number(p.max_clients)>0?' / '+p.max_clients:''}</td>
+      <td>${p.is_active?'<span style="color:var(--accent2)">فعال</span>':'<span style="color:var(--danger)">غیرفعال</span>'}</td>
+      <td style="font-size:.78rem;color:var(--text-muted)">${p.created_at?new Date(p.created_at.replace(' ','T')).toLocaleDateString('fa-IR'):'-'}</td>
+    </tr>`).join('');
+}
+
+function openNewPanel(){
+  npPlan=null;
+  ['np-name','np-telegram','np-username','np-password'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('np-err').textContent='';
+  document.getElementById('np-cost').style.display='none';
+  const box=document.getElementById('np-plans'), empty=document.getElementById('np-plans-empty');
+  if(!npPlans.length){ box.innerHTML=''; empty.style.display='block'; }
+  else{
+    empty.style.display='none';
+    box.innerHTML=npPlans.map((p,i)=>`
+      <div id="np-plan-${i}" onclick="pickNewPanelPlan(${i})" style="cursor:pointer;border:1px solid rgba(124,92,252,.25);background:rgba(124,92,252,.06);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;gap:8px">
+          <b>${escHtml(p.name)}</b>
+          <span style="white-space:nowrap">
+            ${p.your_price<p.list_price?`<s style="color:var(--text-muted);font-size:.76rem">${Number(p.list_price).toLocaleString()}</s> `:''}
+            <b style="color:var(--accent)">${Number(p.your_price).toLocaleString()} ت</b>${p.billing==='monthly'?'<span style="font-size:.7rem;color:var(--text-muted)"> /ماه</span>':''}
+          </span>
+        </div>
+        <div style="color:var(--text-muted);font-size:.75rem;margin-top:4px">${planLines(p).map(r=>r[0]+': '+r[1]).join(' • ')}</div>
+      </div>`).join('');
+  }
+  openModal('modal-new-panel');
+}
+
+function pickNewPanelPlan(i){
+  npPlan=npPlans[i];
+  npPlans.forEach((_,j)=>{
+    const el=document.getElementById('np-plan-'+j);
+    el.style.borderColor=(i===j)?'var(--accent)':'rgba(124,92,252,.25)';
+    el.style.background=(i===j)?'rgba(124,92,252,.16)':'rgba(124,92,252,.06)';
+  });
+  const c=document.getElementById('np-cost');
+  const left=Number(npInfo.balance||0)-Number(npPlan.your_price);
+  c.style.display='block';
+  c.innerHTML=`هزینه: <b style="color:var(--accent)">${Number(npPlan.your_price).toLocaleString()}</b> تومان`+
+    ` &nbsp;•&nbsp; موجودی بعد از ساخت: <b style="color:${left<0?'var(--danger)':'var(--accent2)'}">${left.toLocaleString()}</b> تومان`;
+}
+
+async function createPanel(){
+  const err=document.getElementById('np-err');
+  if(!npPlan){err.textContent='یک پلن انتخاب کنید';return;}
+  const body={
+    plan_key:npPlan.key,
+    name:document.getElementById('np-name').value.trim(),
+    telegram_id:document.getElementById('np-telegram').value.trim(),
+    username:document.getElementById('np-username').value.trim(),
+    password:document.getElementById('np-password').value,
+  };
+  const btn=document.getElementById('np-submit');
+  btn.disabled=true;   // ساخت پنل پول کم می‌کند؛ دابل‌کلیک نباید دو بار بزند
+  const r=await apiReq('POST','/reseller/panels',body);
+  btn.disabled=false;
+  if(!r.success){err.textContent=r.message||'خطا';return;}
+  closeModal('modal-new-panel');
+  toast(r.message);
+  loadPanels(); loadProfile();
 }
 
 async function apiReq(method,path,body){
@@ -1135,6 +1275,11 @@ document.addEventListener('keydown',e=>{
 document.querySelectorAll('.modal-overlay').forEach(m=>{
   m.addEventListener('click',e=>{if(e.target===m) m.classList.remove('open');});
 });
+
+// ── bootstrap ──
+// باید آخرِ اسکریپت باشد تا همهٔ constها (apiGet و…) مقداردهی شده باشند.
+// خطا هم دیگر بی‌صدا نمی‌ماند.
+if(token) initApp().catch(e=>console.error('initApp:',e));
 </script>
 </body>
 </html>
