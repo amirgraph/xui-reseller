@@ -278,14 +278,21 @@ router.post('/panel-orders/:id/approve', adminAuth, (req, res) => {
   if (db.prepare('SELECT id FROM resellers WHERE username=?').get(row.username)) {
     return res.status(400).json({ success: false, message: 'نام کاربری قبلاً ثبت شده' });
   }
-  const s = key => { const r = db.prepare('SELECT value FROM settings WHERE key=?').get(key); return r ? r.value : null; };
-  const trafficGb = parseFloat(s('panel_traffic_gb') || '145');
-  const pricePerGb = parseFloat(s('panel_price_per_gb') || '3500');
-  const maxClients = parseInt(s('panel_max_clients') || '50');
+  // مشخصاتِ پنل از خودِ پلنِ خریداری‌شده می‌آید — همان منبعی که ربات هم
+  // استفاده می‌کند، تا وب و ربات دو تعریفِ متفاوت از «پنل» نداشته باشند.
+  const { planByKey, resellerFieldsFromPlan } = require('../models/plans');
+  const plan = planByKey(row.plan_key || 'default');
+  if (!plan) return res.status(400).json({ success: false, message: 'پلنِ این درخواست پیدا نشد' });
+  const f = resellerFieldsFromPlan(plan);
   const result = db.prepare(`
-    INSERT INTO resellers (username, password, name, telegram_id, traffic_limit_gb, max_clients, price_per_gb, plain_password, is_active)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
-  `).run(row.username, row.password_hash, row.full_name, row.telegram_id, trafficGb, maxClients, pricePerGb, row.plain_password);
+    INSERT INTO resellers (username, password, name, telegram_id, traffic_limit_gb, max_clients, price_per_gb, balance, expires_at, plain_password, is_active)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+  `).run(row.username, row.password_hash, row.full_name, row.telegram_id,
+         f.traffic_limit_gb, f.max_clients, f.price_per_gb, f.balance, f.expires_at, row.plain_password);
+  if (f.balance > 0) {
+    db.prepare('INSERT INTO transactions (reseller_id, type, amount, description) VALUES (?,?,?,?)')
+      .run(result.lastInsertRowid, 'credit', f.balance, 'شارژ اولیه — پلن ' + plan.name);
+  }
   db.prepare("UPDATE panel_orders SET status='approved', confirmed_at=CURRENT_TIMESTAMP WHERE id=?").run(row.id);
   res.json({ success: true, reseller_id: result.lastInsertRowid, message: 'پنل ساخته شد' });
 });

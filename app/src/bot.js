@@ -13,13 +13,14 @@ const XUI_URL = process.env.XUI_URL;
 const XUI_PATH = process.env.XUI_PATH || '';
 const XUI_API_KEY = process.env.XUI_API_KEY;
 const SUB_BASE_URL = process.env.SUB_BASE_URL || '';
-const PRICE_PER_GB = 3500;
 
-const PLANS = {
-  bronze: { name: 'برنزی 🥉', amount: 500000, gb: 142 },
-  silver: { name: 'نقره‌ای 🥈', amount: 1000000, gb: 285 },
-  gold:   { name: 'طلایی 🥇', amount: 2000000, gb: 571 },
-};
+// ⚠️ PRICE_PER_GB و PLANS قبلاً همین‌جا هاردکد بودند (۳۵۰۰ و برنزی/نقره‌ای/طلایی).
+// نتیجه: ربات نرخِ واقعیِ هر نماینده را نادیده می‌گرفت و همان کاربر از پنل ۲۰۰
+// و از ربات ۳۵۰۰ حساب می‌شد. حالا نرخ از خودِ نماینده و پلن‌ها از DB می‌آیند.
+const {
+  rateOf, defaultPricePerGb, activePlans, planByKey, allPlans,
+  describePlan, resellerFieldsFromPlan,
+} = require('./models/plans');
 
 const db = new Database(path.resolve('/opt/xui-reseller/data/reseller.db'));
 db.pragma('journal_mode = WAL');
@@ -109,6 +110,40 @@ function bytesToGb(b) { return (b / 1024 / 1024 / 1024).toFixed(2); }
 function formatNum(b) { return Number(b || 0).toLocaleString('fa-IR'); }
 function randomPass() { return Math.random().toString(36).substring(2, 10); }
 
+// مبالغِ آمادهٔ شارژ از settings (نصب‌کننده می‌پرسد؛ ادمین از پنل عوض می‌کند)
+function chargeAmounts() {
+  const r = db.prepare("SELECT value FROM settings WHERE key='charge_amounts'").get();
+  const list = (r ? String(r.value) : '500000,1000000,2000000,5000000')
+    .split(',').map(function(x) { return parseInt(String(x).trim(), 10); })
+    .filter(function(x) { return Number.isFinite(x) && x > 0; });
+  return list.length ? list : [500000, 1000000, 2000000, 5000000];
+}
+
+// متنِ تعرفه‌ها از پلن‌های فعال
+function planListText() {
+  const ps = activePlans();
+  if (!ps.length) return '❌ فعلاً پلنی تعریف نشده.';
+  let t = '💎 تعرفه‌های پنل نمایندگی\n\n';
+  for (const p of ps) {
+    t += '▪️ ' + p.name + '\n   💰 ' + formatNum(p.price) + ' تومان' +
+         (p.billing === 'monthly' ? ' / ماه' : '') + '\n   ' + describePlan(p) + '\n';
+    if (p.description) t += '   ' + p.description + '\n';
+    t += '\n';
+  }
+  return t.trim();
+}
+
+// دکمهٔ اینلاین برای هر پلن
+function planButton(prefix) {
+  return function(p) {
+    return [{
+      text: p.name + ' — ' + formatNum(p.price) + ' ت' + (p.billing === 'monthly' ? '/ماه' : '') +
+            (p.traffic_gb > 0 ? ' (' + p.traffic_gb + 'GB)' : ' (نامحدود)'),
+      callback_data: prefix + p.key,
+    }];
+  };
+}
+
 const adminMenu = {
   reply_markup: {
     keyboard: [
@@ -170,7 +205,7 @@ bot.onText(/\/start/, async function(msg) {
     return bot.sendMessage(chatId,
       '👋 خوش اومدی ' + reseller.name + '!\n\n' +
       '💰 موجودی: ' + formatNum(reseller.balance) + ' تومان\n' +
-      '📦 ظرفیت باقی: ~' + Math.floor(reseller.balance / PRICE_PER_GB) + ' GB',
+      '📦 ظرفیت باقی: ~' + Math.floor(reseller.balance / rateOf(reseller)) + ' GB',
       resellerMenu()
     );
   }
@@ -185,7 +220,7 @@ bot.onText(/\/start/, async function(msg) {
     '◉ مصرف و انقضا رو لحظه‌ای مانیتور کن\n' +
     '◉ از ربات یا پنل وب مدیریت کن\n\n' +
     '━━━━━━━━━━━━━━━━\n' +
-    '💎 نرخ: هر GB = ' + formatNum(PRICE_PER_GB) + ' تومان\n' +
+    '💎 نرخ: هر GB = ' + formatNum(defaultPricePerGb()) + ' تومان\n' +
     '♾️  کاربران نامحدود به اندازه موجودی\n\n' +
     '🧪 قبل از خرید می‌خوای تست کنی?\n' +
     'سابلینک رایگان و تست سرعت: @anastiyavpnbot\n\n' +
@@ -217,12 +252,7 @@ bot.on('message', async function(msg) {
 async function handleGuest(chatId, text, st, msg) {
   if (text === '📋 تعرفه‌ها') {
     return bot.sendMessage(chatId,
-      '💎 تعرفه‌های پنل نمایندگی\n\n' +
-      '🥉 پلن برنزی\n   💰 ' + formatNum(PLANS.bronze.amount) + ' تومان | 📦 ' + PLANS.bronze.gb + ' GB\n\n' +
-      '🥈 پلن نقره‌ای\n   💰 ' + formatNum(PLANS.silver.amount) + ' تومان | 📦 ' + PLANS.silver.gb + ' GB\n\n' +
-      '🥇 پلن طلایی\n   💰 ' + formatNum(PLANS.gold.amount) + ' تومان | 📦 ' + PLANS.gold.gb + ' GB\n\n' +
-      '📌 گیگی ' + formatNum(PRICE_PER_GB) + ' تومان\n' +
-      '♾️ کاربران نامحدود — به اندازه موجودی کیف پول',
+      planListText(),
       guestMenu()
     );
   }
@@ -234,7 +264,7 @@ async function handleGuest(chatId, text, st, msg) {
       '3️⃣ پس از تایید ادمین پنل فعال میشه\n' +
       '4️⃣ از همین ربات کاربر بساز\n\n' +
       '💡 موجودی کیف پول = سقف ترافیک قابل فروش\n' +
-      '💡 هر گیگابایت = ' + formatNum(PRICE_PER_GB) + ' تومان',
+      '💡 هر گیگابایت = ' + formatNum(defaultPricePerGb()) + ' تومان',
       guestMenu()
     );
   }
@@ -248,14 +278,10 @@ async function handleGuest(chatId, text, st, msg) {
     );
   }
   if (text === '🛒 خرید پنل نمایندگی') {
+    const ps = activePlans();
+    if (!ps.length) return bot.sendMessage(chatId, '❌ فعلاً پلنی برای فروش تعریف نشده. بعداً سر بزن.', guestMenu());
     return bot.sendMessage(chatId, '🛒 پلن مورد نظرت رو انتخاب کن:', {
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '🥉 برنزی — ' + formatNum(PLANS.bronze.amount) + ' تومان (' + PLANS.bronze.gb + 'GB)', callback_data: 'buy_bronze' }],
-          [{ text: '🥈 نقره‌ای — ' + formatNum(PLANS.silver.amount) + ' تومان (' + PLANS.silver.gb + 'GB)', callback_data: 'buy_silver' }],
-          [{ text: '🥇 طلایی — ' + formatNum(PLANS.gold.amount) + ' تومان (' + PLANS.gold.gb + 'GB)', callback_data: 'buy_gold' }],
-        ]
-      }
+      reply_markup: { inline_keyboard: ps.map(planButton('buy_')) }
     });
   }
   if (st.step === 'waiting_receipt') {
@@ -429,7 +455,7 @@ async function handleAdmin(chatId, text, st, msg) {
 async function handleReseller(chatId, text, st, reseller, msg) {
   if (text === '💰 کیف پول') {
     const txns = db.prepare('SELECT * FROM transactions WHERE reseller_id = ? ORDER BY created_at DESC LIMIT 5').all(reseller.id);
-    let txt = '💰 کیف پول\n\nموجودی: ' + formatNum(reseller.balance) + ' تومان\nگیگی: ' + formatNum(PRICE_PER_GB) + ' تومان\nظرفیت باقی: ~' + Math.floor(reseller.balance / PRICE_PER_GB) + ' GB\n\n';
+    let txt = '💰 کیف پول\n\nموجودی: ' + formatNum(reseller.balance) + ' تومان\nگیگی: ' + formatNum(rateOf(reseller)) + ' تومان\nظرفیت باقی: ~' + Math.floor(reseller.balance / rateOf(reseller)) + ' GB\n\n';
     if (txns.length) {
       txt += 'آخرین تراکنش‌ها:\n';
       for (const t of txns) { txt += (t.type === 'credit' ? '💚 +' : '🔴 -') + formatNum(t.amount) + ' | ' + (t.description || '-') + '\n'; }
@@ -441,7 +467,7 @@ async function handleReseller(chatId, text, st, reseller, msg) {
     const active = db.prepare('SELECT COUNT(*) as c FROM clients WHERE reseller_id=? AND is_active=1').get(reseller.id).c;
     const traffic = db.prepare('SELECT SUM(traffic_used_gb) as t FROM clients WHERE reseller_id=?').get(reseller.id).t || 0;
     return bot.sendMessage(chatId,
-      '📊 آمار من\n\nکاربران: ' + active + ' فعال / ' + total + ' کل\nمصرف: ' + Number(traffic).toFixed(2) + ' GB\nموجودی: ' + formatNum(reseller.balance) + ' تومان\nظرفیت باقی: ~' + Math.floor(reseller.balance / PRICE_PER_GB) + ' GB',
+      '📊 آمار من\n\nکاربران: ' + active + ' فعال / ' + total + ' کل\nمصرف: ' + Number(traffic).toFixed(2) + ' GB\nموجودی: ' + formatNum(reseller.balance) + ' تومان\nظرفیت باقی: ~' + Math.floor(reseller.balance / rateOf(reseller)) + ' GB',
       resellerMenu()
     );
   }
@@ -458,19 +484,21 @@ async function handleReseller(chatId, text, st, reseller, msg) {
     );
   }
   if (text === '🛒 شارژ کیف پول') {
+    // شارژِ کیف پول ربطی به پلن‌ها ندارد — مبالغش از settings.charge_amounts می‌آید
+    // (نصب‌کننده می‌پرسد). قبلاً اشتباهاً پلن‌های فروشِ پنل را نشان می‌داد.
+    const amounts = chargeAmounts();
+    const rate = rateOf(reseller);
     return bot.sendMessage(chatId, '💳 مبلغ شارژ را انتخاب کن:', {
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '🥉 ' + formatNum(PLANS.bronze.amount) + ' تومان (' + PLANS.bronze.gb + 'GB)', callback_data: 'recharge_bronze' }],
-          [{ text: '🥈 ' + formatNum(PLANS.silver.amount) + ' تومان (' + PLANS.silver.gb + 'GB)', callback_data: 'recharge_silver' }],
-          [{ text: '🥇 ' + formatNum(PLANS.gold.amount) + ' تومان (' + PLANS.gold.gb + 'GB)', callback_data: 'recharge_gold' }],
-        ]
+        inline_keyboard: amounts.map(function(a) {
+          return [{ text: '💰 ' + formatNum(a) + ' تومان (~' + Math.floor(a / rate) + 'GB)', callback_data: 'recharge_' + a }];
+        })
       }
     });
   }
   if (text === '➕ کاربر جدید') {
-    if (reseller.balance < PRICE_PER_GB) {
-      return bot.sendMessage(chatId, '❌ موجودی کافی نیست!\nحداقل ' + formatNum(PRICE_PER_GB) + ' تومان نیاز داری.\nموجودی: ' + formatNum(reseller.balance) + ' تومان', resellerMenu());
+    if (reseller.balance < rateOf(reseller)) {
+      return bot.sendMessage(chatId, '❌ موجودی کافی نیست!\nحداقل ' + formatNum(rateOf(reseller)) + ' تومان نیاز داری.\nموجودی: ' + formatNum(reseller.balance) + ' تومان', resellerMenu());
     }
     let inbounds = [];
     try {
@@ -489,12 +517,12 @@ async function handleReseller(chatId, text, st, reseller, msg) {
     const exists = db.prepare('SELECT id FROM clients WHERE username = ? AND reseller_id = ?').get(text, reseller.id);
     if (exists) return bot.sendMessage(chatId, '❌ این نام قبلا استفاده شده:', cancelBtn);
     setState(chatId, { step: 'nc_traffic', inbounds: st.inbounds, username: text });
-    return bot.sendMessage(chatId, '📶 حجم ترافیک (GB) — حداکثر با موجودی: ' + Math.floor(reseller.balance / PRICE_PER_GB) + ' GB:', cancelBtn);
+    return bot.sendMessage(chatId, '📶 حجم ترافیک (GB) — حداکثر با موجودی: ' + Math.floor(reseller.balance / rateOf(reseller)) + ' GB:', cancelBtn);
   }
   if (st.step === 'nc_traffic') {
     const gb = parseFloat(text);
     if (isNaN(gb) || gb <= 0) return bot.sendMessage(chatId, '❌ عدد معتبر:', cancelBtn);
-    const cost = gb * PRICE_PER_GB;
+    const cost = gb * rateOf(reseller);
     if (reseller.balance < cost) return bot.sendMessage(chatId, '❌ موجودی کافی نیست!\nهزینه: ' + formatNum(cost) + ' | موجودی: ' + formatNum(reseller.balance), resellerMenu());
     setState(chatId, { step: 'nc_days', inbounds: st.inbounds, username: st.username, traffic_gb: gb, cost: cost });
     return bot.sendMessage(chatId, '📅 اعتبار (روز) — 0 برای نامحدود:', cancelBtn);
@@ -567,10 +595,19 @@ bot.on('callback_query', async function(query) {
   await bot.answerCallbackQuery(query.id);
 
   if (data.startsWith('buy_') || data.startsWith('recharge_')) {
+    // خریدِ پلن و شارژِ کیف پول دو چیزِ متفاوت‌اند: buy_ کلیدِ پلن می‌فرستد،
+    // recharge_ خودِ مبلغ را (از settings.charge_amounts).
     const isRecharge = data.startsWith('recharge_');
-    const planKey = data.replace('buy_', '').replace('recharge_', '');
-    const plan = PLANS[planKey];
-    if (!plan) return;
+    let plan;
+    if (isRecharge) {
+      const amount = parseInt(data.replace('recharge_', ''), 10);
+      if (!chargeAmounts().includes(amount)) return;   // فقط مبالغِ تعریف‌شده
+      plan = { key: 'recharge', name: 'شارژ کیف پول', amount: amount };
+    } else {
+      const p = planByKey(data.replace('buy_', ''));
+      if (!p || !p.is_active) return;
+      plan = { key: p.key, name: p.name, amount: p.price };
+    }
     const fromUser = query.from;
     const fullName = (fromUser.first_name || '') + (fromUser.last_name ? ' ' + fromUser.last_name : '');
     const reqId = db.prepare('INSERT INTO purchase_requests (telegram_id, telegram_username, full_name, plan_key, plan_name, amount, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?)').run(String(chatId), fromUser.username || '', fullName, planKey, plan.name, plan.amount, 'pending').lastInsertRowid;
@@ -637,7 +674,8 @@ bot.on('callback_query', async function(query) {
     const req = db.prepare('SELECT * FROM purchase_requests WHERE id = ?').get(reqId);
     if (!req) return bot.sendMessage(chatId, 'درخواست یافت نشد.');
     if (req.status !== 'pending') return bot.sendMessage(chatId, 'این درخواست قبلا پردازش شده.');
-    const plan = PLANS[req.plan_key];
+    const plan = planByKey(req.plan_key);
+    if (!plan) return bot.sendMessage(chatId, '❌ پلنِ این درخواست دیگر وجود ندارد: ' + req.plan_key);
     const tgId = req.telegram_id;
     let existingReseller = db.prepare('SELECT * FROM resellers WHERE telegram_id = ?').get(tgId);
     if (existingReseller) {
@@ -652,7 +690,11 @@ bot.on('callback_query', async function(query) {
       const password = randomPass();
       const hashed = bcrypt.hashSync(password, 10);
       const fullName = req.full_name || ('نماینده ' + tgId);
-      const result = db.prepare('INSERT INTO resellers (username, password, plain_password, name, telegram_id, max_clients, price_per_gb, balance, allowed_inbounds) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(username, hashed, password, fullName, tgId, 0, PRICE_PER_GB, req.amount, '[]');
+      // ⚠️ قبلاً max_clients=0 ست می‌شد و چون reseller.js شرطِ `current>=max` را
+      //    چک می‌کرد، 0>=0 درست بود و پنل از لحظهٔ اول قفل می‌شد. حالا ۰ یعنی
+      //    بی‌نهایت و مقدارها از پلن می‌آیند — همان منبعی که وب استفاده می‌کند.
+      const f = resellerFieldsFromPlan(plan);
+      const result = db.prepare('INSERT INTO resellers (username, password, plain_password, name, telegram_id, traffic_limit_gb, max_clients, price_per_gb, balance, expires_at, allowed_inbounds) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(username, hashed, password, fullName, tgId, f.traffic_limit_gb, f.max_clients, f.price_per_gb, f.balance, f.expires_at, '[]');
       db.prepare('INSERT INTO transactions (reseller_id, type, amount, description) VALUES (?, ?, ?, ?)').run(result.lastInsertRowid, 'credit', req.amount, 'خرید پنل - ' + req.plan_name);
       db.prepare('UPDATE purchase_requests SET status = ?, confirmed_at = CURRENT_TIMESTAMP WHERE id = ?').run('approved', reqId);
       await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: msgId });
@@ -662,8 +704,9 @@ bot.on('callback_query', async function(query) {
           '🎉 پنل نمایندگی شما فعال شد!\n\n' +
           '👤 یوزر: ' + username + '\n' +
           '🔑 پسورد: ' + password + '\n' +
-          '💰 موجودی: ' + formatNum(req.amount) + ' تومان\n' +
-          '📦 ظرفیت: ~' + Math.floor(req.amount / PRICE_PER_GB) + ' GB\n\n' +
+          '📦 ' + describePlan(plan) + '\n' +
+          (f.balance > 0 ? '💰 موجودی: ' + formatNum(f.balance) + ' تومان\n' : '') +
+          '\n' +
           '🌐 پنل: http://__MAIN_DOMAIN__/panel\n\n' +
           'از همین ربات هم می‌تونی مدیریت کنی 👇',
           resellerMenu()

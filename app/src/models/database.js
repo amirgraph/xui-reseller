@@ -176,6 +176,29 @@ async function initDB() {
     )
   `);
 
+  // Plans — بسته‌هایی که *پنلِ نمایندگی* با آن‌ها فروخته می‌شود (وب + ربات).
+  // ربطی به قیمت‌گذاریِ نماینده برای کاربرانِ خودش ندارد؛ آن از
+  // resellers.price_per_gb و settings.unlimited_price می‌آید.
+  // قبلاً در bot.js هاردکد بود (bronze/silver/gold) و هیچ‌جا قابلِ تغییر نبود.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      key TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      price REAL NOT NULL DEFAULT 0,           -- چقدر می‌پردازد
+      traffic_gb REAL NOT NULL DEFAULT 0,      -- سهمیهٔ ترافیک | ۰ = نامحدود
+      max_clients INTEGER NOT NULL DEFAULT 0,  -- سقفِ کاربر | ۰ = بی‌نهایت
+      duration_days INTEGER NOT NULL DEFAULT 0,-- ۰ = بدونِ انقضا
+      billing TEXT NOT NULL DEFAULT 'once',    -- once | monthly
+      price_per_gb REAL DEFAULT 0,             -- نرخی که نماینده بابتِ هر گیگِ کاربرش می‌دهد
+      initial_balance REAL DEFAULT 0,          -- شارژِ اولیهٔ کیف پول
+      is_active INTEGER NOT NULL DEFAULT 1,
+      sort_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // ── مهاجرتِ ستون‌ها ──
   // CREATE TABLE IF NOT EXISTS روی جدولِ *موجود* هیچ ستونی اضافه نمی‌کند، پس
   // ستون‌هایی که کد لازم دارد ولی در schema نبودند باید با ALTER اضافه شوند.
@@ -190,6 +213,8 @@ async function initDB() {
   ensureColumn('resellers', 'plain_password', "TEXT");
   ensureColumn('resellers', 'telegram_support', "TEXT DEFAULT ''");
   ensureColumn('resellers', 'brand_motion', "TEXT DEFAULT 'hearts'");
+  // کدامین پلن خریداری شده — تا تأییدِ ادمین بداند چه ظرفیتی بدهد
+  ensureColumn('panel_orders', 'plan_key', "TEXT");
 
   // ادمینِ پیش‌فرضِ admin/admin123 عمداً ساخته نمی‌شود: نصب‌کننده (30-app.sh)
   // ادمینِ واقعی را با رمزِ خودِ کاربر می‌سازد. وگرنه روی هر نصب یک حسابِ

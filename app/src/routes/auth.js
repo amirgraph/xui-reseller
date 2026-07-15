@@ -129,7 +129,10 @@ router.post('/panel-order', async (req, res) => {
 // Public: get panel order settings
 router.get('/panel-order/settings', (req, res) => {
   const db = require('../models/database').getDB();
-  const keys = ['panel_price','panel_traffic_gb','panel_price_per_gb','charge_card_number','charge_card_owner'];
+  // unlimited_price اضافه شد تا فرانت نرخِ نامحدود را از سرور بگیرد؛ قبلاً
+  // ۱۸۰٬۰۰۰ در HTML هاردکد بود و با مقدارِ واقعیِ بک‌اند فرق می‌کرد.
+  const keys = ['panel_price','panel_traffic_gb','panel_price_per_gb','panel_max_clients',
+                'charge_card_number','charge_card_owner','unlimited_price','unlimited_enabled'];
   const result = {};
   keys.forEach(k => {
     const row = db.prepare('SELECT value FROM settings WHERE key=?').get(k);
