@@ -28,7 +28,9 @@ ok "watchdoge hafeze faal."
 
 # ── جعبه‌سیاه (ثبتِ وضعیت هر دقیقه برای تشخیصِ کرش) ──
 cp "$T/flightrec.sh" /usr/local/bin/ && chmod +x /usr/local/bin/flightrec.sh
-( crontab -l 2>/dev/null | grep -v flightrec; echo "* * * * * /usr/local/bin/flightrec.sh" ) | crontab -
+# همان تلهٔ crontabِ خالی که در 50-scanner توضیح داده شد
+( { crontab -l 2>/dev/null || true; } | grep -v flightrec || true
+  echo "* * * * * /usr/local/bin/flightrec.sh" ) | crontab -
 ok "Jabe siyah faal (/root/flightrec.log)."
 
 # ── محافظتِ OOM برای سرویس‌های حیاتی ──

@@ -27,7 +27,10 @@ sed -i "s|INBOUNDS = {[0-9]*:|INBOUNDS = {$NAHAN_ID:|" /opt/provision-nahan.py 2
 ok "Script haye scanner/provision mostaghar shod (inbounde Nahan id=$NAHAN_ID)."
 
 # ── cronها ──
-( crontab -l 2>/dev/null | grep -vE "provision-nahan|v2pn-cleanip"
+# ⚠️ روی سرورِ تازه crontab خالی است: `crontab -l` کد ۱ می‌دهد و `grep -v` هم با
+#    صفر خط کد ۱ → pipefail+set -e زیرشل را *قبل از echoها* می‌کشد، پس یک
+#    crontabِ خالی نصب می‌شد و ماژول می‌مرد. هر دو `|| true` لازم‌اند.
+( { crontab -l 2>/dev/null || true; } | grep -vE "provision-nahan|v2pn-cleanip" || true
   echo "*/10 * * * * /usr/bin/python3 /opt/provision-nahan.py >> /var/log/provision-nahan.log 2>&1"
   echo "17 */6 * * * /usr/bin/python3 $SC/scanner.py && /usr/bin/python3 $SC/updater.py >> /var/log/v2pn-cleanip.log 2>&1"
 ) | crontab -
