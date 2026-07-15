@@ -16,7 +16,7 @@ if [ ! -f "$CERTDIR/fullchain.pem" ]; then
     -subj "/CN=$MAIN_DOMAIN" \
     -addext "subjectAltName=DNS:$MAIN_DOMAIN,DNS:$NSUB1,DNS:$NSUB2,DNS:$NSUB3" >/dev/null 2>&1
 fi
-ok "گواهیِ origin ساخته شد (self-signed)."
+ok "Gavahiye origin sakhte shod (self-signed)."
 
 # ── map برای websocket upgrade ──
 cat > /etc/nginx/conf.d/upgrade.conf <<'EOF'
@@ -83,7 +83,7 @@ systemctl daemon-reload
 
 if nginx -t >/dev/null 2>&1; then
   systemctl enable nginx >/dev/null 2>&1; systemctl restart nginx
-  ok "nginx روی 443 فعال شد."
+  ok "nginx rooye 443 faal shod."
 else
-  echo "  ! nginx -t خطا داد:"; nginx -t
+  echo "  ! nginx -t khata dad:"; nginx -t
 fi

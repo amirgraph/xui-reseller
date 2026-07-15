@@ -5,6 +5,7 @@
 #
 #  اجرا:  sudo bash setup.sh
 #  همهٔ تنظیمات را می‌پرسد؛ هیچ secret در ریپو نیست.
+#  متنِ نمایشیِ اسکریپت فینگیلیش است (ترمینالِ root فارسی را درست نشان نمی‌دهد).
 # ═══════════════════════════════════════════════════════════════
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -17,7 +18,7 @@ c(){ printf '\033[%sm%s\033[0m' "$1" "$2"; }
 title(){ echo; echo "$(c '1;35' "▓▓ $* ▓▓")"; }
 ok(){ echo "  $(c '1;32' '✓') $*"; }
 warn(){ echo "  $(c '1;33' '!') $*"; }
-die(){ echo "$(c '1;31' '✗ خطا:') $*" >&2; exit 1; }
+die(){ echo "$(c '1;31' '✗ Khata:') $*" >&2; exit 1; }
 
 ask(){ # ask VAR "سوال" "پیش‌فرض"
   local __v="$1" __q="$2" __d="${3:-}" __a
@@ -31,82 +32,92 @@ ask_secret(){ # ask_secret VAR "سوال"  (بدون echo)
   printf -v "$__v" '%s' "$__a"
 }
 yesno(){ local __q="$1" __a; read -rp "  $__q (y/n) [y]: " __a; [[ "${__a:-y}" =~ ^[yY] ]]; }
-rand(){ tr -dc 'a-z0-9' </dev/urandom | head -c "${1:-16}"; }
-rand_hex(){ openssl rand -hex "${1:-16}" 2>/dev/null || tr -dc 'a-f0-9' </dev/urandom | head -c $((${1:-16}*2)); }
+# head لوله را زودتر می‌بندد و tr سیگنال SIGPIPE می‌گیرد (کد ۱۴۱)؛
+# با pipefail+set -e این کل اسکریپت را می‌کشد، پس کد خروج را می‌بلعیم.
+rand(){ local __n="${1:-16}" __s; __s="$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom 2>/dev/null | head -c "$__n")" || true; printf '%s' "$__s"; }
+rand_hex(){ local __n="${1:-16}" __s; __s="$(openssl rand -hex "$__n" 2>/dev/null || LC_ALL=C tr -dc 'a-f0-9' </dev/urandom 2>/dev/null | head -c $((__n*2)))" || true; printf '%s' "$__s"; }
 
-[ "$(id -u)" = 0 ] || die "با sudo/root اجرا کن."
+[ "$(id -u)" = 0 ] || die "Ba sudo/root ejra kon."
 
 clear
 echo "$(c '1;35' '
   ╔═══════════════════════════════════════════════╗
-  ║        نصب‌کنندهٔ نهان — VPN رزلر               ║
+  ║      NASB KONANDEYE NAHAN — VPN RESELLER      ║
   ║   x-ui · xray · WARP · nginx · scanner · panel ║
   ╚═══════════════════════════════════════════════╝')"
-echo "  همهٔ سوال‌ها پیش‌فرضِ منطقی دارند. Enter = پیش‌فرض."
-echo "  مقادیر حساس نمایش داده نمی‌شوند."
+echo "  Hameye soal ha pishfarze manteghi darand. Enter = pishfarz."
+echo "  Meghdar haye hassas namayesh dade nemishavand."
 
 # ═══════════════ ۱) دامنه‌ها ═══════════════
-title "۱/۶  دامنه‌ها"
-echo "  دامنهٔ اصلی: پنل و ساب پشتیبان (معمولاً پشت CDN داخلی مثل Arvan)."
-ask MAIN_DOMAIN "دامنهٔ اصلی (مثل panel.example.com)"
+title "1/6  Domain ha"
+echo "  Domaine asli: panel va sube poshtiban (mamulan poshte CDN dakheli mesle Arvan)."
+ask MAIN_DOMAIN "Domaine asli (mesle panel.example.com)"
 echo
-echo "  نهان: دامنهٔ Cloudflare که ۳ ساب‌دامینِ تصادفی زیرش ساخته می‌شود (ساب اصلی/ضدفیلتر)."
-ask CF_DOMAIN "دامنهٔ Cloudflare پایه (مثل example.ir)"
-if yesno "ساب‌دامین‌های نهان خودکار تصادفی ساخته شوند؟"; then
+echo "  Nahan: domaine Cloudflare ke 3 subdomaine tasadofi zirash sakhte mishavad (sube asli / zedde filter)."
+ask CF_DOMAIN "Domaine Cloudflare paye, bedune subdomain (mesle example.ir)"
+# گواهیِ رایگانِ Cloudflare فقط یک سطح ساب‌دامین (*.domain) را پوشش می‌دهد
+CF_DOTS="${CF_DOMAIN//[^.]/}"
+if [ "${#CF_DOTS}" -gt 1 ]; then
+  warn "\"$CF_DOMAIN\" khodash yek subdomain ast."
+  warn "Sube tasadofi rooye an mishavad 3 sath, va gavahiye rayegane Cloudflare (*.domain)"
+  warn "faghat yek sath ra pushesh midahad -> TLS dar edge khata midahad."
+  yesno "Bazam edame bedam?" || die "Domaine paye (mesle example.ir) ra bezan va dobare ejra kon."
+fi
+if yesno "Subdomain haye Nahan khodkar tasadofi sakhte shavand?"; then
   NSUB1="$(rand 18).$CF_DOMAIN"; NSUB2="$(rand 22).$CF_DOMAIN"; NSUB3="$(rand 16).$CF_DOMAIN"
-  ok "ساخته شد: $NSUB1 ، $NSUB2 ، $NSUB3"
-  warn "این ۳ رکورد را در Cloudflare (پروکسی/نارنجی) به IP سرور اضافه کن."
+  ok "Sakhte shod: $NSUB1 , $NSUB2 , $NSUB3"
+  warn "In 3 record ra dar Cloudflare (proxy/narenji) be IPe server ezafe kon."
 else
-  ask NSUB1 "ساب‌دامین نهان ۱"; ask NSUB2 "ساب‌دامین نهان ۲"; ask NSUB3 "ساب‌دامین نهان ۳"
+  ask NSUB1 "Subdomaine Nahan 1"; ask NSUB2 "Subdomaine Nahan 2"; ask NSUB3 "Subdomaine Nahan 3"
 fi
 
 # ═══════════════ ۲) تلگرام و ادمین ═══════════════
-title "۲/۶  ربات تلگرام و ادمین پنل"
-ask_secret BOT_TOKEN "توکن ربات تلگرام (از BotFather)"
-ask ADMIN_TG "آیدی عددیِ تلگرامِ ادمین (از @userinfobot)"
-ask ADMIN_USER "یوزرنیم ادمینِ پنل" "admin"
-ask_secret ADMIN_PASS "رمز ادمینِ پنل"
-[ -n "$ADMIN_PASS" ] || die "رمز ادمین خالی نباشد."
+title "2/6  Bote Telegram va admine panel"
+ask_secret BOT_TOKEN "Tokene bote Telegram (az BotFather)"
+ask ADMIN_TG "IDe adadiye Telegrame admin (az @userinfobot)"
+ask ADMIN_USER "Username admine panel" "admin"
+ask_secret ADMIN_PASS "Ramze admine panel"
+[ -n "$ADMIN_PASS" ] || die "Ramze admin khali nabashad."
 
 # ═══════════════ ۳) x-ui ═══════════════
-title "۳/۶  پنل x-ui (زیرساخت)"
-ask XUI_USER "یوزرنیم x-ui" "admin"
-ask_secret XUI_PASS "رمز x-ui"
+title "3/6  Panele x-ui (zirsakht)"
+ask XUI_USER "Username x-ui" "admin"
+ask_secret XUI_PASS "Ramze x-ui"
 XUI_PATH="/$(rand 16)"        # مسیر پنل تصادفی (امنیت)
 XUI_PORT=38339
 XUI_API_KEY="$(rand 40)"      # کلید Bearer API — تولید خودکار
-ok "مسیر پنل x-ui و کلید API تصادفی ساخته شد."
+ok "Masire panele x-ui va kelide API tasadofi sakhte shod."
 
 # ═══════════════ ۴) قیمت‌گذاری (پنل و ربات) ═══════════════
-title "۴/۶  قیمت‌گذاری و فروش"
-echo "  «پنلِ نماینده» = بستهٔ آماده‌ای که به نماینده می‌فروشی."
-ask PANEL_PRICE "قیمت هر پنل نماینده (تومان)" "550000"
-ask PANEL_GB "حجم پنل نماینده (GB)" "145"
-ask PRICE_PER_GB "قیمت هر گیگ برای کسر از موجودی نماینده (تومان)" "3500"
-ask MAX_CLIENTS "حداکثر کاربر هر نماینده" "50"
+title "4/6  Gheymat gozari va forush"
+echo "  \"Panele namayande\" = basteye amade i ke be namayande mifrushi."
+ask PANEL_PRICE "Gheymate har panele namayande (Toman)" "550000"
+ask PANEL_GB "Hajme panele namayande (GB)" "145"
+ask PRICE_PER_GB "Gheymate har gig baraye kasr az mojudiye namayande (Toman)" "3500"
+ask MAX_CLIENTS "Hadde aksare karbare har namayande" "50"
 echo
-if yesno "حالت «نامحدود» فعال باشد؟ (حجم ۰ = نامحدود، قیمت ماهانه)"; then
-  UNLIMITED=1; ask UNLIM_PRICE "قیمت ماهانهٔ کاربر نامحدود (تومان)" "180000"
+if yesno "Halate \"namahdud\" faal bashad? (hajm 0 = namahdud, gheymate mahane)"; then
+  UNLIMITED=1; ask UNLIM_PRICE "Gheymate mahaneye karbare namahdud (Toman)" "180000"
 else UNLIMITED=0; UNLIM_PRICE=0; fi
 echo
-echo "  شارژ موجودیِ نماینده:"
-ask CARD_NUMBER "شمارهٔ کارتِ واریز"
-ask CARD_OWNER "نامِ صاحبِ کارت"
-ask CHARGE_AMOUNTS "مبالغِ آمادهٔ شارژ (با کاما)" "500000,1000000,2000000,5000000"
+echo "  Sharzhe mojudiye namayande:"
+ask CARD_NUMBER "Shomareye karte variz"
+ask CARD_OWNER "Name sahebe kart"
+ask CHARGE_AMOUNTS "Mabalighe amadeye sharzh (ba comma)" "500000,1000000,2000000,5000000"
 PLISIO_KEY=""
-if yesno "پرداختِ کریپتو (Plisio) فعال شود؟"; then ask_secret PLISIO_KEY "کلید API پلیزیو"; fi
+if yesno "Pardakhte crypto (Plisio) faal shavad?"; then ask_secret PLISIO_KEY "Kelide API Plisio"; fi
 
 # ═══════════════ ۵) شبکه/سرور ═══════════════
-title "۵/۶  سرور"
+title "5/6  Server"
 DETECTED_IP="$(curl -s4 --max-time 6 ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')"
-ask SERVER_IP "IP عمومیِ سرور" "$DETECTED_IP"
+ask SERVER_IP "IPe omumiye server" "$DETECTED_IP"
 XHTTP_PATH="/$(rand 10)"      # مسیر تونل xhttp تصادفی
 
 # ═══════════════ تولیدِ خودکارِ کلیدها ═══════════════
-title "۶/۶  ساختِ کلیدهای امنیتی"
-JWT_SECRET="$(rand_hex 32)"; ok "JWT_SECRET ساخته شد."
+title "6/6  Sakhte kelid haye amniyati"
+JWT_SECRET="$(rand_hex 32)"; ok "JWT_SECRET sakhte shod."
 # کلید Reality (اگر xray موجود شد در ماژول xui کامل می‌شود؛ اینجا placeholder)
-ok "کلیدهای Reality در مرحلهٔ نصبِ xray ساخته می‌شوند."
+ok "Kelid haye Reality dar marhaleye nasbe xray sakhte mishavand."
 
 # ═══════════════ نوشتنِ .env (بدون نمایش) ═══════════════
 umask 077
@@ -156,18 +167,18 @@ CARD_OWNER=$CARD_OWNER
 CHARGE_AMOUNTS=$CHARGE_AMOUNTS
 EOF
 chmod 600 "$CONF"
-ok ".env و پیکربندی ذخیره شد (۶۰۰، فقط root)."
+ok ".env va peykarbandi zakhire shod (600, faghat root)."
 
-echo; echo "$(c '1;36' '  خلاصهٔ تنظیمات:')"
-echo "   دامنهٔ اصلی : $MAIN_DOMAIN"
-echo "   نهان       : $NSUB1 (+۲ تای دیگر)"
-echo "   x-ui       : پورت $XUI_PORT ، مسیرِ تصادفی"
-echo "   قیمت پنل   : $PANEL_PRICE ت | هر گیگ $PRICE_PER_GB ت | سقف $MAX_CLIENTS کاربر"
+echo; echo "$(c '1;36' '  Kholaseye tanzimat:')"
+echo "   Domaine asli   : $MAIN_DOMAIN"
+echo "   Nahan          : $NSUB1 (+2 taye digar)"
+echo "   x-ui           : port $XUI_PORT , masire tasadofi"
+echo "   Gheymate panel : $PANEL_PRICE T | har gig $PRICE_PER_GB T | saghf $MAX_CLIENTS karbar"
 echo
-yesno "شروعِ نصب با این تنظیمات؟" || { warn "لغو شد. .env ذخیره شده — بعداً دوباره اجرا کن."; exit 0; }
+yesno "Shorue nasb ba in tanzimat?" || { warn "Laghv shod. .env zakhire shode — badan dobare ejra kon."; exit 0; }
 
 # ═══════════════ اجرای ماژول‌های نصب ═══════════════
-run_module(){ local m="$HERE/scripts/$1"; [ -f "$m" ] && { title "▶ $1"; bash "$m" "$ENV_FILE" "$CONF" || die "ماژول $1 شکست خورد"; } || warn "ماژول $1 نیست (رد شد)"; }
+run_module(){ local m="$HERE/scripts/$1"; [ -f "$m" ] && { title "▶ $1"; bash "$m" "$ENV_FILE" "$CONF" || die "Module $1 shekast khord"; } || warn "Module $1 nist (rad shod)"; }
 run_module 00-deps.sh
 run_module 10-warp.sh
 run_module 20-xui.sh
@@ -177,7 +188,7 @@ run_module 50-scanner.sh
 run_module 60-tunings.sh
 run_module 99-verify.sh
 
-title "✅ نصب کامل شد"
-echo "   پنل ادمین : https://$MAIN_DOMAIN/panel  (یوزر: $ADMIN_USER)"
-echo "   x-ui      : http://$SERVER_IP:$XUI_PORT$XUI_PATH"
-echo "   یادت باشد: ۳ رکورد نهان را در Cloudflare به $SERVER_IP بزن + origin را ست کن."
+title "✅ Nasb kamel shod"
+echo "   Panele admin : https://$MAIN_DOMAIN/panel  (user: $ADMIN_USER)"
+echo "   x-ui         : http://$SERVER_IP:$XUI_PORT$XUI_PATH"
+echo "   Yadet bashad: 3 recorde Nahan ra dar Cloudflare be $SERVER_IP bezan + origin ra set kon."

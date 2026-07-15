@@ -12,8 +12,8 @@ PKG="$HERE/releases/x-ui-nahan-v3.4.2.tgz"
 XUI_PKG_URL="${XUI_PKG_URL:-https://github.com/amirgraph/xui-reseller/releases/download/v1.0.0/x-ui-nahan-v3.4.2.tgz}"
 if [ ! -f "$PKG" ]; then
   mkdir -p "$HERE/releases"
-  echo "  دانلود بستهٔ x-ui از GitHub Release..."
-  curl -fsSL -o "$PKG" "$XUI_PKG_URL" || { echo "دانلود بسته شکست خورد: $XUI_PKG_URL"; exit 1; }
+  echo "  Downloade basteye x-ui az GitHub Release..."
+  curl -fsSL -o "$PKG" "$XUI_PKG_URL" || { echo "Downloade baste shekast khord: $XUI_PKG_URL"; exit 1; }
 fi
 systemctl stop x-ui 2>/dev/null || true
 mkdir -p /usr/local /etc/x-ui
@@ -23,7 +23,7 @@ cp /usr/local/x-ui/x-ui.service.debian /etc/systemd/system/x-ui.service 2>/dev/n
 ln -sf /usr/local/x-ui/x-ui /usr/bin/x-ui 2>/dev/null || true
 chmod +x /usr/local/x-ui/x-ui /usr/local/x-ui/bin/xray-linux-amd64
 systemctl daemon-reload
-ok "باینری x-ui مستقر شد."
+ok "Binariye x-ui mostaghar shod."
 
 # ── راه‌اندازی اولیه تا DB ساخته شود ──
 systemctl enable x-ui >/dev/null 2>&1
@@ -32,7 +32,7 @@ systemctl restart x-ui; sleep 5
 # ── تنظیمات پایه: پورت، مسیر، یوزر/رمز ──
 /usr/local/x-ui/x-ui setting -port "$XUI_PORT" -webBasePath "$XUI_PATH" \
   -username "$XUI_USER" -password "$XUI_PASSWORD" >/dev/null 2>&1
-ok "پورت/مسیر/یوزر x-ui تنظیم شد."
+ok "Port/masir/usere x-ui tanzim shod."
 
 # ── قالب routing (بلاک تبلیغات + تورنت + WARP) و اینباند نهان ──
 XHTTP="${XHTTP_PATH#/}"   # بدون اسلش
@@ -57,26 +57,26 @@ db.execute("""INSERT INTO inbounds
   VALUES (1,0,0,0,?,1,0,?,?,?,?,?,?,?)""",
   ("نهان", inb.get("listen","127.0.0.1"), inb["port"], inb["protocol"], st, ss, "nahan-xhttp", sniff))
 db.commit(); db.close()
-print("  ✓ قالب routing + اینباند نهان درج شد")
+print("  ✓ Ghalebe routing + inbounde Nahan derj shod")
 PY
 rm -f /tmp/xray-tmpl.json
 
 systemctl restart x-ui; sleep 6
-[ "$(systemctl is-active x-ui)" = active ] && ok "x-ui فعال (پورت $XUI_PORT)." || echo "  ! x-ui بالا نیامد — بررسی: journalctl -u x-ui"
+[ "$(systemctl is-active x-ui)" = active ] && ok "x-ui faal (port $XUI_PORT)." || echo "  ! x-ui bala nayamad — barresi: journalctl -u x-ui"
 
 # ── توکن API: تنها قدمِ نیمه‌دستی (چون x-ui توکن را سمت خودش هش می‌کند) ──
 echo
 echo "  ──────────────────────────────────────────────────────────"
-echo "  🔑 ساختِ توکن API (یک‌بار، دستی):"
-echo "     ۱) وارد شو: http://$SERVER_IP:$XUI_PORT$XUI_PATH  (یوزر: $XUI_USER)"
-echo "     ۲) منوی «API Tokens» → Create → یک توکن بساز و کپی کن"
+echo "  🔑 Sakhte tokene API (yek bar, dasti):"
+echo "     1) Vared sho: http://$SERVER_IP:$XUI_PORT$XUI_PATH  (user: $XUI_USER)"
+echo "     2) Menuye \"API Tokens\" -> Create -> yek token besaz va copy kon"
 echo "  ──────────────────────────────────────────────────────────"
-read -rsp "  توکن ساخته‌شده را اینجا paste کن: " XUI_TOKEN; echo
+read -rsp "  Tokene sakhte shode ra inja paste kon: " XUI_TOKEN; echo
 if [ -n "$XUI_TOKEN" ]; then
   sed -i "s|^XUI_API_KEY=.*|XUI_API_KEY=$XUI_TOKEN|" "$ENV_FILE"
   # برای اسکریپت اسکنر/provision هم لازم است
   echo "XUI_API_KEY=$XUI_TOKEN" >> "$CONF"
-  ok "توکن در .env ذخیره شد."
+  ok "Token dar .env zakhire shod."
 else
-  echo "  ! توکن خالی — بعداً در .env مقدار XUI_API_KEY را دستی بگذار."
+  echo "  ! Token khali — badan dar .env meghdare XUI_API_KEY ra dasti bezar."
 fi
