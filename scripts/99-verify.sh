@@ -9,7 +9,9 @@ echo "  ── Service ha ──"
 for s in x-ui wireproxy-warp nginx memwatch; do
   [ "$(systemctl is-active $s 2>/dev/null)" = active ] && g "$s faal" || b "$s gheyre faal"
 done
-pm2 jlist 2>/dev/null | grep -q '"status":"online"' && g "Panele reseller (pm2) online" || b "Panele reseller offline"
+pm2 jlist 2>/dev/null | grep -q '"name":"xui-reseller"' && pm2 jlist 2>/dev/null | grep -q '"status":"online"' \
+  && g "Panele reseller (pm2) online" || b "Panele reseller offline"
+pm2 jlist 2>/dev/null | grep -q '"name":"xui-bot"' && g "Bote telegram (pm2) hast" || b "Bote telegram (xui-bot) ejra nashode"
 
 echo "  ── Port ha ──"
 for p in "443:nginx" "8001:xray" "40000:warp" "$PORT:node" "$XUI_PORT:x-ui"; do

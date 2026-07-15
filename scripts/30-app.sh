@@ -79,14 +79,35 @@ ok "Gheymat gozari va etelaate sharzh derj shod."
 # ── اجرا با pm2 ──
 pm2 delete xui-reseller >/dev/null 2>&1 || true
 # خفه نمی‌کنیم: اگر اپ بالا نیاید، خطای واقعیِ node را می‌خواهیم ببینیم
-pm2 start "$APP/src/server.js" --name xui-reseller --cwd "$APP" || die "pm2 start shekast khord."
+pm2 start "$APP/src/server.js" --name xui-reseller --cwd "$APP" || die "pm2 start (panel) shekast khord."
+
+# ⚠️ bot.js پروسهٔ *مستقل* است (polling خودش را دارد) و server.js صدایش نمی‌زند.
+#    قبلاً فقط پنل اجرا می‌شد، پس ربات هیچ‌وقت بالا نمی‌آمد — نه به‌خاطرِ توکن.
+pm2 delete xui-bot >/dev/null 2>&1 || true
+if [ -n "${TELEGRAM_BOT_TOKEN:-}" ]; then
+  pm2 start "$APP/src/bot.js" --name xui-bot --cwd "$APP" || die "pm2 start (bot) shekast khord."
+else
+  echo "  ! TELEGRAM_BOT_TOKEN khalist — bot ejra nashod (panel mostaghel kar mikonad)."
+fi
+
 pm2 save >/dev/null 2>&1 || true
 pm2 startup systemd -u root --hp /root >/dev/null 2>&1 || true
-sleep 2
-if pm2 jlist 2>/dev/null | grep -q '"name":"xui-reseller".*"status":"online"'; then
-  ok "Panel/bot ba pm2 ejra shod (port $PORT)."
+sleep 3
+online(){ pm2 jlist 2>/dev/null | node -e "
+let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{
+  try{const p=JSON.parse(s).find(x=>x.name===process.argv[1]);
+    process.exit(p&&p.pm2_env.status==='online'?0:1)}catch(e){process.exit(1)}})" "$1"; }
+if online xui-reseller; then
+  ok "Panel ba pm2 ejra shod (port $PORT)."
 else
-  echo "  ! Panel online nashod. 20 khate akhare log:"
-  pm2 logs xui-reseller --lines 20 --nostream 2>&1 | tail -25 || true
-  die "Panel bala nayamad — loge bala ra bebin."
+  echo "  ! Panel online nashod. loge akhar:"; pm2 logs xui-reseller --lines 20 --nostream 2>&1 | tail -25 || true
+  die "Panel bala nayamad."
+fi
+if [ -n "${TELEGRAM_BOT_TOKEN:-}" ]; then
+  if online xui-bot; then
+    ok "Bot ba pm2 ejra shod."
+  else
+    echo "  ! Bot online nashod. loge akhar:"; pm2 logs xui-bot --lines 20 --nostream 2>&1 | tail -25 || true
+    die "Bot bala nayamad."
+  fi
 fi

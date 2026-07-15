@@ -122,6 +122,75 @@ async function initDB() {
     )
   `);
 
+  // Panel orders — درخواستِ پنل از صفحهٔ وب (نام کاربری/رمز/رسیدِ کارت)
+  // نبودش باعثِ «no such table: panel_orders» و ارسال‌نشدنِ رسید می‌شد.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS panel_orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      full_name TEXT NOT NULL,
+      telegram_id TEXT,
+      username TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      plain_password TEXT,
+      card_receipt TEXT,
+      amount REAL DEFAULT 0,
+      status TEXT DEFAULT 'pending',
+      admin_note TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      confirmed_at DATETIME
+    )
+  `);
+
+  // Charge requests — شارژِ کیف پولِ نماینده با رسیدِ کارت
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS charge_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      reseller_id INTEGER NOT NULL,
+      amount REAL NOT NULL,
+      card_receipt TEXT,
+      status TEXT DEFAULT 'pending',
+      admin_note TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      reviewed_at DATETIME,
+      FOREIGN KEY (reseller_id) REFERENCES resellers(id)
+    )
+  `);
+
+  // Purchase requests — خریدِ پلن از داخلِ ربات (کارت یا کریپتو/Plisio)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS purchase_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      telegram_id TEXT NOT NULL,
+      telegram_username TEXT,
+      full_name TEXT,
+      plan_key TEXT,
+      plan_name TEXT,
+      amount REAL DEFAULT 0,
+      payment_method TEXT,
+      card_receipt TEXT,
+      status TEXT DEFAULT 'pending',
+      plisio_invoice_id TEXT,
+      plisio_status TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      confirmed_at DATETIME
+    )
+  `);
+
+  // ── مهاجرتِ ستون‌ها ──
+  // CREATE TABLE IF NOT EXISTS روی جدولِ *موجود* هیچ ستونی اضافه نمی‌کند، پس
+  // ستون‌هایی که کد لازم دارد ولی در schema نبودند باید با ALTER اضافه شوند.
+  // این روی نصبِ تازه و نصبِ قدیمی هر دو کار می‌کند.
+  const ensureColumn = (table, column, def) => {
+    const has = db.prepare(`PRAGMA table_info(${table})`).all().some(c => c.name === column);
+    if (!has) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${def}`);
+      console.log(`  ↑ sotune ${table}.${column} ezafe shod`);
+    }
+  };
+  ensureColumn('resellers', 'plain_password', "TEXT");
+  ensureColumn('resellers', 'telegram_support', "TEXT DEFAULT ''");
+  ensureColumn('resellers', 'brand_motion', "TEXT DEFAULT 'hearts'");
+
   // ادمینِ پیش‌فرضِ admin/admin123 عمداً ساخته نمی‌شود: نصب‌کننده (30-app.sh)
   // ادمینِ واقعی را با رمزِ خودِ کاربر می‌سازد. وگرنه روی هر نصب یک حسابِ
   // پشتیِ با رمزِ شناخته‌شده می‌ماند.
