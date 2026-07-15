@@ -6,7 +6,20 @@ set -euo pipefail
 ENV_FILE="$1"; CONF="$2"
 set -a; . "$ENV_FILE"; . "$CONF"; set +a
 ok(){ echo "  ✓ $*"; }
+die(){ echo "  ✗ $*" >&2; exit 1; }
 CERTDIR=/etc/nginx/nahan-cert
+
+# ── سینتکسِ http2 بستگی به نسخهٔ nginx دارد ──
+# <1.25.1  →  `listen 443 ssl http2;`
+# >=1.25.1 →  `listen 443 ssl;` + `http2 on;`  (اوبونتو ۲۴.۰۴ هنوز nginx 1.24 دارد)
+ver_num(){ local a b c; IFS=. read -r a b c <<<"${1:-0.0.0}"; echo $(( ${a:-0}*1000000 + ${b:-0}*1000 + ${c:-0} )); }
+NGX_VER="$(nginx -v 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)" || true
+if [ "$(ver_num "${NGX_VER:-0.0.0}")" -ge "$(ver_num 1.25.1)" ]; then
+  LISTEN_443=$'listen 0.0.0.0:443 ssl;\n    listen [::]:443 ssl;\n    http2 on;'
+else
+  LISTEN_443=$'listen 0.0.0.0:443 ssl http2;\n    listen [::]:443 ssl http2;'
+fi
+ok "nginx ${NGX_VER:-?} — syntaxe http2 tanzim shod."
 
 # ── گواهیِ origin: self-signed (پشت CDN «Full» کافی است؛ strict نه) ──
 mkdir -p "$CERTDIR"
@@ -34,9 +47,7 @@ upstream nahan_xray {
 }
 
 server {
-    listen 0.0.0.0:443 ssl;
-    listen [::]:443 ssl;
-    http2 on;
+    $LISTEN_443
     server_name $MAIN_DOMAIN $NSUB1 $NSUB2 $NSUB3;
 
     ssl_certificate     $CERTDIR/fullchain.pem;
@@ -82,8 +93,11 @@ printf '[Service]\nLimitNOFILE=65536\n' > /etc/systemd/system/nginx.service.d/no
 systemctl daemon-reload
 
 if nginx -t >/dev/null 2>&1; then
-  systemctl enable nginx >/dev/null 2>&1; systemctl restart nginx
+  systemctl enable nginx >/dev/null 2>&1 || true
+  systemctl restart nginx || { systemctl status nginx --no-pager -l 2>&1 | tail -15; die "Restarte nginx shekast khord."; }
   ok "nginx rooye 443 faal shod."
 else
-  echo "  ! nginx -t khata dad:"; nginx -t
+  echo "  ! nginx -t khata dad:"
+  nginx -t 2>&1 || true
+  die "Configse nginx motabar nist (bala ra bebin)."
 fi
