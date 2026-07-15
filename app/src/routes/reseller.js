@@ -93,9 +93,17 @@ router.post('/clients', resellerAuth, async (req, res) => {
     // traffic_limit_gb=0 روی نماینده یعنی سهمیهٔ نامحدود؛ آن‌وقت چیزی که او را
     // محدود می‌کند موجودیِ کیف پول است (مدلِ balance). وگرنه سهمیه چک می‌شود.
     if (reseller.traffic_limit_gb > 0) {
-      const trafficAvailable = reseller.traffic_limit_gb - reseller.traffic_used_gb;
-      if (traffic_limit_gb > trafficAvailable) {
-        return res.status(400).json({ success: false, message: `Not enough traffic. Available: ${trafficAvailable.toFixed(2)} GB` });
+      // ⚠️ باید «تخصیص‌یافته» را بشماریم نه «مصرف‌شده». traffic_used_gb فقط با
+      //    مصرفِ *واقعی* توسط syncService بالا می‌رود، پس نمایندهٔ ۱۰ گیگی
+      //    می‌توانست بی‌نهایت کاربرِ ۱۰ گیگی بسازد (هیچ‌کدام هنوز چیزی مصرف
+      //    نکرده‌اند → 10 > 10-0 همیشه false). سهمیه باید لحظهٔ ساخت رزرو شود.
+      const allocated = db.prepare(
+        'SELECT COALESCE(SUM(traffic_limit_gb),0) AS s FROM clients WHERE reseller_id=? AND traffic_limit_gb > 0'
+      ).get(reseller.id).s;
+      const trafficAvailable = reseller.traffic_limit_gb - allocated;
+      if (Number(traffic_limit_gb) > trafficAvailable) {
+        return res.status(400).json({ success: false, message:
+          `حجم کافی نیست. باقی‌مانده: ${trafficAvailable.toFixed(2)} GB از ${reseller.traffic_limit_gb} GB` });
       }
     }
     if (reseller.price_per_gb > 0) cost = Number(traffic_limit_gb) * reseller.price_per_gb;
