@@ -24,16 +24,16 @@ for f in "$SC/scanner.py" "$SC/updater.py" /opt/provision-nahan.py; do
 done
 # شناسهٔ اینباند نهان در provision
 sed -i "s|INBOUNDS = {[0-9]*:|INBOUNDS = {$NAHAN_ID:|" /opt/provision-nahan.py 2>/dev/null || true
-ok "اسکریپت‌های اسکنر/provision مستقر شد (اینباند نهان id=$NAHAN_ID)."
+ok "Script haye scanner/provision mostaghar shod (inbounde Nahan id=$NAHAN_ID)."
 
 # ── cronها ──
 ( crontab -l 2>/dev/null | grep -vE "provision-nahan|v2pn-cleanip"
   echo "*/10 * * * * /usr/bin/python3 /opt/provision-nahan.py >> /var/log/provision-nahan.log 2>&1"
   echo "17 */6 * * * /usr/bin/python3 $SC/scanner.py && /usr/bin/python3 $SC/updater.py >> /var/log/v2pn-cleanip.log 2>&1"
 ) | crontab -
-ok "cronها تنظیم شد (provision هر ۱۰دقیقه، اسکنر هر ۶ساعت)."
+ok "cron ha tanzim shod (provision har 10 daghighe, scanner har 6 saat)."
 
 # ── اجرای اولیهٔ اسکنر (پرکردن NAHAN_ADDRS) ──
-echo "  اجرای اولیهٔ اسکنر IP تمیز (ممکن است کمی طول بکشد)..."
-python3 "$SC/scanner.py" >/dev/null 2>&1 && python3 "$SC/updater.py" >/dev/null 2>&1 && ok "IPهای تمیز یافته و در sub ست شد." || \
-  echo "  ! اسکنر بار اول کامل نشد — cron بعداً دوباره اجرا می‌کند."
+echo "  Ejraye avaliyeye scannere IP tamiz (momken ast kami tul bekeshad)..."
+python3 "$SC/scanner.py" >/dev/null 2>&1 && python3 "$SC/updater.py" >/dev/null 2>&1 && ok "IP haye tamiz yafte va dar sub set shod." || \
+  echo "  ! Scanner bare aval kamel nashod — cron badan dobare ejra mikonad."
