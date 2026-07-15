@@ -117,16 +117,34 @@ router.post('/panel-order', async (req, res) => {
     return res.status(400).json({ success: false, message: 'درخواستی با این نام کاربری در انتظار بررسی است' });
   }
   const passwordHash = bcrypt.hashSync(password, 10);
-  const priceRow = db.prepare("SELECT value FROM settings WHERE key='panel_price'").get();
-  const amount = priceRow ? parseInt(priceRow.value) : 550000;
+  // مبلغ از خودِ پلن برداشته می‌شود، نه از فرم — وگرنه هر کسی می‌توانست
+  // amount دلخواه بفرستد. قبلاً از settings.panel_price می‌آمد که یعنی
+  // فقط یک محصول قابلِ فروش بود.
+  const { planByKey, activePlans } = require('../models/plans');
+  const plan = planByKey(req.body.plan_key || '') || activePlans()[0];
+  if (!plan) return res.status(400).json({ success: false, message: 'فعلاً پلنی برای فروش تعریف نشده' });
+  if (!plan.is_active) return res.status(400).json({ success: false, message: 'این پلن دیگر فعال نیست' });
+  const amount = Number(plan.price) || 0;
   const result = db.prepare(
-    'INSERT INTO panel_orders (full_name, telegram_id, username, password_hash, plain_password, card_receipt, amount) VALUES (?,?,?,?,?,?,?)'
-  ).run(full_name, String(telegram_id), username, passwordHash, password, card_receipt || null, amount);
+    'INSERT INTO panel_orders (full_name, telegram_id, username, password_hash, plain_password, card_receipt, amount, plan_key) VALUES (?,?,?,?,?,?,?,?)'
+  ).run(full_name, String(telegram_id), username, passwordHash, password, card_receipt || null, amount, plan.key);
   notifyAdmin("\u{1F195} <b>\u062F\u0631\u062E\u0648\u0627\u0633\u062A \u067E\u0646\u0644 \u062C\u062F\u06CC\u062F</b>\n\u{1F464} " + full_name + "\n\u{1F4F1} " + String(telegram_id) + "\n\u{1F511} " + username + "\n\u{1F4B0} " + amount.toLocaleString() + " \u062A\u0648\u0645\u0627\u0646");
   res.json({ success: true, id: result.lastInsertRowid, message: 'درخواست ثبت شد — پس از تأیید پنل شما ساخته میشه' });
 });
 
 // Public: get panel order settings
+// پلن‌های فعال — عمومی، چون صفحهٔ خرید قبل از لاگین آن‌ها را نشان می‌دهد.
+// فقط فیلدهای لازم برای نمایش؛ sort_order/is_active به بیرون درز نکند.
+router.get('/plans', (req, res) => {
+  const plans = require('../models/plans').activePlans().map(p => ({
+    key: p.key, name: p.name, description: p.description, price: p.price,
+    traffic_gb: p.traffic_gb, max_clients: p.max_clients,
+    duration_days: p.duration_days, billing: p.billing,
+    price_per_gb: p.price_per_gb, initial_balance: p.initial_balance,
+  }));
+  res.json({ success: true, data: plans });
+});
+
 router.get('/panel-order/settings', (req, res) => {
   const db = require('../models/database').getDB();
   // unlimited_price اضافه شد تا فرانت نرخِ نامحدود را از سرور بگیرد؛ قبلاً
