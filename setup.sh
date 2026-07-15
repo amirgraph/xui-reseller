@@ -37,14 +37,44 @@ yesno(){ local __q="$1" __a; read -rp "  $__q (y/n) [y]: " __a; [[ "${__a:-y}" =
 rand(){ local __n="${1:-16}" __s; __s="$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom 2>/dev/null | head -c "$__n")" || true; printf '%s' "$__s"; }
 rand_hex(){ local __n="${1:-16}" __s; __s="$(openssl rand -hex "$__n" 2>/dev/null || LC_ALL=C tr -dc 'a-f0-9' </dev/urandom 2>/dev/null | head -c $((__n*2)))" || true; printf '%s' "$__s"; }
 
+VERSION="1.0.0"
+banner(){
+  local ncol; ncol="$(tput colors 2>/dev/null || echo 8)"
+  local art=(
+'      █████╗ ███╗   ███╗██╗██████╗ '
+'     ██╔══██╗████╗ ████║██║██╔══██╗'
+'     ███████║██╔████╔██║██║██████╔╝'
+'     ██╔══██║██║╚██╔╝██║██║██╔══██╗'
+'     ██║  ██║██║ ╚═╝ ██║██║██║  ██║'
+'     ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═╝'
+'     ██████╗  █████╗ ███╗   ██╗███████╗██╗     '
+'     ██╔══██╗██╔══██╗████╗  ██║██╔════╝██║     '
+'     ██████╔╝███████║██╔██╗ ██║█████╗  ██║     '
+'     ██╔═══╝ ██╔══██║██║╚██╗██║██╔══╝  ██║     '
+'     ██║     ██║  ██║██║ ╚████║███████╗███████╗'
+'     ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝'
+  )
+  # طیفِ بنفش از تیره به روشن؛ اگر ترمینال ۲۵۶رنگ نبود، بنفشِ ساده
+  local grad=(56 57 93 99 105 111 57 93 99 105 141 147) i=0
+  echo
+  for __l in "${art[@]}"; do
+    if [ "${ncol:-8}" -ge 256 ] 2>/dev/null; then
+      printf '\033[1;38;5;%sm%s\033[0m\n' "${grad[$i]}" "$__l"
+    else
+      printf '\033[1;35m%s\033[0m\n' "$__l"
+    fi
+    i=$((i+1))
+  done
+  echo
+  printf '     \033[1;35m✳\033[0m \033[1mVPN Reseller Panel\033[0m \033[2m·\033[0m \033[35mNahan Edition\033[0m \033[2mv%s\033[0m\n' "$VERSION"
+  printf '     \033[2mx-ui · xray · WARP · nginx · clean-ip scanner · reseller\033[0m\n'
+  echo
+}
+
 [ "$(id -u)" = 0 ] || die "Ba sudo/root ejra kon."
 
-clear
-echo "$(c '1;35' '
-  ╔═══════════════════════════════════════════════╗
-  ║      NASB KONANDEYE NAHAN — VPN RESELLER      ║
-  ║   x-ui · xray · WARP · nginx · scanner · panel ║
-  ╚═══════════════════════════════════════════════╝')"
+clear 2>/dev/null || true
+banner
 echo "  Hameye soal ha pishfarze manteghi darand. Enter = pishfarz."
 echo "  Meghdar haye hassas namayesh dade nemishavand."
 
@@ -188,7 +218,7 @@ run_module 50-scanner.sh
 run_module 60-tunings.sh
 run_module 99-verify.sh
 
-title "✅ Nasb kamel shod"
+title "✅ AMIR PANEL — nasb kamel shod"
 echo "   Panele admin : https://$MAIN_DOMAIN/panel  (user: $ADMIN_USER)"
 echo "   x-ui         : http://$SERVER_IP:$XUI_PORT$XUI_PATH"
 echo "   Yadet bashad: 3 recorde Nahan ra dar Cloudflare be $SERVER_IP bezan + origin ra set kon."
