@@ -164,15 +164,25 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
     </button>
     <h3>خرید پنل نمایندگی</h3>
     <div class="step-indicator" id="buy-steps">
-      <div class="step active" id="step1"><div class="step-num">۱</div> اطلاعات</div>
+      <div class="step active" id="step0"><div class="step-num">۱</div> پلن</div>
       <div class="step-line"></div>
-      <div class="step" id="step2"><div class="step-num">۲</div> پرداخت</div>
+      <div class="step" id="step1"><div class="step-num">۲</div> اطلاعات</div>
       <div class="step-line"></div>
-      <div class="step" id="step3"><div class="step-num">۳</div> تأیید</div>
+      <div class="step" id="step2"><div class="step-num">۳</div> پرداخت</div>
+      <div class="step-line"></div>
+      <div class="step" id="step3"><div class="step-num">۴</div> تأیید</div>
+    </div>
+
+    <!-- Step 0: Plan picker -->
+    <div id="buy-step-0">
+      <div id="bp-plans"></div>
+      <p id="bp-plans-empty" style="display:none;color:var(--text-muted);text-align:center;padding:24px;font-size:.86rem">
+        فعلاً پلنی برای فروش تعریف نشده.
+      </p>
     </div>
 
     <!-- Step 1: Info -->
-    <div id="buy-step-1">
+    <div id="buy-step-1" style="display:none">
       <div class="form-group"><label>نام کامل</label><input id="bp-name" placeholder="علی رضایی"></div>
       <div class="form-group"><label>آیدی عددی تلگرام</label><input id="bp-telegram" placeholder="123456789" dir="ltr" type="tel" inputmode="numeric"></div>
       <div class="form-row">
@@ -180,11 +190,18 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
         <div class="form-group"><label>رمز عبور</label><input id="bp-password" type="password" placeholder="••••••••" dir="ltr"></div>
       </div>
       <div style="background:rgba(124,92,252,0.08);border:1px solid rgba(124,92,252,0.2);border-radius:10px;padding:12px 14px;font-size:.82rem;margin-bottom:16px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text-muted)">ظرفیت ترافیک</span><span id="bp-info-traffic">۱۴۵ گیگابایت</span></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text-muted)">قیمت هر گیگ</span><span id="bp-info-price-gb">۳,۵۰۰ تومان</span></div>
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">هزینه پنل</span><span style="color:var(--accent);font-weight:700" id="bp-info-price">۵۵۰,۰۰۰ تومان</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <span style="color:var(--text-muted)">پلن انتخابی</span><span style="font-weight:700" id="bp-info-plan">—</span>
+        </div>
+        <div id="bp-info-lines"></div>
+        <div style="display:flex;justify-content:space-between;border-top:1px solid rgba(255,255,255,.08);margin-top:8px;padding-top:8px">
+          <span style="color:var(--text-muted)">هزینه پنل</span><span style="color:var(--accent);font-weight:700" id="bp-info-price">—</span>
+        </div>
       </div>
-      <button class="btn btn-primary" style="width:100%;padding:11px" onclick="buyPanelNext()">ادامه</button>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-secondary" style="padding:11px 18px" onclick="buyPanelStep(0)">برگشت</button>
+        <button class="btn btn-primary" style="flex:1;padding:11px" onclick="buyPanelNext()">ادامه</button>
+      </div>
       <p id="bp-err" style="color:var(--danger);margin-top:10px;font-size:.83rem;text-align:center"></p>
     </div>
 
@@ -532,17 +549,15 @@ fetch(API+'/auth/panel-order/settings').then(r=>r.json()).then(d=>{
     panelSettings = d.data;
     RATE_FALLBACK = parseInt(panelSettings.panel_price_per_gb||'0')||0;
     UNLIMITED_MONTHLY = parseInt(panelSettings.unlimited_price||'0')||0;
-    const price = parseInt(panelSettings.panel_price||'550000');
-    const trafficGb = panelSettings.panel_traffic_gb||'145';
-    const priceGb = parseInt(panelSettings.panel_price_per_gb||'3500');
-    document.getElementById('bp-info-traffic').textContent = trafficGb + ' گیگابایت';
-    document.getElementById('bp-info-price-gb').textContent = priceGb.toLocaleString() + ' تومان';
-    document.getElementById('bp-info-price').textContent = price.toLocaleString() + ' تومان';
-    document.getElementById('bp-amount-text').textContent = price.toLocaleString() + ' تومان';
+    // مشخصاتِ پنل دیگر از settings نمی‌آید — از پلنِ انتخابی می‌آید (زیر)
     document.getElementById('bp-card-num').textContent = panelSettings.charge_card_number || '—';
     document.getElementById('bp-card-owner').textContent = panelSettings.charge_card_owner || '—';
   }
 }).catch(()=>{});
+
+// پلن‌های فروشِ پنل (همان‌هایی که ادمین در پنل/ربات می‌سازد)
+let bpPlans=[], bpPlan=null;
+fetch(API+'/auth/plans').then(r=>r.json()).then(d=>{ if(d.success){ bpPlans=d.data; renderBpPlans(); } }).catch(()=>{});
 
 const savedBrand=localStorage.getItem('reseller_brand');
 if(savedBrand){try{applyBrand(JSON.parse(savedBrand));}catch(e){}}
@@ -997,27 +1012,70 @@ async function loadChargeHistory(){
 
 // ─── Buy Panel Flow ────────────────────────────────────────
 
+function escHtml(x){return String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+const unlimTxt=v=>Number(v)>0?Number(v).toLocaleString():'نامحدود';
+
+// خطوطِ توضیحِ یک پلن — «۰» یعنی نامحدود، پس نباید خامش را نشان دهیم
+function planLines(p){
+  const rows=[['حجم ترافیک', Number(p.traffic_gb)>0?Number(p.traffic_gb).toLocaleString()+' گیگابایت':'نامحدود'],
+              ['سقف کاربر', unlimTxt(p.max_clients)]];
+  if(Number(p.price_per_gb)>0) rows.push(['قیمت هر گیگ', Number(p.price_per_gb).toLocaleString()+' تومان']);
+  if(Number(p.initial_balance)>0) rows.push(['شارژ اولیه', Number(p.initial_balance).toLocaleString()+' تومان']);
+  if(Number(p.duration_days)>0) rows.push(['مدت اعتبار', Number(p.duration_days)+' روز']);
+  return rows;
+}
+
+function renderBpPlans(){
+  const box=document.getElementById('bp-plans'), empty=document.getElementById('bp-plans-empty');
+  if(!bpPlans.length){ box.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  box.innerHTML=bpPlans.map((p,i)=>`
+    <div onclick="pickBpPlan(${i})" style="cursor:pointer;border:1px solid rgba(124,92,252,.25);background:rgba(124,92,252,.06);border-radius:12px;padding:13px 15px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div style="font-weight:700">${escHtml(p.name)}</div>
+        <div style="color:var(--accent);font-weight:700;white-space:nowrap">${Number(p.price).toLocaleString()} ت${p.billing==='monthly'?' <span style="font-size:.7rem;color:var(--text-muted)">/ ماه</span>':''}</div>
+      </div>
+      ${p.description?`<div style="color:var(--text-muted);font-size:.76rem;margin-top:3px">${escHtml(p.description)}</div>`:''}
+      <div style="color:var(--text-muted);font-size:.76rem;margin-top:6px">
+        ${planLines(p).map(r=>r[0]+': '+r[1]).join(' • ')}
+      </div>
+    </div>`).join('');
+}
+
+function pickBpPlan(i){
+  bpPlan=bpPlans[i];
+  document.getElementById('bp-info-plan').textContent=bpPlan.name;
+  document.getElementById('bp-info-lines').innerHTML=planLines(bpPlan).map(r=>
+    `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text-muted)">${r[0]}</span><span>${r[1]}</span></div>`).join('');
+  const amt=Number(bpPlan.price).toLocaleString()+' تومان'+(bpPlan.billing==='monthly'?' / ماه':'');
+  document.getElementById('bp-info-price').textContent=amt;
+  document.getElementById('bp-amount-text').textContent=amt;
+  buyPanelStep(1);
+}
+
 function showBuyPanel(){
-  bpReceiptB64=null;
+  bpReceiptB64=null; bpPlan=null;
   ['bp-name','bp-telegram','bp-username','bp-password'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('bp-err').textContent='';
   document.getElementById('bp-err2').textContent='';
   document.getElementById('bp-receipt-preview').style.display='none';
-  setBuyStep(1);
+  renderBpPlans();
+  buyPanelStep(0);
   openModal('modal-buy-panel');
 }
 
-function setBuyStep(n){
-  document.getElementById('buy-step-1').style.display=n===1?'block':'none';
-  document.getElementById('buy-step-2').style.display=n===2?'block':'none';
-  document.getElementById('buy-step-3').style.display=n===3?'block':'none';
-  [1,2,3].forEach(i=>{
-    const el=document.getElementById('step'+i);
-    el.className='step'+(i<n?' done':i===n?' active':'');
+function buyPanelStep(n){
+  [0,1,2,3].forEach(i=>{
+    const pane=document.getElementById('buy-step-'+i);
+    if(pane) pane.style.display=(i===n?'block':'none');
+    const dot=document.getElementById('step'+i);
+    if(dot) dot.className='step'+(i<n?' done':i===n?' active':'');
   });
 }
+const setBuyStep=buyPanelStep;   // نامِ قدیمی هنوز جاهایی صدا زده می‌شود
 
 function buyPanelNext(){
+  if(!bpPlan){ buyPanelStep(0); return; }
   const name=document.getElementById('bp-name').value.trim();
   const tg=document.getElementById('bp-telegram').value.trim();
   const uname=document.getElementById('bp-username').value.trim();
@@ -1032,7 +1090,7 @@ function buyPanelNext(){
 }
 
 function buyPanelBack(){
-  setBuyStep(1);
+  buyPanelStep(1);
 }
 
 function handleBpReceipt(input){
@@ -1049,6 +1107,7 @@ function handleBpReceipt(input){
 }
 
 async function submitPanelOrder(){
+  if(!bpPlan){document.getElementById('bp-err2').textContent='اول یک پلن انتخاب کنید';buyPanelStep(0);return;}
   if(!bpReceiptB64){document.getElementById('bp-err2').textContent='لطفاً فیش واریز را آپلود کنید';return;}
   document.getElementById('bp-err2').textContent='';
   const body={
@@ -1057,11 +1116,12 @@ async function submitPanelOrder(){
     username:document.getElementById('bp-username').value.trim(),
     password:document.getElementById('bp-password').value,
     card_receipt:bpReceiptB64,
+    plan_key:bpPlan.key,   // مبلغ را سرور از همین پلن برمی‌دارد، نه از فرم
   };
   try{
     const r=await fetch(API+'/auth/panel-order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const d=await r.json();
-    if(d.success){setBuyStep(3);}
+    if(d.success){buyPanelStep(3);}
     else document.getElementById('bp-err2').textContent=d.message||'خطا در ثبت درخواست';
   }catch{document.getElementById('bp-err2').textContent='خطا در اتصال به سرور';}
 }
