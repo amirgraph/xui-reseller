@@ -386,7 +386,7 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>نام</th><th>شناسه</th><th>قیمت</th><th>حجم</th><th>کاربر</th><th>نرخ گیگ</th><th>شارژ اولیه</th><th>صورتحساب</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+          <thead><tr><th>نام</th><th>شناسه</th><th>قیمت</th><th>حجم</th><th>کاربر</th><th>نرخ گیگ</th><th>شارژ اولیه</th><th>صورتحساب</th><th>وضعیت</th><th>فروش نماینده</th><th>عملیات</th></tr></thead>
           <tbody id="plans-tbody"></tbody>
         </table>
       </div>
@@ -516,6 +516,18 @@
       <label>اینباندهای مجاز (با کاما جدا کن، خالی = همه)</label>
       <input id="r-inbounds" placeholder="1,2,3" dir="ltr">
     </div>
+    <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:12px">
+        <input type="checkbox" id="r-cancreate" style="width:auto"> اجازهٔ ساخت پنل (زیرنمایندگی)
+      </label>
+      <div class="form-group" style="margin-bottom:0">
+        <label>درصد تخفیف روی قیمت پلن‌ها (۰ تا ۱۰۰)</label>
+        <input id="r-discount" type="number" min="0" max="100" value="0" dir="ltr">
+        <div style="color:var(--text-muted);font-size:.74rem;margin-top:5px">
+          مثلاً ۲۰ یعنی پلنِ ۲٬۰۰۰٬۰۰۰ برای این نماینده ۱٬۶۰۰٬۰۰۰ حساب می‌شود.
+        </div>
+      </div>
+    </div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
       <button class="btn btn-secondary" onclick="closeModal('modal-reseller')">انصراف</button>
       <button class="btn btn-primary" onclick="saveReseller()">ذخیره</button>
@@ -579,6 +591,9 @@
     <div class="form-group">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
         <input type="checkbox" id="p-is_active" checked style="width:auto"> فعال (در ربات و صفحهٔ خرید دیده شود)
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:8px">
+        <input type="checkbox" id="p-resellable" style="width:auto"> نمایندگان هم بتوانند این پلن را بفروشند
       </label>
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
@@ -727,7 +742,7 @@ async function loadPlans() {
   if (!r.success) return;
   const tb = document.getElementById('plans-tbody');
   if (!r.data.length) {
-    tb.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--text-dim);padding:24px">هنوز پلنی نساخته‌ای — با «پلن جدید» شروع کن</td></tr>';
+    tb.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--text-dim);padding:24px">هنوز پلنی نساخته‌ای — با «پلن جدید» شروع کن</td></tr>';
     return;
   }
   tb.innerHTML = r.data.map(p => `
@@ -741,6 +756,7 @@ async function loadPlans() {
       <td>${(p.initial_balance||0).toLocaleString()} ت</td>
       <td>${p.billing === 'monthly' ? 'ماهانه' + (p.duration_days ? ` (${p.duration_days} روز)` : '') : 'یک‌بار'}</td>
       <td><span class="badge ${p.is_active ? 'badge-active' : 'badge-inactive'}">${p.is_active ? 'فعال' : 'غیرفعال'}</span></td>
+      <td>${p.resellable ? '<span class="badge badge-active">بله</span>' : '<span style="color:var(--text-dim)">خیر</span>'}</td>
       <td style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="btn btn-secondary btn-sm" onclick='editPlan(${JSON.stringify(p).replace(/'/g,"&#39;")})'>✏️</button>
         <button class="btn btn-secondary btn-sm" onclick="togglePlan(${p.id})">${p.is_active ? '⏸' : '▶️'}</button>
@@ -754,6 +770,7 @@ function fillPlan(p) {
   PLAN_FIELDS.forEach(f => { const el = document.getElementById('p-' + f); if (el) el.value = p[f] != null ? p[f] : ''; });
   document.getElementById('p-id').value = p.id || '';
   document.getElementById('p-is_active').checked = p.id ? !!p.is_active : true;
+  document.getElementById('p-resellable').checked = !!p.resellable;
   document.getElementById('p-key').disabled = !!p.id;   // شناسه پس از ساخت قفل است
 }
 
@@ -774,6 +791,7 @@ async function savePlan() {
   const body = {};
   PLAN_FIELDS.forEach(f => { const el = document.getElementById('p-' + f); if (el) body[f] = el.value; });
   body.is_active = document.getElementById('p-is_active').checked;
+  body.resellable = document.getElementById('p-resellable').checked;
   const id = document.getElementById('p-id').value;
   const r = id ? await put('/admin/plans/' + id, body) : await post('/admin/plans', body);
   if (!r.success) return toast(r.message || 'خطا', 'error');
@@ -833,6 +851,8 @@ function openAddReseller() {
   document.getElementById('r-maxclients').value = 10;
   document.getElementById('r-pricepergb').value = 0;
   document.getElementById('r-expires').value = '';
+  document.getElementById('r-cancreate').checked = false;
+  document.getElementById('r-discount').value = 0;
   openModal('modal-reseller');
 }
 
@@ -849,6 +869,8 @@ function editReseller(rs) {
   document.getElementById('r-expires').value = rs.expires_at ? rs.expires_at.replace(' ','T').substring(0,16) : '';
   const inbs = JSON.parse(rs.allowed_inbounds || '[]');
   document.getElementById('r-inbounds').value = inbs.join(',');
+  document.getElementById('r-cancreate').checked = !!rs.can_create_panels;
+  document.getElementById('r-discount').value = rs.discount_percent || 0;
   openModal('modal-reseller');
 }
 
@@ -866,6 +888,8 @@ async function saveReseller() {
     price_per_gb: parseFloat(document.getElementById('r-pricepergb').value),
     expires_at: document.getElementById('r-expires').value || null,
     allowed_inbounds, is_active: 1,
+    can_create_panels: document.getElementById('r-cancreate').checked ? 1 : 0,
+    discount_percent: parseFloat(document.getElementById('r-discount').value) || 0,
   };
   const r = id ? await put(`/admin/resellers/${id}`, body) : await post('/admin/resellers', body);
   if (r.success) { toast('✅ ذخیره شد'); closeModal('modal-reseller'); loadResellers(); }

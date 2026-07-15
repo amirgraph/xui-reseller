@@ -13,10 +13,11 @@ const router = express.Router();
 router.get('/resellers', adminAuth, (req, res) => {
   const db = getDB();
   const resellers = db.prepare(`
-    SELECT id, username, name, email, telegram_id, balance, 
+    SELECT id, username, name, email, telegram_id, balance,
            traffic_limit_gb, traffic_used_gb, max_clients, current_clients,
-           allowed_inbounds, brand_name, brand_color, is_active, 
-           created_at, expires_at
+           allowed_inbounds, brand_name, brand_color, is_active,
+           created_at, expires_at, price_per_gb,
+           can_create_panels, discount_percent, parent_id
     FROM resellers ORDER BY created_at DESC
   `).all();
   res.json({ success: true, data: resellers });
@@ -30,8 +31,11 @@ router.post('/resellers', adminAuth, (req, res) => {
     traffic_limit_gb = 0, max_clients = 10,
     allowed_inbounds = [], price_per_gb = 0,
     brand_name = '', brand_color = '#6C63FF',
-    brand_bg_color = '#0a0a0f', expires_at = null
+    brand_bg_color = '#0a0a0f', expires_at = null,
+    can_create_panels = 0, discount_percent = 0
   } = req.body;
+  // تخفیف باید ۰..۱۰۰ بماند — بیرونِ این بازه یعنی قیمتِ منفی یا افزایشِ قیمت
+  const disc = Math.min(100, Math.max(0, Number(discount_percent) || 0));
 
   try {
     if (db.prepare('SELECT id FROM resellers WHERE username = ?').get(username)) {
@@ -42,12 +46,14 @@ router.post('/resellers', adminAuth, (req, res) => {
       INSERT INTO resellers (
         username, password, name, email, telegram_id,
         traffic_limit_gb, max_clients, allowed_inbounds,
-        price_per_gb, brand_name, brand_color, brand_bg_color, expires_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        price_per_gb, brand_name, brand_color, brand_bg_color, expires_at,
+        can_create_panels, discount_percent
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       username, hashed, name, email || null, telegram_id || null,
       traffic_limit_gb, max_clients, JSON.stringify(allowed_inbounds),
-      price_per_gb, brand_name, brand_color, brand_bg_color, expires_at
+      price_per_gb, brand_name, brand_color, brand_bg_color, expires_at,
+      can_create_panels ? 1 : 0, disc
     );
     res.json({ success: true, id: result.lastInsertRowid });
   } catch (err) {
@@ -62,18 +68,21 @@ router.put('/resellers/:id', adminAuth, (req, res) => {
   const {
     name, email, telegram_id, traffic_limit_gb, max_clients,
     allowed_inbounds, price_per_gb, brand_name, brand_color,
-    brand_bg_color, is_active, balance, expires_at, password
+    brand_bg_color, is_active, balance, expires_at, password,
+    can_create_panels, discount_percent
   } = req.body;
 
   try {
     let query = `UPDATE resellers SET 
       name=?, email=?, telegram_id=?, traffic_limit_gb=?, max_clients=?,
       allowed_inbounds=?, price_per_gb=?, brand_name=?, brand_color=?,
-      brand_bg_color=?, is_active=?, expires_at=?`;
+      brand_bg_color=?, is_active=?, expires_at=?,
+      can_create_panels=?, discount_percent=?`;
     let params = [
       name, email, telegram_id, traffic_limit_gb, max_clients,
       JSON.stringify(allowed_inbounds || []), price_per_gb, brand_name,
-      brand_color, brand_bg_color, is_active ? 1 : 0, expires_at
+      brand_color, brand_bg_color, is_active ? 1 : 0, expires_at,
+      can_create_panels ? 1 : 0, Math.min(100, Math.max(0, Number(discount_percent) || 0))
     ];
 
     if (balance !== undefined) {
@@ -333,6 +342,7 @@ function validatePlan(b, { requireKey }) {
   // پلنِ ماهانه بدونِ مدت بی‌معنی است: صورتحسابِ دوره‌ای نیاز به دوره دارد
   if (out.billing === 'monthly' && out.duration_days <= 0) out.duration_days = 30;
   out.is_active = b.is_active ? 1 : 0;
+  out.resellable = b.resellable ? 1 : 0;
   out.sort_order = Number(b.sort_order) || 0;
   return { value: out };
 }
@@ -349,8 +359,8 @@ router.post('/plans', adminAuth, (req, res) => {
     return res.status(400).json({ success: false, message: 'این شناسه قبلاً استفاده شده' });
   }
   const r = db.prepare(`INSERT INTO plans
-    (key,name,description,price,traffic_gb,max_clients,duration_days,billing,price_per_gb,initial_balance,is_active,sort_order)
-    VALUES (@key,@name,@description,@price,@traffic_gb,@max_clients,@duration_days,@billing,@price_per_gb,@initial_balance,@is_active,@sort_order)`).run(p);
+    (key,name,description,price,traffic_gb,max_clients,duration_days,billing,price_per_gb,initial_balance,is_active,resellable,sort_order)
+    VALUES (@key,@name,@description,@price,@traffic_gb,@max_clients,@duration_days,@billing,@price_per_gb,@initial_balance,@is_active,@resellable,@sort_order)`).run(p);
   res.json({ success: true, id: r.lastInsertRowid, message: 'پلن ساخته شد' });
 });
 
@@ -363,7 +373,8 @@ router.put('/plans/:id', adminAuth, (req, res) => {
   if (error) return res.status(400).json({ success: false, message: error });
   db.prepare(`UPDATE plans SET name=@name, description=@description, price=@price, traffic_gb=@traffic_gb,
     max_clients=@max_clients, duration_days=@duration_days, billing=@billing, price_per_gb=@price_per_gb,
-    initial_balance=@initial_balance, is_active=@is_active, sort_order=@sort_order WHERE id=@id`).run({ ...p, id: row.id });
+    initial_balance=@initial_balance, is_active=@is_active, resellable=@resellable,
+    sort_order=@sort_order WHERE id=@id`).run({ ...p, id: row.id });
   res.json({ success: true, message: 'پلن ذخیره شد' });
 });
 

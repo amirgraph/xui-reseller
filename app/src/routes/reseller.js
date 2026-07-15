@@ -16,7 +16,9 @@ router.get('/profile', resellerAuth, (req, res) => {
     SELECT id, username, name, email, telegram_id, balance,
            traffic_limit_gb, traffic_used_gb, max_clients, current_clients,
            allowed_inbounds, price_per_gb, brand_name, brand_logo, brand_color, brand_bg_color,
-           sub_domain, is_active, created_at, expires_at
+           sub_domain, is_active, created_at, expires_at,
+           telegram_support, brand_motion,
+           can_create_panels, discount_percent, parent_id
     FROM resellers WHERE id = ?
   `).get(req.user.id);
   res.json({ success: true, data: reseller });
@@ -332,6 +334,107 @@ router.post('/charge/request', resellerAuth, (req, res) => {
       '\u{1F4B5} \u0645\u0628\u0644\u063A: ' + parseInt(amount).toLocaleString() + ' \u062A\u0648\u0645\u0627\u0646'
     );
     res.json({ success: true, id: result.lastInsertRowid, message: 'درخواست شارژ ثبت شد' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─── زیرنمایندگی ──────────────────────────────────────────────
+// نماینده می‌تواند خودش پنل بسازد و هزینه‌اش از موجودی‌اش کم می‌شود.
+// چه پلن‌هایی: آن‌هایی که ادمین resellable زده. چه قیمتی: قیمتِ پلن منهای
+// تخفیفِ شخصیِ خودش. چه کسی اجازه دارد: هر که ادمین can_create_panels داده.
+
+// پلن‌هایی که این نماینده می‌تواند بفروشد، با قیمتِ خودش
+router.get('/sellable-plans', resellerAuth, (req, res) => {
+  const db = getDB();
+  const me = db.prepare('SELECT * FROM resellers WHERE id=?').get(req.user.id);
+  if (!me) return res.status(404).json({ success: false, message: 'نماینده پیدا نشد' });
+  if (!me.can_create_panels) return res.json({ success: true, allowed: false, data: [] });
+  const { sellablePlans, priceForReseller } = require('../models/plans');
+  const data = sellablePlans().map(p => ({
+    key: p.key, name: p.name, description: p.description,
+    list_price: p.price, your_price: priceForReseller(p, me),
+    traffic_gb: p.traffic_gb, max_clients: p.max_clients,
+    duration_days: p.duration_days, billing: p.billing,
+    price_per_gb: p.price_per_gb, initial_balance: p.initial_balance,
+  }));
+  res.json({ success: true, allowed: true, discount_percent: me.discount_percent || 0, balance: me.balance, data });
+});
+
+// پنل‌هایی که خودم ساخته‌ام
+router.get('/panels', resellerAuth, (req, res) => {
+  const db = getDB();
+  const rows = db.prepare(`
+    SELECT id, username, name, telegram_id, balance, traffic_limit_gb, traffic_used_gb,
+           max_clients, current_clients, is_active, expires_at, created_at
+    FROM resellers WHERE parent_id=? ORDER BY created_at DESC
+  `).all(req.user.id);
+  res.json({ success: true, data: rows });
+});
+
+router.post('/panels', resellerAuth, (req, res) => {
+  const db = getDB();
+  const bcrypt = require('bcryptjs');
+  const { planByKey, priceForReseller, resellerFieldsFromPlan } = require('../models/plans');
+  const { plan_key, username, password, name, telegram_id } = req.body || {};
+
+  const me = db.prepare('SELECT * FROM resellers WHERE id=?').get(req.user.id);
+  if (!me) return res.status(404).json({ success: false, message: 'نماینده پیدا نشد' });
+  if (!me.can_create_panels) return res.status(403).json({ success: false, message: 'اجازهٔ ساخت پنل نداری — از ادمین بخواه فعالش کند' });
+
+  if (!/^[a-zA-Z0-9_]{4,32}$/.test(String(username || ''))) {
+    return res.status(400).json({ success: false, message: 'نام کاربری: حروف انگلیسی، عدد و _ (۴ تا ۳۲ کاراکتر)' });
+  }
+  if (String(password || '').length < 6) return res.status(400).json({ success: false, message: 'رمز عبور حداقل ۶ کاراکتر' });
+  if (!String(name || '').trim()) return res.status(400).json({ success: false, message: 'نام الزامی است' });
+  if (db.prepare('SELECT id FROM resellers WHERE username=?').get(username)) {
+    return res.status(400).json({ success: false, message: 'این نام کاربری قبلاً ثبت شده' });
+  }
+
+  const plan = planByKey(String(plan_key || ''));
+  if (!plan || !plan.is_active) return res.status(400).json({ success: false, message: 'پلن پیدا نشد' });
+  // فقط پلن‌هایی که ادمین اجازه داده — وگرنه نماینده می‌توانست plan_key
+  // یک پلنِ غیرقابلِ فروش را دستی بفرستد.
+  if (!plan.resellable) return res.status(403).json({ success: false, message: 'این پلن قابلِ فروش توسط نماینده نیست' });
+
+  const cost = priceForReseller(plan, me);
+  if (me.balance < cost) {
+    return res.status(400).json({ success: false, message:
+      `موجودی کافی نیست. هزینه: ${cost.toLocaleString()} ت — موجودی: ${Math.floor(me.balance).toLocaleString()} ت` });
+  }
+
+  const f = resellerFieldsFromPlan(plan);
+  // کسرِ پول و ساختِ پنل باید اتمیک باشند: اگر وسطش خطا بخورد نباید پول
+  // کم شده باشد ولی پنلی ساخته نشده باشد (یا برعکس).
+  const run = db.transaction(() => {
+    const r = db.prepare(`
+      INSERT INTO resellers (username, password, plain_password, name, telegram_id, traffic_limit_gb,
+                             max_clients, price_per_gb, balance, expires_at, is_active, parent_id,
+                             can_create_panels, discount_percent, allowed_inbounds)
+      VALUES (?,?,?,?,?,?,?,?,?,?,1,?,0,0,?)
+    `).run(username, bcrypt.hashSync(password, 10), password, String(name).trim(), String(telegram_id || ''),
+           f.traffic_limit_gb, f.max_clients, f.price_per_gb, f.balance, f.expires_at, me.id,
+           me.allowed_inbounds || '[]');
+    db.prepare('UPDATE resellers SET balance = balance - ? WHERE id=?').run(cost, me.id);
+    db.prepare('INSERT INTO transactions (reseller_id, type, amount, description) VALUES (?,?,?,?)')
+      .run(me.id, 'debit', cost, 'ساخت پنل «' + username + '» — پلن ' + plan.name);
+    if (f.balance > 0) {
+      db.prepare('INSERT INTO transactions (reseller_id, type, amount, description) VALUES (?,?,?,?)')
+        .run(r.lastInsertRowid, 'credit', f.balance, 'شارژ اولیه — پلن ' + plan.name);
+    }
+    return r.lastInsertRowid;
+  });
+
+  try {
+    const id = run();
+    const left = db.prepare('SELECT balance FROM resellers WHERE id=?').get(me.id).balance;
+    notifyAdmin(
+      '<b>\u{1F195} پنل زیرمجموعه</b>\n' +
+      '\u{1F464} سازنده: ' + me.username + '\n' +
+      '\u{1F4E6} پنل: ' + username + ' (' + plan.name + ')\n' +
+      '\u{1F4B5} ' + cost.toLocaleString() + ' تومان'
+    );
+    res.json({ success: true, id, cost, balance: left, message: 'پنل ساخته شد — ' + cost.toLocaleString() + ' تومان کسر شد' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

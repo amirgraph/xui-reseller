@@ -29,6 +29,22 @@ function unlimitedMonthly() {
 function activePlans() {
   return getDB().prepare('SELECT * FROM plans WHERE is_active=1 ORDER BY sort_order, price').all();
 }
+
+// پلن‌هایی که نماینده حق دارد بفروشد — ادمین با تیکِ resellable تعیین می‌کند
+function sellablePlans() {
+  return getDB().prepare('SELECT * FROM plans WHERE is_active=1 AND resellable=1 ORDER BY sort_order, price').all();
+}
+
+// قیمتی که *نماینده* بابتِ این پلن می‌پردازد = قیمتِ پلن منهای تخفیفِ شخصیِ او.
+// تنها جای محاسبهٔ تخفیف؛ هر جای دیگری باید همین را صدا بزند تا رقمِ کسر
+// از موجودی و رقمِ نمایش‌داده‌شده هیچ‌وقت از هم جدا نشوند.
+function priceForReseller(plan, reseller) {
+  const base = Number(plan.price) || 0;
+  let pct = Number(reseller && reseller.discount_percent) || 0;
+  if (!Number.isFinite(pct) || pct < 0) pct = 0;
+  if (pct > 100) pct = 100;
+  return Math.max(0, Math.round(base * (1 - pct / 100)));
+}
 function allPlans() {
   return getDB().prepare('SELECT * FROM plans ORDER BY sort_order, price').all();
 }
@@ -67,4 +83,5 @@ function resellerFieldsFromPlan(plan) {
 module.exports = {
   defaultPricePerGb, rateOf, unlimitedMonthly,
   activePlans, allPlans, planByKey, describePlan, resellerFieldsFromPlan,
+  sellablePlans, priceForReseller,
 };
