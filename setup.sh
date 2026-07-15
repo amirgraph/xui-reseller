@@ -240,6 +240,10 @@ echo
 yesno "Shorue nasb ba in tanzimat?" || { warn "Laghv shod. .env zakhire shode — badan dobare ejra kon."; exit 0; }
 
 # ═══════════════ اجرای ماژول‌های نصب ═══════════════
+# ماژول‌ها پروسهٔ بچه‌اند و فقط .env/.install.conf را source می‌کنند؛ رمزِ ادمین
+# عمداً در هیچ‌کدام نوشته نمی‌شود، پس باید export شود وگرنه 30-app زیر set -u
+# با «ADMIN_PASS: unbound variable» می‌میرد.
+export ADMIN_PASS
 run_module(){ local m="$HERE/scripts/$1"; [ -f "$m" ] && { title "▶ $1"; bash "$m" "$ENV_FILE" "$CONF" || die "Module $1 shekast khord"; } || warn "Module $1 nist (rad shod)"; }
 run_module 00-deps.sh
 run_module 10-warp.sh

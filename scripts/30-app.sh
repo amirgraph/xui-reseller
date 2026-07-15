@@ -5,7 +5,17 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$1"; CONF="$2"
 set -a; . "$ENV_FILE"; . "$CONF"; set +a
 ok(){ echo "  ✓ $*"; }
+die(){ echo "  ✗ $*" >&2; exit 1; }
 APP=/opt/xui-reseller
+
+# رمزِ ادمین فقط همین‌جا لازم است (bcrypt در DB) و عمداً در .env نوشته نمی‌شود،
+# چون .env به /opt/xui-reseller/.env کپی می‌شود و اپ در زمانِ اجرا به آن نیاز ندارد.
+# setup.sh آن را export می‌کند؛ در اجرای مستقلِ این ماژول همین‌جا پرسیده می‌شود.
+# زودتر از npm پرسیده می‌شود تا کاربر چند دقیقه بعد غافلگیر نشود.
+if [ -z "${ADMIN_PASS:-}" ]; then
+  read -rsp "  Ramze admine panel (baraye sakhte admin): " ADMIN_PASS; echo
+fi
+[ -n "${ADMIN_PASS:-}" ] || die "Ramze admin khali nabashad."
 
 # ── کپی کد + جایگزینی placeholderها با دامنه‌های واقعی ──
 mkdir -p "$APP"
@@ -63,7 +73,15 @@ ok "Gheymat gozari va etelaate sharzh derj shod."
 
 # ── اجرا با pm2 ──
 pm2 delete xui-reseller >/dev/null 2>&1 || true
-pm2 start "$APP/src/server.js" --name xui-reseller --cwd "$APP" >/dev/null 2>&1
-pm2 save >/dev/null 2>&1
+# خفه نمی‌کنیم: اگر اپ بالا نیاید، خطای واقعیِ node را می‌خواهیم ببینیم
+pm2 start "$APP/src/server.js" --name xui-reseller --cwd "$APP" || die "pm2 start shekast khord."
+pm2 save >/dev/null 2>&1 || true
 pm2 startup systemd -u root --hp /root >/dev/null 2>&1 || true
-ok "Panel/bot ba pm2 ejra shod (port $PORT)."
+sleep 2
+if pm2 jlist 2>/dev/null | grep -q '"name":"xui-reseller".*"status":"online"'; then
+  ok "Panel/bot ba pm2 ejra shod (port $PORT)."
+else
+  echo "  ! Panel online nashod. 20 khate akhare log:"
+  pm2 logs xui-reseller --lines 20 --nostream 2>&1 | tail -25 || true
+  die "Panel bala nayamad — loge bala ra bebin."
+fi
