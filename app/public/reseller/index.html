@@ -20,8 +20,6 @@ body::before{content:'';position:fixed;top:-20%;right:-10%;width:500px;height:50
 .auth-top-actions{display:flex;gap:10px;justify-content:center;margin-bottom:20px}
 .auth-action-btn{display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:12px;font-size:.82rem;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .2s}
 .auth-action-btn svg{width:16px;height:16px;stroke:currentColor;flex-shrink:0}
-.auth-install-btn{background:rgba(94,234,212,0.12);border:1px solid rgba(94,234,212,0.3);color:var(--accent2)}
-.auth-install-btn:hover{background:rgba(94,234,212,0.22)}
 .auth-buy-btn{background:rgba(124,92,252,0.15);border:1px solid rgba(124,92,252,0.35);color:var(--accent)}
 .auth-buy-btn:hover{background:rgba(124,92,252,0.25)}
 .brand-logo{font-size:2.6rem;margin-bottom:10px}
@@ -36,8 +34,6 @@ body::before{content:'';position:fixed;top:-20%;right:-10%;width:500px;height:50
 .topbar-right{display:flex;align-items:center;gap:8px}
 .balance-pill{background:rgba(124,92,252,0.15);border:1px solid rgba(124,92,252,0.3);border-radius:20px;padding:5px 12px;font-size:.82rem;color:var(--accent);font-weight:600;display:flex;align-items:center;gap:5px;cursor:pointer}
 .balance-pill:hover{background:rgba(124,92,252,0.25)}
-.topbar-install-btn{background:rgba(94,234,212,0.12);border:1px solid rgba(94,234,212,0.3);border-radius:20px;padding:5px 10px;font-size:.75rem;color:var(--accent2);font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap}
-.topbar-install-btn:hover{background:rgba(94,234,212,0.2)}
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(10,10,20,0.95);backdrop-filter:var(--glass);border-top:1px solid var(--border);display:none;z-index:50}
 .bottom-nav-items{display:flex;align-items:center;justify-content:space-around;padding:8px 0 12px}
 .bn-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 12px;border-radius:10px;cursor:pointer;font-size:.64rem;color:var(--text-muted);transition:color .2s}
@@ -133,8 +129,6 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
 .step-num{width:24px;height:24px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0}
 .step-line{flex:1;height:2px;background:rgba(255,255,255,0.08);margin:0 6px}
 .step.done .step-line{background:var(--success)}
-.ios-install-banner{background:rgba(94,234,212,0.08);border:1px solid rgba(94,234,212,0.2);border-radius:12px;padding:14px 16px;font-size:.84rem;line-height:1.6;display:none}
-.ios-install-banner.show{display:block}
 @media(max-width:768px){
   .sidebar{display:none}.bottom-nav{display:block}
   .main{margin-right:0;padding:16px;padding-bottom:80px}
@@ -147,10 +141,6 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
 <div id="auth-screen">
   <div class="auth-card">
     <div class="auth-top-actions">
-      <a class="auth-action-btn auth-install-btn" href="https://__MAIN_DOMAIN__/VPN Panel.apk" onclick="installApp(event)" download="VPN Panel.apk">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        دانلود اپ
-      </a>
       <button class="auth-action-btn auth-buy-btn" onclick="showBuyPanel()">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
         خرید پنل
@@ -163,10 +153,6 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
     <div class="form-group"><label>رمز عبور</label><input id="login-pass" type="password" placeholder="••••••••" dir="ltr" autocomplete="current-password"></div>
     <button class="btn btn-primary" style="width:100%;padding:11px" onclick="doLogin()">ورود</button>
     <p id="login-err" style="color:var(--danger);margin-top:10px;font-size:.83rem"></p>
-  </div>
-  <div id="ios-install-info" class="ios-install-banner" style="max-width:380px;width:100%">
-    برای نصب اپ در آیفون/آیپد: در Safari دکمه <strong>Share</strong> را بزنید، سپس <strong>Add to Home Screen</strong> را انتخاب کنید.
-    <div style="margin-top:8px;text-align:left"><button class="btn btn-sm btn-secondary" onclick="document.getElementById('ios-install-info').classList.remove('show')">بستن</button></div>
   </div>
 </div>
 
@@ -245,10 +231,6 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><circle cx="16" cy="14" r="1"/><path d="M20 7V5a2 2 0 0 0-2-2H4"/></svg>
         <span id="tb-balance-text">...</span>
       </span>
-      <a class="topbar-install-btn" id="topbar-install-btn" href="https://__MAIN_DOMAIN__/VPN Panel.apk" onclick="installApp(event)" download="VPN Panel.apk">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        نصب اپ
-      </a>
       <button class="btn btn-secondary btn-sm" onclick="logout()" style="display:flex;align-items:center;gap:5px">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         خروج
@@ -536,41 +518,11 @@ let token=localStorage.getItem('reseller_token');
 let profile=null,currentClient=null,allClients=[];
 let selectedMotion='hearts';
 let chargeSettings=null,selectedAmount=0,receiptB64=null;
-let deferredInstallPrompt=null;
 let bpReceiptB64=null,panelSettings=null;
 const EMOJIS=['🌐','🚀','⚡','💎','🔥','🌟','🛡️','💜','🌈','🦋','🌸','🎯','💫','🔮','🌙','☀️','🎪','🎭','🦄','🐉'];
 const PRICE_PER_GB=3500;
 
-// PWA install
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-});
-window.addEventListener('appinstalled', () => { deferredInstallPrompt = null; });
 
-// Hide topbar install btn if already installed as standalone
-(function(){
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-  if (isStandalone) document.getElementById('topbar-install-btn').style.display = 'none';
-})();
-
-function installApp(e) {
-  if (e && e.preventDefault) e.preventDefault();
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  const isAndroid = /Android/.test(navigator.userAgent);
-  const apkUrl = 'https://__MAIN_DOMAIN__/VPN Panel.apk';
-  if (isAndroid) {
-    window.location.href = apkUrl;
-    toast('در حال دانلود اپ...');
-  } else if (isIOS) {
-    document.getElementById('ios-install-info').classList.add('show');
-  } else if (deferredInstallPrompt) {
-    deferredInstallPrompt.prompt();
-    deferredInstallPrompt.userChoice.then(() => { deferredInstallPrompt = null; });
-  } else {
-    window.open(apkUrl, '_blank');
-  }
-}
 
 // Load buy panel settings on page load (background)
 fetch(API+'/auth/panel-order/settings').then(r=>r.json()).then(d=>{
