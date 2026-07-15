@@ -73,6 +73,10 @@ INSERT OR REPLACE INTO settings(key,value) VALUES('unlimited_enabled','$UNLIMITE
 INSERT OR REPLACE INTO settings(key,value) VALUES('unlimited_price','$UNLIM_PRICE');
 INSERT OR REPLACE INTO bot_settings(key,value) VALUES('card_number','$CARD_NUMBER');
 INSERT OR REPLACE INTO bot_settings(key,value) VALUES('card_owner','$CARD_OWNER');
+-- پلنِ اولیه از همان جواب‌های نصب. OR IGNORE تا اجرای دوباره‌ی نصب‌کننده
+-- پلنی را که ادمین بعداً از پنل/ربات ویرایش کرده بازنویسی نکند.
+INSERT OR IGNORE INTO plans(key,name,description,price,traffic_gb,max_clients,duration_days,billing,price_per_gb,is_active,sort_order)
+VALUES('default','پنل نمایندگی','بستهٔ پیش‌فرض (از نصب)',$PANEL_PRICE,$PANEL_GB,$MAX_CLIENTS,0,'once',$PRICE_PER_GB,1,0);
 SQL
 ok "Gheymat gozari va etelaate sharzh derj shod."
 

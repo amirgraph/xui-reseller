@@ -291,7 +291,7 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
     <div class="page active" id="page-dashboard">
       <div class="unlim-banner" style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.3);border-radius:10px;padding:8px 11px;margin-bottom:14px;display:flex;gap:8px;align-items:flex-start;font-size:.74rem;line-height:1.7">
         <svg style="flex-shrink:0;color:var(--accent,#7C5CFC);margin-top:1px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-        <div><b style="color:var(--accent,#7C5CFC)">کاربر نامحدود:</b> برای ساخت، حجم را روی <b>صفر (۰)</b> بگذارید — هر ماه <b>۱۸۰٬۰۰۰ تومان</b>. <b style="color:var(--warning,#f0a020)">توجه:</b> پس از ساخت، حذف نمی‌شود و موجودی بازنمی‌گردد.</div>
+        <div><b style="color:var(--accent,#7C5CFC)">کاربر نامحدود:</b> برای ساخت، حجم را روی <b>صفر (۰)</b> بگذارید و تاریخ انقضا را انتخاب کنید. <b style="color:var(--warning,#f0a020)">توجه:</b> پس از ساخت، حذف نمی‌شود و موجودی بازنمی‌گردد.</div>
       </div>
       <div class="page-header">
         <h2>داشبورد</h2>
@@ -520,7 +520,9 @@ let selectedMotion='hearts';
 let chargeSettings=null,selectedAmount=0,receiptB64=null;
 let bpReceiptB64=null,panelSettings=null;
 const EMOJIS=['🌐','🚀','⚡','💎','🔥','🌟','🛡️','💜','🌈','🦋','🌸','🎯','💫','🔮','🌙','☀️','🎪','🎭','🦄','🐉'];
-const PRICE_PER_GB=3500;
+// نرخ‌ها از سرور می‌آیند (auth/panel-order/settings). قبلاً ۳۵۰۰ و ۱۸۰٬۰۰۰
+// این‌جا هاردکد بودند و با مقدارِ واقعیِ بک‌اند فرق می‌کردند.
+let RATE_FALLBACK=0, UNLIMITED_MONTHLY=0;
 
 
 
@@ -528,6 +530,8 @@ const PRICE_PER_GB=3500;
 fetch(API+'/auth/panel-order/settings').then(r=>r.json()).then(d=>{
   if(d.success) {
     panelSettings = d.data;
+    RATE_FALLBACK = parseInt(panelSettings.panel_price_per_gb||'0')||0;
+    UNLIMITED_MONTHLY = parseInt(panelSettings.unlimited_price||'0')||0;
     const price = parseInt(panelSettings.panel_price||'550000');
     const trafficGb = panelSettings.panel_traffic_gb||'145';
     const priceGb = parseInt(panelSettings.panel_price_per_gb||'3500');
@@ -738,21 +742,20 @@ function setExpiry(days){
 
 function updateClientCost(){
   const gb=parseFloat(document.getElementById('c-traffic').value)||0;
-  const pricePerGb=(profile&&profile.price_per_gb)||PRICE_PER_GB;
+  const pricePerGb=(profile&&profile.price_per_gb)||RATE_FALLBACK;
   const balance=(profile&&profile.balance)||0;
   const isEdit=document.getElementById('c-id').value!=='';
-  const UNLIMITED_MONTHLY=180000;
   if(gb===0 && !isEdit){
     const exp=document.getElementById('c-expires').value;
     if(exp){
       const days=Math.max(1,Math.round((new Date(exp).getTime()-Date.now())/86400000));
       const months=Math.max(1,Math.round(days/30));
       const cost=months*UNLIMITED_MONTHLY;
-      document.getElementById('c-cost-hint').textContent=`♾ نامحدود: ${months} ماه × ۱۸۰,۰۰۰ = ${cost.toLocaleString()} تومان`;
+      document.getElementById('c-cost-hint').textContent=`♾ نامحدود: ${months} ماه × ${UNLIMITED_MONTHLY.toLocaleString()} = ${cost.toLocaleString()} تومان`;
       document.getElementById('c-balance-info').textContent=`موجودی: ${balance.toLocaleString()} ت | هزینه: ${cost.toLocaleString()} ت | باقی: ${(balance-cost).toLocaleString()} ت`;
     } else {
       document.getElementById('c-cost-hint').textContent='♾ کاربر نامحدود — تاریخ انقضا (ماه) را انتخاب کنید';
-      document.getElementById('c-balance-info').textContent=`قیمت نامحدود: هر ماه ۱۸۰,۰۰۰ تومان | موجودی: ${balance.toLocaleString()} ت`;
+      document.getElementById('c-balance-info').textContent=`قیمت نامحدود: هر ماه ${UNLIMITED_MONTHLY.toLocaleString()} تومان | موجودی: ${balance.toLocaleString()} ت`;
     }
     return;
   }

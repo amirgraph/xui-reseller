@@ -69,13 +69,16 @@ router.post('/clients', resellerAuth, async (req, res) => {
     expires_at = null, telegram_id = null
   } = req.body;
 
-  // Checks
-  if (reseller.current_clients >= reseller.max_clients) {
+  // Checks — ۰ یعنی «بی‌نهایت»، نه «هیچ». قبلاً نمایندهٔ ساخته‌شده از ربات
+  // max_clients=0 می‌گرفت و 0>=0 درست بود، پس پنلش از لحظهٔ اول قفل می‌شد.
+  if (reseller.max_clients > 0 && reseller.current_clients >= reseller.max_clients) {
     return res.status(400).json({ success: false, message: 'Client limit reached' });
   }
-  // === هزینه: نامحدود = تعداد ماه × ۱۸۰٬۰۰۰ تومان | حجمی = GB × نرخ ===
+  // === هزینه: نامحدود = تعداد ماه × نرخِ ماهانه | حجمی = GB × نرخِ نماینده ===
+  // نرخِ نامحدود از settings می‌آید (نصب‌کننده می‌پرسد و ادمین از پنل عوضش می‌کند).
+  // قبلاً ۱۸۰٬۰۰۰ هاردکد بود و مقدارِ واقعیِ settings را نادیده می‌گرفت.
   const isUnlimited = Number(traffic_limit_gb) === 0;
-  const UNLIMITED_MONTHLY = 180000;
+  const UNLIMITED_MONTHLY = require('../models/plans').unlimitedMonthly();
   let cost = 0;
   if (isUnlimited) {
     if (!expires_at) {
@@ -85,9 +88,13 @@ router.post('/clients', resellerAuth, async (req, res) => {
     const months = Math.max(1, Math.round(days / 30));
     cost = months * UNLIMITED_MONTHLY;
   } else {
-    const trafficAvailable = reseller.traffic_limit_gb - reseller.traffic_used_gb;
-    if (traffic_limit_gb > trafficAvailable) {
-      return res.status(400).json({ success: false, message: `Not enough traffic. Available: ${trafficAvailable.toFixed(2)} GB` });
+    // traffic_limit_gb=0 روی نماینده یعنی سهمیهٔ نامحدود؛ آن‌وقت چیزی که او را
+    // محدود می‌کند موجودیِ کیف پول است (مدلِ balance). وگرنه سهمیه چک می‌شود.
+    if (reseller.traffic_limit_gb > 0) {
+      const trafficAvailable = reseller.traffic_limit_gb - reseller.traffic_used_gb;
+      if (traffic_limit_gb > trafficAvailable) {
+        return res.status(400).json({ success: false, message: `Not enough traffic. Available: ${trafficAvailable.toFixed(2)} GB` });
+      }
     }
     if (reseller.price_per_gb > 0) cost = Number(traffic_limit_gb) * reseller.price_per_gb;
   }
