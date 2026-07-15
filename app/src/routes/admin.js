@@ -306,5 +306,79 @@ router.post('/panel-orders/:id/reject', adminAuth, (req, res) => {
   res.json({ success: true });
 });
 
+// ── پلن‌ها ──────────────────────────────────────────────────────
+// بسته‌هایی که پنلِ نمایندگی با آن‌ها فروخته می‌شود. قبلاً در bot.js هاردکد
+// بودند؛ حالا ادمین از همین‌جا (و از ربات) می‌سازد و ویرایش می‌کند.
+
+// اعتبارسنجی — هر ورودیِ نامعتبر باید همین‌جا رد شود، نه در DB
+function validatePlan(b, { requireKey }) {
+  const out = {};
+  if (requireKey) {
+    out.key = String(b.key || '').trim();
+    if (!/^[a-z0-9_-]{2,32}$/.test(out.key)) return { error: 'شناسه فقط حروف کوچک انگلیسی، عدد، _ و - (۲ تا ۳۲ کاراکتر)' };
+  }
+  out.name = String(b.name || '').trim();
+  if (!out.name) return { error: 'نام پلن الزامی است' };
+  out.description = String(b.description || '').trim();
+  const nums = {
+    price: 'قیمت', traffic_gb: 'حجم', max_clients: 'سقف کاربر',
+    duration_days: 'مدت', price_per_gb: 'نرخ هر گیگ', initial_balance: 'شارژ اولیه',
+  };
+  for (const [k, fa] of Object.entries(nums)) {
+    const v = Number(b[k] === '' || b[k] == null ? 0 : b[k]);
+    if (!Number.isFinite(v) || v < 0) return { error: `${fa} باید عددِ مثبت باشد` };
+    out[k] = v;
+  }
+  out.billing = b.billing === 'monthly' ? 'monthly' : 'once';
+  // پلنِ ماهانه بدونِ مدت بی‌معنی است: صورتحسابِ دوره‌ای نیاز به دوره دارد
+  if (out.billing === 'monthly' && out.duration_days <= 0) out.duration_days = 30;
+  out.is_active = b.is_active ? 1 : 0;
+  out.sort_order = Number(b.sort_order) || 0;
+  return { value: out };
+}
+
+router.get('/plans', adminAuth, (req, res) => {
+  res.json({ success: true, data: require('../models/plans').allPlans() });
+});
+
+router.post('/plans', adminAuth, (req, res) => {
+  const db = getDB();
+  const { value: p, error } = validatePlan(req.body, { requireKey: true });
+  if (error) return res.status(400).json({ success: false, message: error });
+  if (db.prepare('SELECT id FROM plans WHERE key=?').get(p.key)) {
+    return res.status(400).json({ success: false, message: 'این شناسه قبلاً استفاده شده' });
+  }
+  const r = db.prepare(`INSERT INTO plans
+    (key,name,description,price,traffic_gb,max_clients,duration_days,billing,price_per_gb,initial_balance,is_active,sort_order)
+    VALUES (@key,@name,@description,@price,@traffic_gb,@max_clients,@duration_days,@billing,@price_per_gb,@initial_balance,@is_active,@sort_order)`).run(p);
+  res.json({ success: true, id: r.lastInsertRowid, message: 'پلن ساخته شد' });
+});
+
+router.put('/plans/:id', adminAuth, (req, res) => {
+  const db = getDB();
+  const row = db.prepare('SELECT * FROM plans WHERE id=?').get(req.params.id);
+  if (!row) return res.status(404).json({ success: false, message: 'پلن پیدا نشد' });
+  // key عوض نمی‌شود: panel_orders و purchase_requests با همین به پلن اشاره می‌کنند
+  const { value: p, error } = validatePlan(req.body, { requireKey: false });
+  if (error) return res.status(400).json({ success: false, message: error });
+  db.prepare(`UPDATE plans SET name=@name, description=@description, price=@price, traffic_gb=@traffic_gb,
+    max_clients=@max_clients, duration_days=@duration_days, billing=@billing, price_per_gb=@price_per_gb,
+    initial_balance=@initial_balance, is_active=@is_active, sort_order=@sort_order WHERE id=@id`).run({ ...p, id: row.id });
+  res.json({ success: true, message: 'پلن ذخیره شد' });
+});
+
+router.delete('/plans/:id', adminAuth, (req, res) => {
+  const db = getDB();
+  const row = db.prepare('SELECT * FROM plans WHERE id=?').get(req.params.id);
+  if (!row) return res.status(404).json({ success: false, message: 'پلن پیدا نشد' });
+  // درخواست‌های در انتظار به این پلن اشاره می‌کنند؛ حذفش تأییدشان را می‌شکند
+  const pending = db.prepare("SELECT COUNT(*) c FROM panel_orders WHERE plan_key=? AND status='pending'").get(row.key).c
+                + db.prepare("SELECT COUNT(*) c FROM purchase_requests WHERE plan_key=? AND status='pending'").get(row.key).c;
+  if (pending > 0) {
+    return res.status(400).json({ success: false, message: `${pending} درخواستِ در انتظار به این پلن وصل است — اول آن‌ها را تعیین تکلیف کن یا پلن را غیرفعال کن` });
+  }
+  db.prepare('DELETE FROM plans WHERE id=?').run(row.id);
+  res.json({ success: true, message: 'پلن حذف شد' });
+});
 
 module.exports = router;
