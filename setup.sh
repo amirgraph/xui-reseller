@@ -71,6 +71,27 @@ banner(){
   echo
 }
 
+# nameserverهای یک دامنه (برای گرفتنِ تایپو). اگر ابزارِ DNS نبود، خالی نه —
+# رشتهٔ skip تا چکِ صدازننده اشتباهاً هشدار ندهد.
+ns_of(){
+  if command -v dig >/dev/null 2>&1; then dig +short NS "$1" 2>/dev/null || true
+  elif command -v host >/dev/null 2>&1; then host -t NS "$1" 2>/dev/null | grep -i "name server" || true
+  elif command -v nslookup >/dev/null 2>&1; then nslookup -type=NS "$1" 2>/dev/null | grep -i "nameserver" || true
+  else echo "skip-no-dns-tool"; fi
+}
+valid_ip(){ [[ "$1" =~ ^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$ ]]; }
+# چند منبع + اعتبارسنجی: بعضی سرویس‌ها از ایران صفحهٔ ۴۰۳/HTML برمی‌گردانند
+detect_ip(){
+  local u r
+  for u in https://api.ipify.org https://ipv4.icanhazip.com https://checkip.amazonaws.com https://ifconfig.me; do
+    r="$(curl -s4 --max-time 6 "$u" 2>/dev/null | tr -d '[:space:]')" || true
+    if valid_ip "$r"; then printf '%s' "$r"; return 0; fi
+  done
+  r="$(ip -4 addr show scope global 2>/dev/null | awk '/inet /{sub(/\/.*/,"",$2); print $2; exit}')" || true
+  if valid_ip "$r"; then printf '%s' "$r"; return 0; fi
+  return 0   # خالی — کاربر دستی می‌زند
+}
+
 [ "$(id -u)" = 0 ] || die "Ba sudo/root ejra kon."
 
 clear 2>/dev/null || true
@@ -92,6 +113,12 @@ if [ "${#CF_DOTS}" -gt 1 ]; then
   warn "Sube tasadofi rooye an mishavad 3 sath, va gavahiye rayegane Cloudflare (*.domain)"
   warn "faghat yek sath ra pushesh midahad -> TLS dar edge khata midahad."
   yesno "Bazam edame bedam?" || die "Domaine paye (mesle example.ir) ra bezan va dobare ejra kon."
+fi
+# دامنه باید واقعاً ثبت شده باشد — یک تایپو یعنی کلِ لایهٔ نهان روی دامنهٔ بیگانه
+if [ -z "$(ns_of "$CF_DOMAIN")" ]; then
+  warn "\"$CF_DOMAIN\" hich nameserveri nadarad — sabt nashode ya typo ast."
+  warn "Age typo bashad, har 3 sube Nahan rooye domaine eshtebah sakhte mishavad."
+  yesno "Bazam edame bedam?" || die "Emlaye domain ra check kon va dobare ejra kon."
 fi
 if yesno "Subdomain haye Nahan khodkar tasadofi sakhte shavand?"; then
   NSUB1="$(rand 18).$CF_DOMAIN"; NSUB2="$(rand 22).$CF_DOMAIN"; NSUB3="$(rand 16).$CF_DOMAIN"
@@ -139,8 +166,13 @@ if yesno "Pardakhte crypto (Plisio) faal shavad?"; then ask_secret PLISIO_KEY "K
 
 # ═══════════════ ۵) شبکه/سرور ═══════════════
 title "5/6  Server"
-DETECTED_IP="$(curl -s4 --max-time 6 ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')"
+DETECTED_IP="$(detect_ip)"
+[ -n "$DETECTED_IP" ] || warn "IP khodkar peyda nashod (service ha az server javab nadadand) — dasti bezan."
 ask SERVER_IP "IPe omumiye server" "$DETECTED_IP"
+while ! valid_ip "$SERVER_IP"; do
+  warn "IP motabar nist. Mesle 1.2.3.4 bezan."
+  ask SERVER_IP "IPe omumiye server"
+done
 XHTTP_PATH="/$(rand 10)"      # مسیر تونل xhttp تصادفی
 
 # ═══════════════ تولیدِ خودکارِ کلیدها ═══════════════

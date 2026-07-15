@@ -7,7 +7,7 @@ ok(){ echo "  ✓ $*"; }
 echo "  Beruzresani va nasbe basteh haye paye..."
 apt-get update -qq
 apt-get install -y -qq curl wget tar unzip jq sqlite3 openssl ca-certificates \
-  iproute2 iptables wireguard-tools cron python3 python3-venv >/dev/null
+  iproute2 iptables wireguard-tools cron python3 python3-venv dnsutils >/dev/null
 ok "Abzar haye paye nasb shod."
 
 # ── Node.js 20 (اگر نبود) ──
