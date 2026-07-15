@@ -112,13 +112,19 @@ async function initDB() {
     )
   `);
 
-  // Create default admin if not exists
-  const adminExists = db.prepare('SELECT id FROM admins WHERE username = ?').get('admin');
-  if (!adminExists) {
-    const hashed = bcrypt.hashSync('admin123', 10);
-    db.prepare('INSERT INTO admins (username, password) VALUES (?, ?)').run('admin', hashed);
-    console.log('✅ Default admin created: admin / admin123 — CHANGE THIS!');
-  }
+  // Bot settings table
+  // bot.js از این جدول می‌خواند/می‌نویسد ولی هیچ‌جا نمی‌ساختش — روی سرورِ قدیمی
+  // دستی ساخته شده بود، پس هر نصبِ تازه بدونِ آن می‌مرد.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS bot_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    )
+  `);
+
+  // ادمینِ پیش‌فرضِ admin/admin123 عمداً ساخته نمی‌شود: نصب‌کننده (30-app.sh)
+  // ادمینِ واقعی را با رمزِ خودِ کاربر می‌سازد. وگرنه روی هر نصب یک حسابِ
+  // پشتیِ با رمزِ شناخته‌شده می‌ماند.
 
   console.log('✅ Database initialized');
 }

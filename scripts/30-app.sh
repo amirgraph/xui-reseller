@@ -39,8 +39,12 @@ npm install --omit=dev --no-audit --no-fund >/dev/null 2>&1 || npm install --pro
 mkdir -p "$APP/data"
 ok "Vabastegi ha nasb shod."
 
-# ── init دیتابیس (تابع database.js جدول‌ها را می‌سازد) ──
-node -e "require('./src/models/database'); setTimeout(()=>process.exit(0), 1500);" >/dev/null 2>&1 || true
+# ── init دیتابیس ──
+# ⚠️ صرفِ require کردنِ ماژول جدولی نمی‌سازد: initDB یک تابعِ export‌شده است که
+#    فقط server.js صدایش می‌زند. قبلاً require می‌شد و خطا هم خفه بود، پس
+#    جدول‌ها ساخته نمی‌شدند و مرحلهٔ بعد «no such table: admins» می‌داد.
+node -e "require('./src/models/database').initDB().then(()=>process.exit(0)).catch(e=>{console.error(e);process.exit(1)})" \
+  || die "Sakhte jadval haye database shekast khord."
 
 # ── ساخت ادمین (bcrypt) + درج قیمت‌ها ──
 node - "$ADMIN_USER" "$ADMIN_PASS" <<'NODE'
@@ -56,7 +60,7 @@ db.close();
 NODE
 
 # ── قیمت‌گذاری و شارژ (جدول settings + bot_settings) ──
-sqlite3 "$APP/data/reseller.db" <<SQL 2>/dev/null || true
+sqlite3 "$APP/data/reseller.db" <<SQL || die "Derje gheymat ha shekast khord."
 INSERT OR REPLACE INTO settings(key,value) VALUES('panel_price','$PANEL_PRICE');
 INSERT OR REPLACE INTO settings(key,value) VALUES('panel_traffic_gb','$PANEL_GB');
 INSERT OR REPLACE INTO settings(key,value) VALUES('panel_price_per_gb','$PRICE_PER_GB');
