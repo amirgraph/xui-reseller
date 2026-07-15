@@ -327,6 +327,9 @@
       <div class="nav-item" onclick="showPage('plans')">
         <span class="icon">🏷️</span> پلن‌ها
       </div>
+      <div class="nav-item" onclick="showPage('settings')">
+        <span class="icon">⚙️</span> تنظیمات
+      </div>
       <div class="nav-item" onclick="showPage('panel-orders')">
         <span class="icon">🛒</span> درخواست پنل
       </div>
@@ -375,6 +378,63 @@
           <thead><tr><th>نام</th><th>یوزر</th><th>موجودی</th><th>ترافیک</th><th>کاربران</th><th>وضعیت</th><th>عملیات</th></tr></thead>
           <tbody id="resellers-tbody"></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="page" id="page-settings">
+      <div class="page-header"><h2>تنظیمات</h2></div>
+
+      <div class="table-wrap" style="padding:20px;margin-bottom:18px">
+        <h3 style="font-size:1rem;margin-bottom:4px">🧪 تست رایگان</h3>
+        <p style="color:var(--text-dim);font-size:.78rem;margin-bottom:16px">
+          کاربر از دکمهٔ ربات درخواست می‌دهد، شماره‌اش را تلگرام تأیید می‌کند، و بین «پنل تستی» و «کانفیگ تستی» یکی را می‌گیرد.
+          هر شمارهٔ موبایلِ ایران فقط یک‌بار.
+        </p>
+        <div class="form-row">
+          <div class="form-group">
+            <label>حجم تست (GB)</label><input id="s-test_traffic_gb" type="number" min="0" step="0.5" dir="ltr">
+          </div>
+          <div class="form-group">
+            <label>مدت تست (روز) — ۰ = بدون انقضا</label><input id="s-test_days" type="number" min="0" dir="ltr">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>سقف کاربر در پنل تستی</label><input id="s-test_max_clients" type="number" min="0" dir="ltr">
+          </div>
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:26px">
+              <input type="checkbox" id="s-test_enabled" style="width:auto"> تست رایگان فعال باشد
+            </label>
+          </div>
+        </div>
+        <div id="test-stats" style="color:var(--text-dim);font-size:.78rem;margin-bottom:14px"></div>
+        <button class="btn btn-primary" onclick="saveSettings(['test_traffic_gb','test_days','test_max_clients','test_enabled'])">ذخیره</button>
+      </div>
+
+      <div class="table-wrap" style="padding:20px">
+        <h3 style="font-size:1rem;margin-bottom:16px">💰 قیمت‌ها و پرداخت</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>نرخ پیش‌فرض هر گیگ (تومان)</label><input id="s-panel_price_per_gb" type="number" min="0" dir="ltr">
+          </div>
+          <div class="form-group">
+            <label>هزینهٔ ماهانهٔ کاربر نامحدود (تومان)</label><input id="s-unlimited_price" type="number" min="0" dir="ltr">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>شمارهٔ کارت</label><input id="s-charge_card_number" dir="ltr">
+          </div>
+          <div class="form-group">
+            <label>نام صاحب کارت</label><input id="s-charge_card_owner">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>مبالغ آمادهٔ شارژ (با کاما)</label><input id="s-charge_amounts" dir="ltr" placeholder="500000,1000000">
+        </div>
+        <button class="btn btn-primary" onclick="saveSettings(['panel_price_per_gb','unlimited_price','charge_card_number','charge_card_owner','charge_amounts'])">ذخیره</button>
       </div>
     </div>
 
@@ -667,7 +727,7 @@ function showPage(name) {
   if (name === 'charge-requests') loadChargeRequests();
   if (name === 'panel-orders') loadPanelOrders();
   event.currentTarget.classList.add('active');
-  const loaders = { dashboard: loadDashboard, resellers: loadResellers, clients: loadClients, inbounds: loadInbounds, transactions: loadTransactions, plans: loadPlans };
+  const loaders = { dashboard: loadDashboard, resellers: loadResellers, clients: loadClients, inbounds: loadInbounds, transactions: loadTransactions, plans: loadPlans, settings: loadSettings };
   if (loaders[name]) loaders[name]();
 }
 
@@ -731,6 +791,38 @@ async function loadDashboard() {
 }
 
 // ── Resellers ─────────────────────────────────
+// ── تنظیمات ───────────────────────────────────
+// چک‌باکس‌ها در settings به‌صورت '1'/'0' ذخیره می‌شوند (جدول key/value متنی است)
+const BOOL_SETTINGS = ['test_enabled'];
+
+async function loadSettings() {
+  const r = await get('/admin/settings');
+  if (!r.success) return;
+  Object.entries(r.data).forEach(([k, v]) => {
+    const el = document.getElementById('s-' + k);
+    if (!el) return;
+    if (el.type === 'checkbox') el.checked = String(v) === '1';
+    else el.value = v;
+  });
+  const t = await get('/admin/test-stats');
+  if (t.success) {
+    document.getElementById('test-stats').innerHTML =
+      `تا حالا <b>${t.data.total}</b> تست گرفته شده — ${t.data.panel} پنل، ${t.data.config} کانفیگ.`;
+  }
+}
+
+async function saveSettings(keys) {
+  for (const k of keys) {
+    const el = document.getElementById('s-' + k);
+    if (!el) continue;
+    const value = el.type === 'checkbox' ? (el.checked ? '1' : '0') : String(el.value).trim();
+    const r = await put('/admin/settings', { key: k, value });
+    if (!r.success) return toast(r.message || 'خطا در ذخیرهٔ ' + k, 'error');
+  }
+  toast('تنظیمات ذخیره شد');
+  loadSettings();
+}
+
 // ── پلن‌ها ────────────────────────────────────
 // «۰ = نامحدود» در سه جا معنی دارد: حجم، سقف کاربر، مدت.
 const PLAN_FIELDS = ['name','key','description','price','traffic_gb','max_clients',

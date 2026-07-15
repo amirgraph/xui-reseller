@@ -199,6 +199,28 @@ async function initDB() {
     )
   `);
 
+  // Test claims — تستِ رایگان، هر شمارهٔ تلگرام فقط یک‌بار.
+  // شماره از خودِ تلگرام (request_contact) می‌آید و تأییدشده است، نه تایپی؛
+  // پس UNIQUE روی phone واقعاً جلوی تکرار را می‌گیرد.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS test_claims (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      phone TEXT UNIQUE NOT NULL,
+      telegram_id TEXT NOT NULL,
+      kind TEXT NOT NULL,            -- panel | config
+      ref_id INTEGER,                -- id نمایندهٔ تستی یا کلاینتِ تستی
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // پیش‌فرض‌های تست — ادمین از پنل عوضشان می‌کند. INSERT OR IGNORE تا
+  // مقدارِ ویرایش‌شده را بازنویسی نکند.
+  const seed = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
+  seed.run('test_enabled', '1');
+  seed.run('test_traffic_gb', '10');
+  seed.run('test_days', '1');
+  seed.run('test_max_clients', '5');
+
   // ── مهاجرتِ ستون‌ها ──
   // CREATE TABLE IF NOT EXISTS روی جدولِ *موجود* هیچ ستونی اضافه نمی‌کند، پس
   // ستون‌هایی که کد لازم دارد ولی در schema نبودند باید با ALTER اضافه شوند.

@@ -260,12 +260,44 @@ router.get('/settings', adminAuth, (req, res) => {
   res.json({ success: true, data: settings });
 });
 
+// کلیدهای مجاز — وگرنه هر ادمینی می‌تواند settings را با کلیدهای دلخواه
+// پر کند و کدی که با پیش‌فرض کار می‌کند را گیج کند.
+const NUMERIC_SETTINGS = ['panel_price','panel_traffic_gb','panel_price_per_gb','panel_max_clients',
+                          'unlimited_price','test_traffic_gb','test_days','test_max_clients'];
+const BOOL_SETTINGS = ['unlimited_enabled','test_enabled'];
+const TEXT_SETTINGS = ['charge_card_number','charge_card_owner','charge_amounts'];
+
 router.put('/settings', adminAuth, (req, res) => {
   const db = getDB();
   const { key, value } = req.body;
   if (!key) return res.status(400).json({ success: false, message: 'key required' });
-  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, value);
+  const known = [...NUMERIC_SETTINGS, ...BOOL_SETTINGS, ...TEXT_SETTINGS];
+  if (!known.includes(key)) return res.status(400).json({ success: false, message: 'کلید ناشناخته: ' + key });
+
+  let v = String(value == null ? '' : value).trim();
+  if (NUMERIC_SETTINGS.includes(key)) {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < 0) return res.status(400).json({ success: false, message: 'مقدار باید عددِ مثبت باشد' });
+    v = String(n);
+  } else if (BOOL_SETTINGS.includes(key)) {
+    v = (v === '1' || v === 'true') ? '1' : '0';
+  } else if (key === 'charge_amounts') {
+    const list = v.split(',').map(x => parseInt(String(x).trim(), 10)).filter(n => Number.isFinite(n) && n > 0);
+    if (!list.length) return res.status(400).json({ success: false, message: 'حداقل یک مبلغِ معتبر با کاما وارد کن' });
+    v = list.join(',');
+  }
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, v);
   res.json({ success: true });
+});
+
+router.get('/test-stats', adminAuth, (req, res) => {
+  const db = getDB();
+  const q = s => db.prepare(s).get().c;
+  res.json({ success: true, data: {
+    total: q('SELECT COUNT(*) c FROM test_claims'),
+    panel: q("SELECT COUNT(*) c FROM test_claims WHERE kind='panel'"),
+    config: q("SELECT COUNT(*) c FROM test_claims WHERE kind='config'"),
+  }});
 });
 
 

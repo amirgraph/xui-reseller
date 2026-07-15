@@ -171,17 +171,43 @@ function resellerMenu() {
 }
 
 function guestMenu() {
-  return {
-    reply_markup: {
-      keyboard: [
-        ['🛒 خرید پنل نمایندگی'],
-        ['📋 تعرفه‌ها', '❓ راهنما'],
-        ['📞 پشتیبانی'],
-      ],
-      resize_keyboard: true
-    }
-  };
+  const rows = [['🛒 خرید پنل نمایندگی']];
+  if (testEnabled()) rows.push(['🧪 تست رایگان']);
+  rows.push(['📋 تعرفه‌ها', '❓ راهنما'], ['📞 پشتیبانی']);
+  return { reply_markup: { keyboard: rows, resize_keyboard: true } };
 }
+
+// ── تستِ رایگان ──────────────────────────────────────────────
+// هر شمارهٔ ایرانی یک‌بار. شماره را از خودِ تلگرام می‌گیریم
+// (request_contact) نه از تایپِ کاربر، پس قابلِ جعل نیست.
+function setting(key, dflt) {
+  const r = db.prepare('SELECT value FROM settings WHERE key=?').get(key);
+  return r && r.value !== '' && r.value != null ? r.value : dflt;
+}
+function testEnabled() { return String(setting('test_enabled', '1')) === '1'; }
+function testGb() { const v = parseFloat(setting('test_traffic_gb', '10')); return Number.isFinite(v) && v > 0 ? v : 10; }
+function testDays() { const v = parseInt(setting('test_days', '1')); return Number.isFinite(v) && v >= 0 ? v : 1; }
+function testMaxClients() { const v = parseInt(setting('test_max_clients', '5')); return Number.isFinite(v) && v >= 0 ? v : 5; }
+
+// تلگرام شماره را بدونِ + و گاهی با ۰ ابتدایی می‌دهد؛ همه را به 98XXXXXXXXXX
+// نرمال می‌کنیم تا «۰۹۱۲…» و «+۹۸۹۱۲…» دو رکوردِ متفاوت نشوند.
+function normalizeIranPhone(raw) {
+  let p = String(raw || '').replace(/[^\d]/g, '');
+  if (p.startsWith('0098')) p = p.slice(4);
+  else if (p.startsWith('98')) p = p.slice(2);
+  else if (p.startsWith('0')) p = p.slice(1);
+  return /^9\d{9}$/.test(p) ? '98' + p : null;
+}
+function testClaimOf(phone) {
+  return db.prepare('SELECT * FROM test_claims WHERE phone=?').get(phone);
+}
+
+const contactBtn = {
+  reply_markup: {
+    keyboard: [[{ text: '📱 ارسال شماره من', request_contact: true }], ['❌ انصراف']],
+    resize_keyboard: true, one_time_keyboard: true
+  }
+};
 
 const cancelBtn = {
   reply_markup: {
@@ -229,6 +255,45 @@ bot.onText(/\/start/, async function(msg) {
   );
 });
 
+// ⚠️ هندلرِ جدا لازم است: پیامِ مخاطب متن ندارد و bot.on('message') پایین
+// روی `!msg.text` فوراً return می‌کند.
+bot.on('contact', async function(msg) {
+  const chatId = msg.chat.id;
+  if (getState(chatId).step !== 'test_phone') return;
+  if (!testEnabled()) { clearState(chatId); return bot.sendMessage(chatId, '❌ تست رایگان غیرفعال است.', guestMenu()); }
+
+  // شماره باید مالِ خودِ فرستنده باشد: تلگرام user_id مخاطب را می‌دهد و اگر
+  // کاربر مخاطبِ *دیگری* را forward کند این با فرستنده یکی نیست.
+  if (String(msg.contact.user_id || '') !== String(msg.from.id)) {
+    return bot.sendMessage(chatId, '❌ باید شمارهٔ خودت را با همان دکمه بفرستی، نه مخاطبِ دیگری.', contactBtn);
+  }
+  const phone = normalizeIranPhone(msg.contact.phone_number);
+  if (!phone) {
+    clearState(chatId);
+    return bot.sendMessage(chatId, '❌ فقط شمارهٔ موبایلِ ایران (۹۸+) پذیرفته می‌شود.', guestMenu());
+  }
+  const prev = testClaimOf(phone);
+  if (prev) {
+    clearState(chatId);
+    return bot.sendMessage(chatId,
+      '❌ با این شماره قبلاً تست گرفته‌ای (' + (prev.kind === 'panel' ? 'پنل تستی' : 'کانفیگ تستی') + ').\n' +
+      'هر شماره فقط یک‌بار.', guestMenu());
+  }
+
+  setState(chatId, { step: 'test_pick', phone: phone });
+  return bot.sendMessage(chatId,
+    '✅ شماره تأیید شد.\n\n' +
+    'کدام را می‌خواهی؟ (فقط یکی — بعداً قابلِ تغییر نیست)\n\n' +
+    '📦 پنل تستی: خودِ پنلِ نمایندگی را می‌بینی و کاربر می‌سازی\n' +
+    '🔗 کانفیگ تستی: یک کانفیگِ آماده برای اتصال\n\n' +
+    'هر دو ' + testGb() + ' گیگ' + (testDays() > 0 ? ' و ' + testDays() + ' روزه' : '') + '.',
+    { reply_markup: { inline_keyboard: [
+      [{ text: '📦 پنل تستی', callback_data: 'test_panel' }],
+      [{ text: '🔗 کانفیگ تستی', callback_data: 'test_config' }],
+    ] } }
+  );
+});
+
 bot.on('message', async function(msg) {
   if (!msg.text || msg.text.startsWith('/')) return;
   const chatId = msg.chat.id;
@@ -250,6 +315,22 @@ bot.on('message', async function(msg) {
 });
 
 async function handleGuest(chatId, text, st, msg) {
+  // شمارهٔ تایپ‌شده قبول نیست: فقط شماره‌ای که خودِ تلگرام تأیید کند
+  if (st.step === 'test_phone') {
+    return bot.sendMessage(chatId,
+      '📱 شماره را تایپ نکن — دکمهٔ «ارسال شماره من» را بزن تا تلگرام تأییدش کند.',
+      contactBtn);
+  }
+  if (text === '🧪 تست رایگان') {
+    if (!testEnabled()) return bot.sendMessage(chatId, '❌ تست رایگان فعلاً غیرفعال است.', guestMenu());
+    setState(chatId, { step: 'test_phone' });
+    return bot.sendMessage(chatId,
+      '🧪 تست رایگان\n\n' +
+      'برای جلوگیری از سوءاستفاده، هر شمارهٔ موبایل فقط یک‌بار می‌تواند تست بگیرد.\n' +
+      'دکمهٔ زیر را بزن تا شماره‌ات از تلگرام تأیید شود 👇',
+      contactBtn
+    );
+  }
   if (text === '📋 تعرفه‌ها') {
     return bot.sendMessage(chatId,
       planListText(),
@@ -593,6 +674,75 @@ bot.on('callback_query', async function(query) {
   const data = query.data;
   const msgId = query.message.message_id;
   await bot.answerCallbackQuery(query.id);
+
+  // ── تستِ رایگان: ساختِ پنل یا کانفیگ ──
+  if (data === 'test_panel' || data === 'test_config') {
+    const st = getState(chatId);
+    if (st.step !== 'test_pick' || !st.phone) return;
+    const phone = st.phone;
+    // دوباره چک می‌کنیم: بینِ فرستادنِ شماره و زدنِ دکمه ممکن است رکورد
+    // ساخته شده باشد (دو تب/دابل‌کلیک). UNIQUE هم پشتش هست.
+    if (testClaimOf(phone)) {
+      clearState(chatId);
+      return bot.sendMessage(chatId, '❌ با این شماره قبلاً تست گرفته‌ای.', guestMenu());
+    }
+    clearState(chatId);
+    const gb = testGb(), days = testDays();
+    const tgId = String(query.from.id);
+    const suffix = phone.slice(-6);
+
+    try {
+      if (data === 'test_panel') {
+        if (getReseller(chatId)) return bot.sendMessage(chatId, '✅ تو از قبل پنل داری!', resellerMenu());
+        const username = 'test_' + suffix;
+        if (db.prepare('SELECT id FROM resellers WHERE username=?').get(username)) {
+          return bot.sendMessage(chatId, '❌ پنلِ تستی با این شماره از قبل هست.', guestMenu());
+        }
+        const password = randomPass();
+        const expires = days > 0 ? new Date(Date.now() + days * 86400000).toISOString() : null;
+        const r = db.prepare(`
+          INSERT INTO resellers (username, password, plain_password, name, telegram_id, traffic_limit_gb,
+                                 max_clients, price_per_gb, balance, expires_at, is_active, can_create_panels, allowed_inbounds)
+          VALUES (?,?,?,?,?,?,?,?,0,?,1,0,'[]')
+        `).run(username, bcrypt.hashSync(password, 10), password, 'کاربر تستی', tgId,
+               gb, testMaxClients(), 0, expires);
+        db.prepare('INSERT INTO test_claims (phone, telegram_id, kind, ref_id) VALUES (?,?,?,?)')
+          .run(phone, tgId, 'panel', r.lastInsertRowid);
+        await bot.sendMessage(chatId,
+          '🎉 پنل تستی فعال شد!\n\n' +
+          '👤 یوزر: ' + username + '\n' +
+          '🔑 رمز: ' + password + '\n' +
+          '📶 ' + gb + ' GB' + (days > 0 ? '\n📅 ' + days + ' روز' : '') + '\n' +
+          '👥 تا ' + testMaxClients() + ' کاربر\n\n' +
+          '🌐 https://__MAIN_DOMAIN__/panel\n\n' +
+          'قیمتِ هر گیگ صفر است، پس آزادانه تست کن. برای نسخهٔ کامل «🛒 خرید پنل نمایندگی» را بزن.',
+          resellerMenu());
+        notifyAdmin('🧪 <b>پنل تستی</b>\n📱 ' + phone + '\n👤 ' + username);
+      } else {
+        const inbounds = await getInbounds();
+        if (!inbounds.length) return bot.sendMessage(chatId, '❌ فعلاً سروری در دسترس نیست. بعداً امتحان کن.', guestMenu());
+        const uuid = uuidv4();
+        const email = 'test_' + suffix;
+        const expiryTime = days > 0 ? Date.now() + days * 86400000 : 0;
+        await addClient(inbounds[0].id, { id: uuid, email: email, enable: true, expiryTime: expiryTime, totalGB: gbToBytes(gb) });
+        db.prepare('INSERT INTO test_claims (phone, telegram_id, kind, ref_id) VALUES (?,?,?,?)')
+          .run(phone, tgId, 'config', null);
+        const subId = uuid.replace(/-/g, '').substring(0, 16);
+        await bot.sendMessage(chatId,
+          '🎉 کانفیگ تستی آماده شد!\n\n' +
+          '📶 ' + gb + ' GB' + (days > 0 ? '\n📅 ' + days + ' روز' : '') + '\n\n' +
+          '🔗 لینک اشتراک:\n' + (SUB_BASE_URL ? SUB_BASE_URL + '/' + subId : uuid) + '\n\n' +
+          'این لینک را در v2rayNG / v2box وارد کن.\n' +
+          'راضی بودی؟ «🛒 خرید پنل نمایندگی» را بزن.',
+          guestMenu());
+        notifyAdmin('🧪 <b>کانفیگ تستی</b>\n📱 ' + phone);
+      }
+    } catch (err) {
+      // رکوردِ claim فقط بعد از موفقیت ثبت می‌شود، پس شکست شانسِ کاربر را نمی‌سوزاند
+      await bot.sendMessage(chatId, '❌ خطا در ساخت تست: ' + err.message + '\nدوباره امتحان کن.', guestMenu());
+    }
+    return;
+  }
 
   if (data.startsWith('buy_') || data.startsWith('recharge_')) {
     // خریدِ پلن و شارژِ کیف پول دو چیزِ متفاوت‌اند: buy_ کلیدِ پلن می‌فرستد،
