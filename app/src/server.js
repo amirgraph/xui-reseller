@@ -1,4 +1,9 @@
-require('dotenv').config();
+// ⚠️ override لازم است: dotenv طبق پیش‌فرض متغیری را که از قبل در process.env
+//    هست بازنویسی نمی‌کند. pm2 مقدارِ زمانِ اولین استارت را ذخیره و در هر
+//    ری‌استارت تزریق می‌کند — پس NAHAN_ADDRS=«خالی» برای همیشه می‌ماند و
+//    updater.py هر ۶ ساعت .env را بی‌اثر آپدیت می‌کرد. نتیجه: کانفیگ‌ها روی
+//    دامنه fallback می‌کردند و دامنه می‌سوخت. .env باید منبعِ حقیقت باشد.
+require('dotenv').config({ override: true });
 const express = require('express');
 const cors = require('cors');
 const path = require('path');

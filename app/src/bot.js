@@ -1,4 +1,6 @@
-require('dotenv').config({ path: '/opt/xui-reseller/.env' });
+// override: همان دلیلِ server.js — pm2 مقدارِ قدیمی را تزریق می‌کند و dotenv
+// بدونِ override آن را دست نمی‌زند، پس .env بی‌اثر می‌شود.
+require('dotenv').config({ path: '/opt/xui-reseller/.env', override: true });
 const TelegramBot = require('node-telegram-bot-api');
 const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
