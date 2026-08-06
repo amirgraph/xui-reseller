@@ -135,12 +135,20 @@ sudo bash setup.sh
 نصب‌کننده می‌پرسد: دامنه‌ها، توکنِ ربات و ادمین، یوزر/رمزِ x-ui، قیمت‌گذاری، IP سرور. کلیدهای امنیتی (JWT و …) خودکار ساخته می‌شوند.
 **پیش‌نیاز:** سرورِ **تازهٔ** اوبونتو ۲۲/۲۴ + یک دامنهٔ اصلی + یک دامنه روی Cloudflare.
 
-### 🌍 چندسروری و افزودنِ دامنه
+### 🌍 چندکشوره · افزودنِ نود و دامنه
 
-از پنلِ ادمین → **سرورها**:
-- **کشورِ جدید:** یک سرورِ 3x-ui دیگر اضافه کن (آدرس پنل + کلید API + دامنه‌ها + اینباند). ساب خودکار از همهٔ سرورهای فعال ساخته می‌شود.
-- **افزودنِ دامنه:** فیلدِ `domains` هر سرور کاما-جداست و **هر تعداد** می‌پذیرد → به ازای هر دامنه یک کانفیگ و به همان تعداد IP تمیز.
-- **بدونِ دستکاریِ nginx:** بلاکِ ۴۴۳ روی `default_server` است؛ هر ساب‌دامینِ جدیدی که DNSش را به سرور بزنی خودکار کار می‌کند.
+**دو حالتِ نصب** (نصب‌کننده اول می‌پرسد):
+- **پنلِ کامل** — پنل + ربات + فروش (سرورِ اصلی).
+- **فقط نود** — فقط معماریِ ضدفیلتر (x-ui + xray + WARP + nginx) بدونِ پنل؛ برای **افزودنِ کشورِ جدید به پنلِ اصلی** یا نودِ ضدفیلترِ مستقل.
+
+**افزودنِ یک کشورِ جدید (نود):**
+1. روی سرورِ جدید: `sudo bash setup.sh` → گزینهٔ **«فقط نود»**. (x-ui + xray + WARP + nginx بالا می‌آید و یک API token می‌سازی.)
+2. DNS ساب‌دامین‌های آن نود را با پروکسیِ Cloudflare به IP نود بزن.
+3. در **پنلِ اصلی → سرورها → افزودن**: آدرسِ x-ui نود (`https://<node-subdomain>`)، مسیر، API token، و دامنه‌ها را وارد کن.
+
+**اسکنرِ IP این نود از کجا می‌آید؟** 👈 از **خودِ پنلِ اصلی**: بعد از افزودنِ سرور، در **سرورها → دکمهٔ دانلودِ اسکنر**، اسکریپتِ مخصوصِ همان نود (با `server_id` و `token` و آدرسِ پنل درونش) را بگیر و روی نود (یا هر جا) اجرا/cron کن. خودش IPهای تمیز را پیدا و مستقیم به پنلِ اصلی feed می‌کند (endpoint: `/sub/apply-cleanip`). ویندوز و لینوکس/مک هر دو نسخه دارند.
+
+**افزودنِ دامنه:** فیلدِ `domains` هر سرور کاما-جداست و **هر تعداد** می‌پذیرد → به ازای هر دامنه یک کانفیگ و به همان تعداد IP تمیز. بلاکِ ۴۴۳ روی `default_server` است، پس هر ساب‌دامینِ جدیدی که DNSش را به سرور بزنی بدونِ دستکاریِ nginx کار می‌کند.
 
 ### ⚙️ بعد از نصب
 
@@ -208,9 +216,15 @@ sudo bash setup.sh
 
 Requires a **fresh** Ubuntu 22/24 server, one main domain, and one Cloudflare domain.
 
-### Multi-server & adding domains
+### Multi-server, nodes & adding domains
 
-Admin panel → **Servers**: add another 3x-ui server for a new country, or extend a server's comma-separated `domains` with **any number** of subdomains — configs and scanned IPs scale to match. nginx is `default_server`, so any new subdomain just works once DNS points at the server.
+The installer asks for an **install mode**: **Full panel** (panel + bot + sales) or **Node only** (just the anti-censorship stack — x-ui + xray + WARP + nginx — with no panel), used to **add a new country to your main panel** or run a standalone node.
+
+**Add a new country (node):** run `sudo bash setup.sh` on the new server and pick **Node only**; point its subdomains (Cloudflare-proxied) at it; then in the **main panel → Servers → Add**, enter the node's x-ui URL (`https://<node-subdomain>`), path, API token and domains.
+
+**Where does the node's IP scanner come from?** 👉 from the **main panel** itself: after adding the server, hit **Servers → Download scanner** to get a per-server script (with its `server_id`, `token` and panel URL baked in). Run/cron it on the node — it finds clean IPs and feeds them straight back to the panel (`/sub/apply-cleanip`). Windows and Linux/macOS versions included.
+
+**Adding domains:** a server's comma-separated `domains` accepts **any number** — one config per domain, and the scanner keeps that many clean IPs. nginx is `default_server`, so any new subdomain just works once DNS points at the server.
 
 ### Tech stack
 

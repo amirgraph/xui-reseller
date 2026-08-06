@@ -69,7 +69,7 @@
   <g fill="#0f0c1a" stroke="#ffffff10">
     <rect x="60" y="378" width="880" height="118" rx="14"/>
   </g>
-  <text x="925" y="410" text-anchor="end" fill="#c9c4de" font-size="14" font-weight="700">🐉 نهان — ضدفیلترِ چندلایه فعال</text>
+  <text x="925" y="410" text-anchor="end" fill="#c9c4de" font-size="14" font-weight="700">🐉 امیرپنل — ضدفیلترِ چندلایه فعال</text>
   <g font-size="12" fill="#8a86a0">
     <text x="925" y="440" text-anchor="end">تونل XHTTP پشت Cloudflare · خروجی WARP · اسکنر IP تمیز</text>
     <text x="925" y="464" text-anchor="end">بلاک تبلیغات و تورنت · دو ساب‌لینک · watchdog حافظه</text>

@@ -99,6 +99,21 @@ banner
 echo "  Hameye soal ha pishfarze manteghi darand. Enter = pishfarz."
 echo "  Meghdar haye hassas namayesh dade nemishavand."
 
+# ═══════════════ ۰) نوعِ نصب ═══════════════
+# full = پنل + ربات + فروش (کاملِ کسب‌وکار)
+# node = فقط معماریِ ضدفیلتر (x-ui + xray + WARP + nginx) بدونِ پنل —
+#        برای «افزودنِ کشورِ جدید به پنلِ اصلی» یا نودِ ضدفیلترِ مستقل.
+title "0  Noe nasb"
+echo "  1) Panele KAMEL  — panel + bot + forush (pishfarz)"
+echo "  2) Faghat NODE   — zed-filter bedune panel (baraye afzudan be panele mojud ya node mostaghel)"
+read -rp "  Entekhab [1]: " __im
+INSTALL_MODE=$([ "${__im:-1}" = "2" ] && echo node || echo full)
+ok "Halate nasb: $INSTALL_MODE"
+# پیش‌فرض‌ها تا در حالتِ node متغیرهای پنل زیرِ set -u خالی نمانند
+BOT_TOKEN=""; ADMIN_TG=""; ADMIN_USER="admin"; ADMIN_PASS="node-$(rand 10)"
+PANEL_PRICE=0; PANEL_GB=0; PRICE_PER_GB=0; MAX_CLIENTS=0; UNLIMITED=0; UNLIM_PRICE=0
+CARD_NUMBER=""; CARD_OWNER=""; CHARGE_AMOUNTS=""; PLISIO_KEY=""
+
 # ═══════════════ ۱) دامنه‌ها ═══════════════
 title "1/6  Domain ha"
 echo "  Domaine asli: panel va sube poshtiban (mamulan poshte CDN dakheli mesle Arvan)."
@@ -128,13 +143,15 @@ else
   ask NSUB1 "Subdomaine AmirPanel 1"; ask NSUB2 "Subdomaine AmirPanel 2"; ask NSUB3 "Subdomaine AmirPanel 3"
 fi
 
-# ═══════════════ ۲) تلگرام و ادمین ═══════════════
+# ═══════════════ ۲) تلگرام و ادمین (فقط پنلِ کامل) ═══════════════
+if [ "$INSTALL_MODE" = full ]; then
 title "2/6  Bote Telegram va admine panel"
 ask_secret BOT_TOKEN "Tokene bote Telegram (az BotFather)"
 ask ADMIN_TG "IDe adadiye Telegrame admin (az @userinfobot)"
 ask ADMIN_USER "Username admine panel" "admin"
 ask_secret ADMIN_PASS "Ramze admine panel"
 [ -n "$ADMIN_PASS" ] || die "Ramze admin khali nabashad."
+fi
 
 # ═══════════════ ۳) x-ui ═══════════════
 title "3/6  Panele x-ui (zirsakht)"
@@ -145,7 +162,8 @@ XUI_PORT=38339
 XUI_API_KEY="$(rand 40)"      # کلید Bearer API — تولید خودکار
 ok "Masire panele x-ui va kelide API tasadofi sakhte shod."
 
-# ═══════════════ ۴) قیمت‌گذاری (پنل و ربات) ═══════════════
+# ═══════════════ ۴) قیمت‌گذاری (فقط پنلِ کامل) ═══════════════
+if [ "$INSTALL_MODE" = full ]; then
 title "4/6  Gheymat gozari va forush"
 echo "  \"Panele namayande\" = basteye amade i ke be namayande mifrushi."
 ask PANEL_PRICE "Gheymate har panele namayande (Toman)" "550000"
@@ -161,8 +179,8 @@ echo "  Sharzhe mojudiye namayande:"
 ask CARD_NUMBER "Shomareye karte variz"
 ask CARD_OWNER "Name sahebe kart"
 ask CHARGE_AMOUNTS "Mabalighe amadeye sharzh (ba comma)" "500000,1000000,2000000,5000000"
-PLISIO_KEY=""
 if yesno "Pardakhte crypto (Plisio) faal shavad?"; then ask_secret PLISIO_KEY "Kelide API Plisio"; fi
+fi
 
 # ═══════════════ ۵) شبکه/سرور ═══════════════
 title "5/6  Server"
@@ -216,6 +234,7 @@ chmod 600 "$ENV_FILE"
 
 # پاسخ‌های غیرحساس برای ماژول‌های infra
 cat > "$CONF" <<EOF
+INSTALL_MODE=$INSTALL_MODE
 MAIN_DOMAIN=$MAIN_DOMAIN
 NSUB1=$NSUB1
 NSUB2=$NSUB2
@@ -257,13 +276,33 @@ run_module(){ local m="$HERE/scripts/$1"; [ -f "$m" ] && { title "▶ $1"; bash 
 run_module 00-deps.sh
 run_module 10-warp.sh
 run_module 20-xui.sh
-run_module 30-app.sh
 run_module 40-nginx.sh
-run_module 45-livekit.sh
-run_module 50-scanner.sh
-run_module 55-backup.sh
 run_module 60-tunings.sh
+if [ "$INSTALL_MODE" = full ]; then
+  # ماژول‌های پنل — فقط در نصبِ کامل
+  run_module 30-app.sh
+  run_module 45-livekit.sh
+  run_module 50-scanner.sh
+  run_module 55-backup.sh
+fi
 run_module 99-verify.sh
+
+# ═══════════════ راهنمای نودِ چندکشوره ═══════════════
+if [ "$INSTALL_MODE" = node ]; then
+  echo
+  echo "$(c '1;36' '  ✅ NODE amade shod (zed-filter bedune panel).')"
+  echo "  Baraye vasl kardane in node be panele ASLI (afzudane keshvare jadid):"
+  echo "   1) Dar panele asli → Server ha → afzudane server:"
+  echo "        - xui_url  : https://$NSUB1   (ya har kodam az subdomain ha)"
+  echo "        - xui_path : $XUI_PATH"
+  echo "        - API token: hamun tokeni ke bala sakhti"
+  echo "        - domain ha: $NSUB1,$NSUB2,$NSUB3"
+  echo "   2) Record haye DNS in subdomain ha ra (proxy narenji) be $SERVER_IP bezan."
+  echo "   3) Az panele asli → Server ha → dokmeye 'Downloade Scanner' ra bezan;"
+  echo "      scanner makhsuse hamin server (ba token) ra inja run/cron kon ta"
+  echo "      IP haye tamiz khodkar be panele asli feed shavand."
+  echo "  (Scanner az panele asli miayad — chun token va URL panel dar khodesh hast.)"
+fi
 
 title "✅ AMIR PANEL — nasb kamel shod"
 echo "   Panele admin : https://$MAIN_DOMAIN/panel  (user: $ADMIN_USER)"

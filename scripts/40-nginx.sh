@@ -39,6 +39,14 @@ cat > /etc/nginx/conf.d/upgrade.conf <<'EOF'
 map $http_upgrade $connection_upgrade { default upgrade; "" close; }
 EOF
 
+# ── مقصدِ location / بسته به نوعِ نصب ──
+# full → پنلِ node (:PORT) · node → x-ui (تا پنلِ اصلی بتواند API این نود را از راهِ دامنه ببیند)
+if [ "${INSTALL_MODE:-full}" = node ]; then
+  ROOT_UPSTREAM="http://127.0.0.1:$XUI_PORT"
+else
+  ROOT_UPSTREAM="http://127.0.0.1:$PORT"
+fi
+
 # ── سرورِ اصلی nginx روی 443 ──
 cat > /etc/nginx/sites-available/amirpanel.conf <<EOF
 # استخرِ keepalive به xray — از churnِ اتصال (packet-up) جلوگیری می‌کند
@@ -72,9 +80,9 @@ server {
         chunked_transfer_encoding off;
     }
 
-    # پنل و ساب → node:$PORT
+    # پنل/ساب (full) یا x-ui (node) → بسته به نوعِ نصب
     location / {
-        proxy_pass http://127.0.0.1:$PORT;
+        proxy_pass $ROOT_UPSTREAM;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
