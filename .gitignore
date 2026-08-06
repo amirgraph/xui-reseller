@@ -36,3 +36,6 @@ wireproxy
 # سیستم
 .DS_Store
 releases/
+
+__pycache__/
+*.pyc
