@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-# v2pn اسکنر IP تمیز Cloudflare — IPهایی که درست به zone نهان route می‌شوند و سریع/زنده‌اند
+# v2pn اسکنر IP تمیز Cloudflare — IPهایی که درست به zone امیرپنل route می‌شوند و سریع/زنده‌اند
 import json, random, subprocess, ipaddress, urllib.request, time, os
 from concurrent.futures import ThreadPoolExecutor
 
 BASE = "/root/v2pn-cleanip"
-SUBDOMAIN = os.environ.get("NAHAN_SUB", "__NSUB1__")
+SUBDOMAIN = os.environ.get("AMIRPANEL_SUB", "__NSUB1__")
 PATH = "__XHTTP_PATH__"
 SAMPLE_PER_RANGE = 60      # از هر رنج CF این تعداد IP تصادفی
 THREADS = 120
@@ -59,7 +59,7 @@ def main():
     for r in results:
         if r["range"] not in seen:
             seen.add(r["range"]); diverse.append(r)
-    best = (diverse + results)[:15]
+    best = (diverse + results)[:30]   # استخرِ کاندیدا؛ updater به‌تعدادِ دامنه از این برمی‌دارد
     out = {"updated": int(time.time()), "date": time.strftime("%Y-%m-%d %H:%M:%S"),
            "sub": SUBDOMAIN, "tested": len(ips), "working": len(results), "best": best}
     json.dump(out, open(f"{BASE}/results.json", "w"), indent=2)

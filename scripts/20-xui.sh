@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ماژول ۲۰: نصب x-ui (MHSanaei/3x-ui v3) + اینباند نهان + قالب routing (بلاک تبلیغات)
+# ماژول ۲۰: نصب x-ui (MHSanaei/3x-ui v3) + اینباند امیرپنل + قالب routing (بلاک تبلیغات)
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$1"; CONF="$2"
@@ -8,8 +8,8 @@ ok(){ echo "  ✓ $*"; }
 DB=/etc/x-ui/x-ui.db
 
 # ── استقرار باینری x-ui (بستهٔ کارکرده) ──
-PKG="$HERE/releases/x-ui-nahan-v3.4.2.tgz"
-XUI_PKG_URL="${XUI_PKG_URL:-https://github.com/amirgraph/xui-reseller/releases/download/v1.0.0/x-ui-nahan-v3.4.2.tgz}"
+PKG="$HERE/releases/x-ui-amirpanel-v3.4.2.tgz"
+XUI_PKG_URL="${XUI_PKG_URL:-https://github.com/amirgraph/xui-reseller/releases/download/v1.0.0/x-ui-amirpanel-v3.4.2.tgz}"
 if [ ! -f "$PKG" ]; then
   mkdir -p "$HERE/releases"
   echo "  Downloade basteye x-ui az GitHub Release..."
@@ -34,30 +34,30 @@ systemctl restart x-ui; sleep 5
   -username "$XUI_USER" -password "$XUI_PASSWORD" >/dev/null 2>&1
 ok "Port/masir/usere x-ui tanzim shod."
 
-# ── قالب routing (بلاک تبلیغات + تورنت + WARP) و اینباند نهان ──
+# ── قالب routing (بلاک تبلیغات + تورنت + WARP) و اینباند امیرپنل ──
 XHTTP="${XHTTP_PATH#/}"   # بدون اسلش
 # قالب xray: جایگزینی placeholder مسیر
 sed "s|__XHTTP_PATH__|$XHTTP_PATH|g" "$HERE/infra/xray/xray-template.json" > /tmp/xray-tmpl.json
-python3 - "$DB" /tmp/xray-tmpl.json "$HERE/infra/xray/nahan-inbound.json" "$XHTTP_PATH" <<'PY'
+python3 - "$DB" /tmp/xray-tmpl.json "$HERE/infra/xray/amirpanel-inbound.json" "$XHTTP_PATH" <<'PY'
 import sqlite3, json, sys, time
 db_path, tmpl_path, inb_path, xpath = sys.argv[1:5]
 db = sqlite3.connect(db_path)
 # قالب routing → settings.xrayTemplateConfig
 tmpl = open(tmpl_path).read()
 db.execute("INSERT OR REPLACE INTO settings(key,value) VALUES('xrayTemplateConfig',?)", (tmpl,))
-# اینباند نهان
+# اینباند امیرپنل
 inb = json.load(open(inb_path))
 ss = json.dumps(inb["streamSettings"], ensure_ascii=False).replace("__XHTTP_PATH__", xpath)
 st = json.dumps(inb["settings"], ensure_ascii=False).replace("__XHTTP_PATH__", xpath)
 sniff = json.dumps({"enabled":False,"destOverride":["http","tls"]})
 # حذف اینباند قدیمی با همان tag اگر بود
-db.execute("DELETE FROM inbounds WHERE tag=?", ("nahan-xhttp",))
+db.execute("DELETE FROM inbounds WHERE tag=?", ("amirpanel-xhttp",))
 db.execute("""INSERT INTO inbounds
   (user_id,up,down,total,remark,enable,expiry_time,listen,port,protocol,settings,stream_settings,tag,sniffing)
   VALUES (1,0,0,0,?,1,0,?,?,?,?,?,?,?)""",
-  ("نهان", inb.get("listen","127.0.0.1"), inb["port"], inb["protocol"], st, ss, "nahan-xhttp", sniff))
+  ("امیرپنل", inb.get("listen","127.0.0.1"), inb["port"], inb["protocol"], st, ss, "amirpanel-xhttp", sniff))
 db.commit(); db.close()
-print("  ✓ Ghalebe routing + inbounde Nahan derj shod")
+print("  ✓ Ghalebe routing + inbounde AmirPanel derj shod")
 PY
 rm -f /tmp/xray-tmpl.json
 

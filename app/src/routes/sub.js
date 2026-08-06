@@ -52,7 +52,7 @@ let inboundCacheTime = 0;
 async function buildLinks(uuid, label) {
   const e = encodeURIComponent;
   const links = [];
-  const baseLabel = label || 'نهان';
+  const baseLabel = label || 'امیرپنل';
   // چندسروره: از جدولِ servers ساخته می‌شود؛ اگر خالی بود، fallback به env (تک‌سرورِ قدیمی)
   let servers = [];
   try {
@@ -61,15 +61,15 @@ async function buildLinks(uuid, label) {
   if (!servers.length) {
     servers = [{
       name: baseLabel, flag: '',
-      domains: process.env.NAHAN_SUBS || 'lshftui617qxzfns4r.frbboks.ir,yai08v66i0pm55gabzrmd0.frbboks.ir,xub7tnfycbu4rjyw.frbboks.ir',
-      clean_ips: process.env.NAHAN_ADDRS || '',
-      tunnel_path: '/fml9vgwfwc',
+      domains: process.env.AMIRPANEL_SUBS || '',
+      clean_ips: process.env.AMIRPANEL_ADDRS || '',
+      tunnel_path: CDN_PATH,
     }];
   }
   for (const srv of servers) {
     const subs = String(srv.domains || '').split(',').map((s) => s.trim()).filter(Boolean);
     const addrs = String(srv.clean_ips || '').split(',').map((s) => s.trim()).filter(Boolean);
-    const tpath = srv.tunnel_path || '/fml9vgwfwc';
+    const tpath = srv.tunnel_path || CDN_PATH;
     const tag = (srv.flag ? srv.flag + ' ' : '') + (srv.name || baseLabel);
     for (let i = 0; i < subs.length; i++) {
       const h = subs[i];

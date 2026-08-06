@@ -29,15 +29,15 @@ docker run -d --name amirpanel-livekit --restart unless-stopped --network host \
   && ok "LiveKit balaa amad (port 7880/7881)." || { warn "LiveKit ejra nashod."; exit 0; }
 
 # nginx: دامنهٔ ویس → livekit (اگر VOICE_DOMAIN و گواهی باشد)
-if [ -n "${VOICE_DOMAIN:-}" ] && [ -f /etc/nginx/nahan-cert/fullchain.pem ]; then
+if [ -n "${VOICE_DOMAIN:-}" ] && [ -f /etc/nginx/amirpanel-cert/fullchain.pem ]; then
   cat > /etc/nginx/sites-available/voice.conf <<NGINX
 map \$http_upgrade \$voice_conn { default upgrade; '' close; }
 server {
     listen 80;
     listen 443 ssl http2;
     server_name ${VOICE_DOMAIN};
-    ssl_certificate     /etc/nginx/nahan-cert/fullchain.pem;
-    ssl_certificate_key /etc/nginx/nahan-cert/privkey.pem;
+    ssl_certificate     /etc/nginx/amirpanel-cert/fullchain.pem;
+    ssl_certificate_key /etc/nginx/amirpanel-cert/privkey.pem;
     location / {
         proxy_pass http://127.0.0.1:7880;
         proxy_http_version 1.1;

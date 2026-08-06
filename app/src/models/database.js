@@ -293,7 +293,7 @@ async function initDB() {
   ensureColumn('resellers', 'promo_channel_id', "TEXT");
 
   // نامِ نمایشیِ دلخواهِ کانفیگ — چیزی که تو اپِ کاربر (v2Box/v2rayNG) بعدِ #
-  // دیده می‌شه. قبلاً همیشه هاردکد «نهان-۱/۲/۳» بود، مستقل از هرچی نماینده بخواد.
+  // دیده می‌شه. قبلاً همیشه هاردکد «امیرپنل-۱/۲/۳» بود، مستقل از هرچی نماینده بخواد.
   ensureColumn('clients', 'display_name', "TEXT");
 
   // ادمینِ پیش‌فرضِ admin/admin123 عمداً ساخته نمی‌شود: نصب‌کننده (30-app.sh)
@@ -310,9 +310,9 @@ async function initDB() {
       xui_url TEXT NOT NULL,
       xui_path TEXT DEFAULT '',
       xui_api_key TEXT NOT NULL,
-      domains TEXT NOT NULL DEFAULT '',      -- کاما-جدا (sni/host)
+      domains TEXT NOT NULL DEFAULT '',      -- کاما-جدا (sni/host) — هر تعداد که بخواهی
       clean_ips TEXT DEFAULT '',             -- کاما-جدا (addr)؛ خالی = دامنه
-      tunnel_path TEXT DEFAULT '/fml9vgwfwc',
+      tunnel_path TEXT DEFAULT '',           -- مسیرِ xhttp؛ از CDN_XHTTP_PATH پر می‌شود
       scan_token TEXT DEFAULT '',            -- توکنِ اسکنر برای POSTِ IPهای تمیز
       active INTEGER DEFAULT 1,
       sort_order INTEGER DEFAULT 0,
@@ -328,7 +328,8 @@ async function initDB() {
       VALUES (?,?,?,?,?,?,?,?,?,1,0)`).run(
       process.env.SERVER_NAME || 'آلمان', process.env.SERVER_FLAG || '🇩🇪',
       process.env.XUI_URL, process.env.XUI_PATH || '', process.env.XUI_API_KEY || '',
-      process.env.NAHAN_SUBS || '', process.env.NAHAN_ADDRS || '', '/fml9vgwfwc', tok
+      process.env.AMIRPANEL_SUBS || '', process.env.AMIRPANEL_ADDRS || '',
+      process.env.CDN_XHTTP_PATH || process.env.XHTTP_PATH || '/fml9vgwfwc', tok
     );
     console.log('  ↑ server e aval az env seed shod');
   }

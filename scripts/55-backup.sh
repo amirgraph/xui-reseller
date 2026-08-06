@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ماژول ۵۵: بک‌آپِ خودکارِ شبانه به کانالِ تلگرام + ابزارِ بازیابی (فقط امیر پنل)
-# x-ui.db + reseller.db + سورسِ پنل/بات + nahan.conf → تارِ فشرده → کانالِ تلگرام.
+# x-ui.db + reseller.db + سورسِ پنل/بات + amirpanel.conf → تارِ فشرده → کانالِ تلگرام.
 set -euo pipefail
 ENV_FILE="$1"
 set -a; . "$ENV_FILE"; set +a
@@ -25,7 +25,7 @@ sqlbackup(){ sqlite3 "$1" ".backup '$2'" 2>/dev/null || cp "$1" "$2" 2>/dev/null
 sqlbackup /etc/x-ui/x-ui.db          "$TMP/x-ui.db"
 sqlbackup /opt/xui-reseller/data/reseller.db "$TMP/reseller.db"
 mkdir -p "$TMP/src"; rsync -a --exclude node_modules --exclude data --exclude backups --exclude '*.bak*' /opt/xui-reseller/ "$TMP/src/" 2>/dev/null || true
-cp /etc/nginx/sites-available/nahan.conf "$TMP/" 2>/dev/null || true
+cp /etc/nginx/sites-available/amirpanel.conf "$TMP/" 2>/dev/null || true
 A="$OUT/amirpanel-$STAMP.tar.gz"; tar -czf "$A" -C "$TMP" . 2>/dev/null; rm -rf "$TMP"
 ls -1t "$OUT"/amirpanel-*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm -f
 S=$(du -h "$A" | cut -f1)

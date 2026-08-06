@@ -22,7 +22,7 @@ echo "  ── WARP ──"
 OUT=$(curl -s --socks5-hostname 127.0.0.1:40000 --max-time 10 https://api.ipify.org 2>/dev/null)
 [ -n "$OUT" ] && g "WARP khoruji: $OUT" || b "WARP javab nadad"
 
-echo "  ── Tunele Nahan (locale xray:8001) ──"
+echo "  ── Tunele AmirPanel (locale xray:8001) ──"
 XRAY=/usr/local/x-ui/bin/xray-linux-amd64
 UUID=$(sqlite3 /opt/xui-reseller/data/reseller.db "SELECT xui_uuid FROM clients LIMIT 1;" 2>/dev/null || echo "")
 if [ -n "$UUID" ]; then
@@ -31,7 +31,7 @@ if [ -n "$UUID" ]; then
 EOF
   $XRAY -c /tmp/vt.json >/dev/null 2>&1 & P=$!; sleep 4
   R=$(curl -s --socks5-hostname 127.0.0.1:12099 --max-time 10 https://api.ipify.org 2>/dev/null)
-  [ -n "$R" ] && g "Tunele Nahan kar mikonad (khoruji $R)" || b "Tunele Nahan javab nadad"
+  [ -n "$R" ] && g "Tunele AmirPanel kar mikonad (khoruji $R)" || b "Tunele AmirPanel javab nadad"
   kill $P 2>/dev/null; wait $P 2>/dev/null; rm -f /tmp/vt.json
 else
   echo "  (Hanuz karbari sakhte nashode — bad az sakhte avalin karbar tunel ra test kon)"

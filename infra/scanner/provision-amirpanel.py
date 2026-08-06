@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# کران: کاربر فعالِ رزلر که روی اینباندهای نهان (14=CF/TLS، 15=Reality) نیست را اضافه می‌کند
+# کران: کاربر فعالِ رزلر که روی اینباندهای امیرپنل (14=CF/TLS، 15=Reality) نیست را اضافه می‌کند
 import sqlite3, json, urllib.request, sys
 
 XUI = "http://127.0.0.1:38339__XUI_PATH__"
@@ -43,4 +43,4 @@ for iid, prefix in INBOUNDS.items():
             pass
 
 if added:
-    print(f"provision-nahan: {added} کلاینت جدید روی اینباندهای نهان اضافه شد")
+    print(f"provision-amirpanel: {added} کلاینت جدید روی اینباندهای امیرپنل اضافه شد")

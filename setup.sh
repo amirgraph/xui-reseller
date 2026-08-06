@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════
-#  نصب‌کنندهٔ خودکارِ نهان  —  کلِ اکوسیستمِ VPN رزلر در یک اجرا
-#  x-ui + xray(نهان) + WARP + nginx + اسکنر IP تمیز + پنل رزلر
+#  نصب‌کنندهٔ خودکارِ امیرپنل  —  کلِ اکوسیستمِ VPN رزلر در یک اجرا
+#  x-ui + xray(امیرپنل) + WARP + nginx + اسکنر IP تمیز + پنل رزلر
 #
 #  اجرا:  sudo bash setup.sh
 #  همهٔ تنظیمات را می‌پرسد؛ هیچ secret در ریپو نیست.
@@ -66,7 +66,7 @@ banner(){
     i=$((i+1))
   done
   echo
-  printf '     \033[1;35m✳\033[0m \033[1mVPN Reseller Panel\033[0m \033[2m·\033[0m \033[35mNahan Edition\033[0m \033[2mv%s\033[0m\n' "$VERSION"
+  printf '     \033[1;35m✳\033[0m \033[1mVPN Reseller Panel\033[0m \033[2m·\033[0m \033[35mAmirPanel Edition\033[0m \033[2mv%s\033[0m\n' "$VERSION"
   printf '     \033[2mx-ui · xray · WARP · nginx · clean-ip scanner · reseller\033[0m\n'
   echo
 }
@@ -104,7 +104,7 @@ title "1/6  Domain ha"
 echo "  Domaine asli: panel va sube poshtiban (mamulan poshte CDN dakheli mesle Arvan)."
 ask MAIN_DOMAIN "Domaine asli (mesle panel.example.com)"
 echo
-echo "  Nahan: domaine Cloudflare ke 3 subdomaine tasadofi zirash sakhte mishavad (sube asli / zedde filter)."
+echo "  AmirPanel: domaine Cloudflare ke 3 subdomaine tasadofi zirash sakhte mishavad (sube asli / zedde filter)."
 ask CF_DOMAIN "Domaine Cloudflare paye, bedune subdomain (mesle example.ir)"
 # گواهیِ رایگانِ Cloudflare فقط یک سطح ساب‌دامین (*.domain) را پوشش می‌دهد
 CF_DOTS="${CF_DOMAIN//[^.]/}"
@@ -114,18 +114,18 @@ if [ "${#CF_DOTS}" -gt 1 ]; then
   warn "faghat yek sath ra pushesh midahad -> TLS dar edge khata midahad."
   yesno "Bazam edame bedam?" || die "Domaine paye (mesle example.ir) ra bezan va dobare ejra kon."
 fi
-# دامنه باید واقعاً ثبت شده باشد — یک تایپو یعنی کلِ لایهٔ نهان روی دامنهٔ بیگانه
+# دامنه باید واقعاً ثبت شده باشد — یک تایپو یعنی کلِ لایهٔ امیرپنل روی دامنهٔ بیگانه
 if [ -z "$(ns_of "$CF_DOMAIN")" ]; then
   warn "\"$CF_DOMAIN\" hich nameserveri nadarad — sabt nashode ya typo ast."
-  warn "Age typo bashad, har 3 sube Nahan rooye domaine eshtebah sakhte mishavad."
+  warn "Age typo bashad, har 3 sube AmirPanel rooye domaine eshtebah sakhte mishavad."
   yesno "Bazam edame bedam?" || die "Emlaye domain ra check kon va dobare ejra kon."
 fi
-if yesno "Subdomain haye Nahan khodkar tasadofi sakhte shavand?"; then
+if yesno "Subdomain haye AmirPanel khodkar tasadofi sakhte shavand?"; then
   NSUB1="$(rand 18).$CF_DOMAIN"; NSUB2="$(rand 22).$CF_DOMAIN"; NSUB3="$(rand 16).$CF_DOMAIN"
   ok "Sakhte shod: $NSUB1 , $NSUB2 , $NSUB3"
   warn "In 3 record ra dar Cloudflare (proxy/narenji) be IPe server ezafe kon."
 else
-  ask NSUB1 "Subdomaine Nahan 1"; ask NSUB2 "Subdomaine Nahan 2"; ask NSUB3 "Subdomaine Nahan 3"
+  ask NSUB1 "Subdomaine AmirPanel 1"; ask NSUB2 "Subdomaine AmirPanel 2"; ask NSUB3 "Subdomaine AmirPanel 3"
 fi
 
 # ═══════════════ ۲) تلگرام و ادمین ═══════════════
@@ -201,9 +201,9 @@ TELEGRAM_BOT_TOKEN=$BOT_TOKEN
 ADMIN_TELEGRAM_ID=$ADMIN_TG
 SUB_BASE_URL=https://$MAIN_DOMAIN/sub
 XUI_SUB_BASE=https://$MAIN_DOMAIN/sub
-NAHAN_SUBS=$NSUB1,$NSUB2,$NSUB3
+AMIRPANEL_SUBS=$NSUB1,$NSUB2,$NSUB3
 SUB_BASE_FRB=https://$NSUB1/sub
-NAHAN_ADDRS=
+AMIRPANEL_ADDRS=
 CDN_XHTTP_PATH=$XHTTP_PATH
 SERVER_NAME=$SERVER_NAME
 SERVER_FLAG=$SERVER_FLAG
@@ -242,7 +242,7 @@ ok ".env va peykarbandi zakhire shod (600, faghat root)."
 
 echo; echo "$(c '1;36' '  Kholaseye tanzimat:')"
 echo "   Domaine asli   : $MAIN_DOMAIN"
-echo "   Nahan          : $NSUB1 (+2 taye digar)"
+echo "   AmirPanel          : $NSUB1 (+2 taye digar)"
 echo "   x-ui           : port $XUI_PORT , masire tasadofi"
 echo "   Gheymate panel : $PANEL_PRICE T | har gig $PRICE_PER_GB T | saghf $MAX_CLIENTS karbar"
 echo
@@ -268,4 +268,4 @@ run_module 99-verify.sh
 title "✅ AMIR PANEL — nasb kamel shod"
 echo "   Panele admin : https://$MAIN_DOMAIN/panel  (user: $ADMIN_USER)"
 echo "   x-ui         : http://$SERVER_IP:$XUI_PORT$XUI_PATH"
-echo "   Yadet bashad: 3 recorde Nahan ra dar Cloudflare be $SERVER_IP bezan + origin ra set kon."
+echo "   Yadet bashad: 3 recorde AmirPanel ra dar Cloudflare be $SERVER_IP bezan + origin ra set kon."
