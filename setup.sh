@@ -178,6 +178,9 @@ XHTTP_PATH="/$(rand 10)"      # مسیر تونل xhttp تصادفی
 # ═══════════════ تولیدِ خودکارِ کلیدها ═══════════════
 title "6/6  Sakhte kelid haye amniyati"
 JWT_SECRET="$(rand_hex 32)"; ok "JWT_SECRET sakhte shod."
+LIVEKIT_SECRET="$(rand_hex 32)"; ok "LIVEKIT_SECRET sakhte shod."   # سکرتِ ویس‌چت — تصادفی، هیچ‌وقت در ریپو نیست
+: "${SERVER_NAME:=Almaan}"; : "${SERVER_FLAG:=DE}"                  # نامِ کشورِ سرورِ اول (لیبلِ کانفیگ/چندکشوره)
+VOICE_DOMAIN="voice.$MAIN_DOMAIN"                                   # دامنهٔ LiveKit (باید مستقیم/آروان به سرور اشاره کند)
 # کلید Reality (اگر xray موجود شد در ماژول xui کامل می‌شود؛ اینجا placeholder)
 ok "Kelid haye Reality dar marhaleye nasbe xray sakhte mishavand."
 
@@ -202,6 +205,12 @@ NAHAN_SUBS=$NSUB1,$NSUB2,$NSUB3
 SUB_BASE_FRB=https://$NSUB1/sub
 NAHAN_ADDRS=
 CDN_XHTTP_PATH=$XHTTP_PATH
+SERVER_NAME=$SERVER_NAME
+SERVER_FLAG=$SERVER_FLAG
+LIVEKIT_KEY=amirpanel
+LIVEKIT_SECRET=$LIVEKIT_SECRET
+VOICE_DOMAIN=$VOICE_DOMAIN
+BACKUP_CHANNEL=
 EOF
 chmod 600 "$ENV_FILE"
 
@@ -250,7 +259,9 @@ run_module 10-warp.sh
 run_module 20-xui.sh
 run_module 30-app.sh
 run_module 40-nginx.sh
+run_module 45-livekit.sh
 run_module 50-scanner.sh
+run_module 55-backup.sh
 run_module 60-tunings.sh
 run_module 99-verify.sh
 
