@@ -7,6 +7,17 @@ set -a; . "$ENV_FILE"; . "$CONF"; set +a
 ok(){ echo "  ✓ $*"; }
 DB=/etc/x-ui/x-ui.db
 
+# ── محافظ: اگر x-ui از قبل نصب است، قبل از هر تغییر بکاپِ امن بگیر ──
+# نصب‌کننده باینری و پورت/مسیر/رمزِ پنل و قالبِ routing را بازنویسی می‌کند، ولی
+# اینباند/کاربرانِ موجود دست‌نخورده می‌مانند (tarball هیچ x-ui.db همراه ندارد).
+# با این حال بکاپ می‌گیریم تا در بدترین حالت چیزی از دست نرود.
+if [ -f "$DB" ]; then
+  BK="/root/x-ui-db-backup-$(date +%Y%m%d-%H%M%S).db"
+  sqlite3 "$DB" ".backup '$BK'" 2>/dev/null || cp "$DB" "$BK" 2>/dev/null || true
+  echo "  ! x-ui az ghabl nasb ast → backup: $BK"
+  echo "    (inbound/karbarhaye feli hefz mishavand؛ faghat port/masir/passe panel va ghalebe routing reset mishavad.)"
+fi
+
 # ── استقرار باینری x-ui (بستهٔ کارکرده) ──
 PKG="$HERE/releases/x-ui-amirpanel-v3.4.2.tgz"
 XUI_PKG_URL="${XUI_PKG_URL:-https://github.com/amirgraph/xui-reseller/releases/download/v1.0.0/x-ui-amirpanel-v3.4.2.tgz}"
