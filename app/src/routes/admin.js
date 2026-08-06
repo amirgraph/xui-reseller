@@ -495,6 +495,24 @@ router.post('/backup/restore', adminAuth, (req, res) => {
   }
 });
 
+// کانالِ بک‌آپ (در /etc/amirpanel-backup.env؛ بات باید ادمینِ کانال باشد)
+const BK_ENV = '/etc/amirpanel-backup.env';
+router.get('/backup/channel', adminAuth, (req, res) => {
+  let ch = '';
+  try { const m = fs.readFileSync(BK_ENV, 'utf8').match(/^BACKUP_CHANNEL=(.*)$/m); ch = m ? m[1].trim() : ''; } catch (e) {}
+  res.json({ success: true, channel: ch });
+});
+router.post('/backup/channel', adminAuth, (req, res) => {
+  const ch = String((req.body && req.body.channel) || '').trim();
+  try {
+    let cur = ''; try { cur = fs.readFileSync(BK_ENV, 'utf8'); } catch (e) {}
+    if (/^BACKUP_CHANNEL=/m.test(cur)) cur = cur.replace(/^BACKUP_CHANNEL=.*$/m, 'BACKUP_CHANNEL=' + ch);
+    else cur += (!cur || cur.endsWith('\n') ? '' : '\n') + 'BACKUP_CHANNEL=' + ch + '\n';
+    fs.writeFileSync(BK_ENV, cur);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ success: false, message: 'خطا در ذخیره: ' + e.message }); }
+});
+
 // ─── سرورها (چند-کشوره) ───────────────────────────────────────
 const crypto = require('crypto');
 

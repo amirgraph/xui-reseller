@@ -629,6 +629,12 @@
       <div class="page-header"><h2>بک‌آپ و بازیابی</h2></div>
       <div class="table-wrap" style="padding:20px">
         <p style="color:var(--text-dim);font-size:.8rem;margin-bottom:14px">بک‌آپِ کاملِ امیر پنل (x-ui + پنل + ربات + reseller.db) هر شب خودکار به کانال می‌رود. اینجا می‌تونی همین لحظه بک‌آپ بگیری، یا روی همین سرور یا سرورِ جدید بازیابی کنی.</p>
+        <div class="form-group" style="margin-bottom:12px">
+          <label>آیدیِ عددیِ کانالِ بک‌آپ (مثل <code dir="ltr">-1001234567890</code>) — بات باید ادمینِ کانال باشد</label>
+          <input id="backup-channel" dir="ltr" placeholder="-1001234567890">
+        </div>
+        <button class="btn" onclick="saveBackupChannel(this)" style="margin-bottom:14px"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>ذخیرهٔ کانال</button>
+        <br>
         <button class="btn btn-primary" onclick="backupNow(this)"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 15V3M8 7l4-4 4 4M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>همین حالا بک‌آپ بگیر و به کانال بفرست</button>
         <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
           <label style="display:block;margin-bottom:8px">بازیابی از فایلِ بک‌آپ (<code dir="ltr">.tar.gz</code>):</label>
@@ -1024,7 +1030,7 @@ function showPage(name) {
   if (name === 'charge-requests') loadChargeRequests();
   if (name === 'panel-orders') loadPanelOrders();
   event.currentTarget.classList.add('active');
-  const loaders = { dashboard: loadDashboard, resellers: loadResellers, clients: loadClients, inbounds: loadInbounds, transactions: loadTransactions, plans: loadPlans, settings: loadSettings, servers: loadServers, voice: loadSettings };
+  const loaders = { dashboard: loadDashboard, resellers: loadResellers, clients: loadClients, inbounds: loadInbounds, transactions: loadTransactions, plans: loadPlans, settings: loadSettings, servers: loadServers, voice: loadSettings, backup: loadBackupChannel };
   if (loaders[name]) loaders[name]();
   toggleSidebar(false); // موبایل: بعد از انتخاب صفحه، منو بسته شود
 }
@@ -1175,6 +1181,18 @@ async function downloadScanner(id, os) {
   else alert('دانلود شد: ' + fname + '\n\nروی مک/لینوکس — نتِ ایران، VPN خاموش — در ترمینال بزن:\n  bash ~/Downloads/' + fname);
 }
 
+async function loadBackupChannel() {
+  const r = await get('/admin/backup/channel');
+  const el = document.getElementById('backup-channel');
+  if (r && r.success && el) el.value = r.channel || '';
+}
+async function saveBackupChannel(btn) {
+  const ch = (document.getElementById('backup-channel').value || '').trim();
+  const t = btn.textContent; btn.disabled = true;
+  const r = await post('/admin/backup/channel', { channel: ch });
+  btn.disabled = false; btn.textContent = t;
+  toast(r && r.success ? 'کانالِ بک‌آپ ذخیره شد' : ((r && r.message) || 'خطا'), r && r.success ? 'success' : 'error');
+}
 async function backupNow(btn) {
   const t = btn.textContent; btn.disabled = true; btn.textContent = 'در حال بک‌آپ…';
   try {
