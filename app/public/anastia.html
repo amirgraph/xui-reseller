@@ -261,7 +261,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
           </div>
           <div style="background:rgba(94,234,212,.06);border:1px solid rgba(94,234,212,.15);border-radius:7px;padding:6px 8px">
             <div style="font-size:.48rem;color:var(--muted);margin-bottom:3px">سابلینک شما</div>
-            <div style="font-size:.44rem;color:var(--acc2);font-family:monospace;direction:ltr;text-align:left;word-break:break-all;line-height:1.5">__VOICE_DOMAIN__/sub/a3f8b2...</div>
+            <div style="font-size:.44rem;color:var(--acc2);font-family:monospace;direction:ltr;text-align:left;word-break:break-all;line-height:1.5">panelsub.irsna.top/sub/a3f8b2...</div>
           </div>
         </div>
         <div class="pscreen" id="ps2">
@@ -279,14 +279,14 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
           </div>
           <div class="ps-sublink-wrap">
             <div class="ps-sublink-label">سابلینک اختصاصی</div>
-            <div class="ps-sublink-val" id="ps-typed-sub">__VOICE_DOMAIN__/sub/...</div>
+            <div class="ps-sublink-val" id="ps-typed-sub">panelsub.irsna.top/sub/...</div>
           </div>
         </div>
         <div class="pscreen" id="ps3">
           <div class="ps-success">
             <div class="ps-check"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
             <div class="ps-success-text">لینک کپی شد!</div>
-            <div class="ps-success-sub" id="ps-final-sub">__VOICE_DOMAIN__/sub/...</div>
+            <div class="ps-success-sub" id="ps-final-sub">panelsub.irsna.top/sub/...</div>
           </div>
         </div>
       </div>
@@ -477,10 +477,10 @@ function startPhoneAnim(){
   function typeText(el,text,speed,cb){let i=0;el.textContent='';const t=setInterval(()=>{el.textContent+=text[i++];if(i>=text.length){clearInterval(t);if(cb)setTimeout(cb,400);}},speed);}
   function cycle(){
     const name=names[idx%names.length];idx++;
-    const sub=`__VOICE_DOMAIN__/sub/${Math.random().toString(36).slice(2,16)}`;
+    const sub=`panelsub.irsna.top/sub/${Math.random().toString(36).slice(2,16)}`;
     show(ps1);
     setTimeout(()=>{
-      show(ps2);typedEl.textContent='';typedSub.textContent='__VOICE_DOMAIN__/sub/...';
+      show(ps2);typedEl.textContent='';typedSub.textContent='panelsub.irsna.top/sub/...';
       typeText(typedEl,name,90,()=>{
         typedSub.textContent=sub.slice(0,30)+'...';finalSub.textContent=sub.slice(0,30)+'...';
         setTimeout(()=>{show(ps3);setTimeout(cycle,2200);},1200);

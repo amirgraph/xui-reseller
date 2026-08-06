@@ -14,6 +14,8 @@ const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const resellerRoutes = require('./routes/reseller');
 const subRoutes = require('./routes/sub');
+const botApiRoutes = require('./routes/botApi');
+const { apiKeyAuth } = require('./middleware/apiKeyAuth');
 const { syncUsersJob } = require('./services/syncService');
 
 const app = express();
@@ -38,6 +40,10 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/reseller', resellerRoutes);
 const subinfoRoutes = require('./routes/subinfo');
 app.use('/api/sub-info', subinfoRoutes);
+
+// بات‌های نمایندگان — شبیهِ API خودِ سه‌ایکس‌یو، با توکنِ Bearer اختصاصیِ هر
+// نماینده (نه JWT پنل). فقط نمایندگانی که ادمین api_enabled=1 کرده وصل می‌شوند.
+app.use('/panel/api', apiKeyAuth, botApiRoutes);
 app.get('/view/:uuid', (req, res) => res.sendFile(path.join(__dirname, '../public/sub-template.html')));
 app.use('/sub', subRoutes);
 
@@ -46,7 +52,7 @@ app.get('/admin*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/admin/index.html'));
 });
 
-// Mini App Telegram (__MAIN_DOMAIN__/mini)
+// Mini App Telegram (panelsub.irsna.top/mini)
 app.get('/mini*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/mini/index.html'));
 });

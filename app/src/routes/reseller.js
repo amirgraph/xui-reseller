@@ -3,6 +3,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getDB } = require('../models/database');
 const { resellerAuth } = require('../middleware/auth');
+const { generateApiToken } = require('../lib/apiToken');
 const xui = require('../services/xuiService');
 const { returnTrafficToReseller } = require('../services/syncService');
 
@@ -15,22 +16,55 @@ router.get('/profile', resellerAuth, (req, res) => {
   const reseller = db.prepare(`
     SELECT id, username, name, email, telegram_id, balance,
            traffic_limit_gb, traffic_used_gb, max_clients, current_clients,
-           allowed_inbounds, price_per_gb, brand_name, brand_logo, brand_color, brand_bg_color,
+           allowed_inbounds, price_per_gb, brand_name, brand_logo, brand_color, brand_bg_color, brand_color2, brand_text_color,
            sub_domain, is_active, created_at, expires_at,
            telegram_support, brand_motion,
-           can_create_panels, discount_percent, parent_id
+           can_create_panels, discount_percent, parent_id,
+           panel_title, panel_accent_color, panel_text_color, api_enabled
     FROM resellers WHERE id = ?
   `).get(req.user.id);
   res.json({ success: true, data: reseller });
 });
 
-// Update brand settings
+// Update brand settings (فقط برای ساب/برندِ مشتری‌های نماینده)
 router.put('/brand', resellerAuth, (req, res) => {
   const db = getDB();
-  const { brand_name, brand_color, brand_bg_color, brand_logo, telegram_support, brand_motion } = req.body;
-  db.prepare(`UPDATE resellers SET brand_name=?, brand_color=?, brand_bg_color=?, brand_logo=?, telegram_support=?, brand_motion=? WHERE id=?`).run(brand_name, brand_color, brand_bg_color, brand_logo||'', telegram_support||'', brand_motion||'hearts', req.user.id);
+  const { brand_name, brand_color, brand_bg_color, brand_color2, brand_text_color, brand_logo, telegram_support, brand_motion } = req.body;
+  db.prepare(`UPDATE resellers SET brand_name=?, brand_color=?, brand_bg_color=?, brand_color2=?, brand_text_color=?, brand_logo=?, telegram_support=?, brand_motion=? WHERE id=?`).run(brand_name, brand_color, brand_bg_color, brand_color2 || null, brand_text_color || null, brand_logo||'', telegram_support||'', brand_motion||'hearts', req.user.id);
   res.json({ success: true });
 });
+
+// هویتِ خودِ پنلِ مدیریتِ نماینده — کاملاً مستقل از برندِ ساب بالا
+router.put('/panel-settings', resellerAuth, (req, res) => {
+  const db = getDB();
+  const { panel_title, panel_accent_color, panel_text_color } = req.body;
+  db.prepare('UPDATE resellers SET panel_title=?, panel_accent_color=?, panel_text_color=? WHERE id=?')
+    .run(panel_title || null, panel_accent_color || null, panel_text_color || null, req.user.id);
+  res.json({ success: true });
+});
+
+// ─── Bot API token (خودِ نماینده) ──────────────────────────────
+// دسترسیِ API را فقط ادمین فعال می‌کند؛ نماینده فقط می‌تواند توکنِ
+// فعال‌شده را ببیند یا (برای امنیت) عوض کند.
+
+router.get('/api-token', resellerAuth, (req, res) => {
+  const db = getDB();
+  const r = db.prepare('SELECT api_token, api_enabled FROM resellers WHERE id=?').get(req.user.id);
+  res.json({ success: true, data: { enabled: !!r.api_enabled, token: r.api_enabled ? r.api_token : null } });
+});
+
+router.post('/api-token/regenerate', resellerAuth, (req, res) => {
+  const db = getDB();
+  const r = db.prepare('SELECT api_enabled FROM resellers WHERE id=?').get(req.user.id);
+  if (!r.api_enabled) {
+    return res.status(403).json({ success: false, message: 'دسترسی API برای شما فعال نیست — با ادمین تماس بگیرید' });
+  }
+  const token = generateApiToken();
+  db.prepare('UPDATE resellers SET api_token=? WHERE id=?').run(token, req.user.id);
+  res.json({ success: true, data: { token } });
+});
+
+
 
 // ─── Inbounds (allowed) ───────────────────────────────────────
 
@@ -68,7 +102,7 @@ router.post('/clients', resellerAuth, async (req, res) => {
   const {
     username, email, inbound_id, inbound_ids,
     traffic_limit_gb = 10, ip_limit = 1,
-    expires_at = null, telegram_id = null
+    expires_at = null, telegram_id = null, display_name = null
   } = req.body;
 
   // Checks — ۰ یعنی «بی‌نهایت»، نه «هیچ». قبلاً نمایندهٔ ساخته‌شده از ربات
@@ -149,10 +183,10 @@ router.post('/clients', resellerAuth, async (req, res) => {
     // Save to DB
     db.prepare(`
       INSERT INTO clients (reseller_id, xui_uuid, xui_inbound_id, username, email,
-        telegram_id, traffic_limit_gb, ip_limit, expires_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        telegram_id, traffic_limit_gb, ip_limit, expires_at, display_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(reseller.id, uuid, primaryInbound, username, clientEmail,
-      telegram_id, traffic_limit_gb, ip_limit, expires_at);
+      telegram_id, traffic_limit_gb, ip_limit, expires_at, display_name || null);
 
     // Update reseller counts
     db.prepare(`
@@ -232,7 +266,7 @@ router.put('/clients/:id', resellerAuth, async (req, res) => {
     .get(req.params.id, req.user.id);
   if (!client) return res.status(404).json({ success: false, message: 'Not found' });
 
-  const { traffic_limit_gb, ip_limit, expires_at } = req.body;
+  const { traffic_limit_gb, ip_limit, expires_at, display_name } = req.body;
   const reseller = req.reseller;
 
   try {
@@ -260,9 +294,10 @@ router.put('/clients/:id', resellerAuth, async (req, res) => {
       db.prepare('UPDATE resellers SET balance = balance - ? WHERE id = ?').run(costDiff, reseller.id);
       db.prepare("INSERT INTO transactions (reseller_id, type, amount, description) VALUES (?, ?, ?, ?)").run(reseller.id, diff > 0 ? 'debit' : 'credit', Math.abs(costDiff), 'Edit client: ' + client.username + ' (' + (diff > 0 ? '+' : '') + diff + 'GB)');
     }
-    db.prepare("UPDATE clients SET traffic_limit_gb=?, ip_limit=?, expires_at=? WHERE id=?").run(
+    db.prepare("UPDATE clients SET traffic_limit_gb=?, ip_limit=?, expires_at=?, display_name=? WHERE id=?").run(
       newGb, ip_limit !== undefined ? ip_limit : client.ip_limit,
-      expires_at !== undefined ? expires_at : client.expires_at, client.id
+      expires_at !== undefined ? expires_at : client.expires_at,
+      display_name !== undefined ? display_name : client.display_name, client.id
     );
     res.json({ success: true });
   } catch (err) {

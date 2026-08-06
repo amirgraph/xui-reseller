@@ -27,6 +27,69 @@ const {
 const db = new Database(path.resolve('/opt/xui-reseller/data/reseller.db'));
 db.pragma('journal_mode = WAL');
 
+// ── گیتِ استارتِ متقابل با رباتِ رفرال (@Ref28ralbot) ──
+// کاربر برای استفاده از این ربات باید رباتِ رفرال را هم استارت کرده باشد.
+// اتصالِ readonly به دیتابیسِ رفرال؛ اگر باز نشد گیت غیرفعال می‌ماند (fail-open).
+let refStmt = null;
+try {
+  if (process.env.REFERRAL_DB) {
+    const refdb = new Database(process.env.REFERRAL_DB, { readonly: true, fileMustExist: true });
+    refStmt = refdb.prepare('SELECT 1 FROM users WHERE id=?');
+    console.log('🔗 اتصال به دیتابیسِ رفرال برقرار شد (گیتِ استارتِ متقابل فعال).');
+  }
+} catch (e) {
+  console.error('⚠️ اتصال به دیتابیسِ رفرال نشد؛ گیت غیرفعال:', e.message);
+}
+const REFERRAL_BOT = process.env.REFERRAL_BOT_USERNAME || 'Ref28ralbot';
+const refGateOn = () => !!refStmt;
+function refGatePassed(chatId) {
+  if (!refGateOn()) return true;
+  try {
+    return !!refStmt.get(Number(chatId));
+  } catch {
+    return true; // fail-open تا کاربر قفل نشود
+  }
+}
+function sendRefGate(chatId) {
+  return bot.sendMessage(
+    chatId,
+    '🔒 برای استفاده از این ربات، اول رباتِ زیر را استارت کن:\n@' +
+      REFERRAL_BOT +
+      '\n\nبعد از استارت، دکمهٔ «✅ استارت کردم» را بزن.',
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🤖 استارتِ ربات', url: 'https://t.me/' + REFERRAL_BOT + '?start=fromreseller' }],
+          [{ text: '✅ استارت کردم، بررسی کن', callback_data: 'refgate_check' }],
+        ],
+      },
+    }
+  );
+}
+
+// ── عضویتِ اجباریِ کانال (ادمین با دستورِ /forcechannel تنظیم می‌کند) ──
+async function channelGatePassed(chatId) {
+  if (isAdmin(chatId)) return true;
+  const ch = getSetting('force_channel');
+  if (!ch) return true;
+  try {
+    const m = await bot.getChatMember(ch, chatId);
+    return ['creator', 'administrator', 'member', 'restricted'].includes(m.status);
+  } catch (e) { return true; } // اگر ربات نتواند بررسی کند (ادمینِ کانال نیست) قفل نکن
+}
+function sendChannelGate(chatId) {
+  const ch = getSetting('force_channel') || '';
+  const link = ch.startsWith('@') ? 'https://t.me/' + ch.slice(1) : ('https://t.me/' + String(ch).replace(/^@/, ''));
+  return bot.sendMessage(
+    chatId,
+    '🔒 برای استفاده از ربات، اول در کانالِ ما عضو شو، بعد «✅ عضو شدم» را بزن:',
+    { reply_markup: { inline_keyboard: [
+      [{ text: '📢 عضویت در کانال', url: link }],
+      [{ text: '✅ عضو شدم، بررسی کن', callback_data: 'chk_join' }],
+    ] } }
+  );
+}
+
 function getSetting(key) {
   const row = db.prepare('SELECT value FROM bot_settings WHERE key = ?').get(key);
   return row ? row.value : null;
@@ -98,6 +161,41 @@ async function createPlisioInvoice(orderId, amount, description) {
 }
 
 const bot = new TelegramBot(TOKEN, { polling: true });
+
+// برای ساختِ لینکِ رفرال (t.me/<username>?start=ref_<id>) لازمه — یک‌بار موقعِ
+// بالا اومدن گرفته می‌شه و کش می‌مونه
+let BOT_USERNAME = '';
+bot.getMe().then(function(me) { BOT_USERNAME = me.username; }).catch(function() {});
+
+const REFERRAL_BONUS = 8000;
+function referralLink(chatId) {
+  return 'https://t.me/' + (BOT_USERNAME || '') + '?start=ref_' + chatId;
+}
+
+// پرداختِ پاداشِ رفرال — دقیقاً همون لحظه‌ای که شمارهٔ ایرانیِ فردِ رفرال‌شده
+// تأیید می‌شه (نه صرفاً کلیک روی لینک). فقط یک‌بار برای هر کاربر پرداخت می‌شه.
+async function creditReferralIfNeeded(chatId) {
+  const u = db.prepare('SELECT referred_by, referral_paid FROM bot_users WHERE chat_id=?').get(String(chatId));
+  if (!u || !u.referred_by || u.referral_paid) return;
+  db.prepare('UPDATE bot_users SET referral_paid=1 WHERE chat_id=?').run(String(chatId)); // اول قفلش کن، بعد پرداخت
+
+  const refChatId = u.referred_by;
+  if (isAdmin(refChatId)) {
+    try { await bot.sendMessage(refChatId, '🎉 یه نفر جدید از لینکِ رفرالِ شما وارد بات شد و شماره‌شو تأیید کرد!'); } catch (e) {}
+    return;
+  }
+  const referrer = db.prepare('SELECT * FROM resellers WHERE telegram_id=? AND is_active=1').get(refChatId);
+  if (!referrer) return; // رفرال‌دهنده دیگه معتبر نیست (حذف/غیرفعال شده)
+
+  db.prepare('UPDATE resellers SET balance = balance + ? WHERE id=?').run(REFERRAL_BONUS, referrer.id);
+  db.prepare("INSERT INTO transactions (reseller_id, type, amount, description) VALUES (?, 'credit', ?, ?)")
+    .run(referrer.id, REFERRAL_BONUS, 'پاداش رفرال — کاربر جدید');
+  try {
+    await bot.sendMessage(refChatId,
+      '🎉 پاداشِ رفرال!\n\n' +
+      '💰 ' + formatNum(REFERRAL_BONUS) + ' تومان به کیف‌پولت اضافه شد (یه نفر جدید از لینکِ رفرالت اومد).');
+  } catch (e) {}
+}
 const state = {};
 
 function setState(chatId, s) { state[chatId] = s; }
@@ -142,6 +240,7 @@ function planButton(prefix) {
       text: p.name + ' — ' + formatNum(p.price) + ' ت' + (p.billing === 'monthly' ? '/ماه' : '') +
             (p.traffic_gb > 0 ? ' (' + p.traffic_gb + 'GB)' : ' (نامحدود)'),
       callback_data: prefix + p.key,
+      style: 'primary',
     }];
   };
 }
@@ -149,10 +248,13 @@ function planButton(prefix) {
 const adminMenu = {
   reply_markup: {
     keyboard: [
-      ['👥 نمایندگان', '🛒 درخواست‌های خرید'],
-      ['💰 شارژ دستی', '📊 آمار کلی'],
-      ['📋 تراکنش‌ها', '📢 پیام همگانی'],
-      ['⚙️ تنظیمات بات', '🔄 همه کاربران'],
+      [{ text: '👥 نمایندگان', style: 'primary' }, { text: '🛒 درخواست‌های خرید', style: 'primary' }],
+      [{ text: '💰 شارژ دستی', style: 'success' }, { text: '📊 آمار کلی', style: 'primary' }],
+      [{ text: '📋 تراکنش‌ها', style: 'primary' }, { text: '📢 پیام همگانی', style: 'primary' }],
+      [{ text: '⚙️ تنظیمات بات', style: 'primary' }, { text: '🔄 همه کاربران', style: 'primary' }],
+      [{ text: '🖼 بنر تبلیغاتی', style: 'success' }, { text: '📢 کانال من', style: 'primary' }],
+      [{ text: '🔗 لینک رفرال من', style: 'success' }],
+      [{ text: '🔄 بروزرسانی منو', style: 'primary' }],
     ],
     resize_keyboard: true
   }
@@ -162,10 +264,13 @@ function resellerMenu() {
   return {
     reply_markup: {
       keyboard: [
-        ['💰 کیف پول', '➕ کاربر جدید'],
-        ['👥 کاربران من', '📊 آمار من'],
-        ['🔗 لینک اشتراک', '⚙️ حساب من'],
-        ['🛒 شارژ کیف پول', '📞 پشتیبانی'],
+        [{ text: '💰 کیف پول', style: 'success' }, { text: '➕ کاربر جدید', style: 'primary' }],
+        [{ text: '👥 کاربران من', style: 'primary' }, { text: '📊 آمار من', style: 'primary' }],
+        [{ text: '🔗 لینک اشتراک', style: 'primary' }, { text: '⚙️ حساب من', style: 'primary' }],
+        [{ text: '🛒 شارژ کیف پول', style: 'success' }, { text: '📞 پشتیبانی', style: 'primary' }],
+        [{ text: '📢 کانال من', style: 'primary' }],
+        [{ text: '🔗 لینک رفرال من', style: 'success' }],
+        [{ text: '🔄 بروزرسانی منو', style: 'primary' }],
       ],
       resize_keyboard: true
     }
@@ -173,9 +278,10 @@ function resellerMenu() {
 }
 
 function guestMenu() {
-  const rows = [['🛒 خرید پنل نمایندگی']];
-  if (testEnabled()) rows.push(['🧪 تست رایگان']);
-  rows.push(['📋 تعرفه‌ها', '❓ راهنما'], ['📞 پشتیبانی']);
+  const rows = [[{ text: '🛒 خرید پنل نمایندگی', style: 'success' }]];
+  if (testEnabled()) rows.push([{ text: '🧪 تست رایگان', style: 'primary' }]);
+  rows.push([{ text: '📋 تعرفه‌ها', style: 'primary' }, { text: '❓ راهنما', style: 'primary' }], [{ text: '📞 پشتیبانی', style: 'primary' }]);
+  rows.push([{ text: '🔄 بروزرسانی منو', style: 'primary' }]);
   return { reply_markup: { keyboard: rows, resize_keyboard: true } };
 }
 
@@ -261,21 +367,38 @@ function remainingQuota(reseller) {
 
 const contactBtn = {
   reply_markup: {
-    keyboard: [[{ text: '📱 ارسال شماره من', request_contact: true }], ['❌ انصراف']],
+    keyboard: [[{ text: '📱 ارسال شماره من', request_contact: true, style: 'primary' }], [{ text: '❌ انصراف', style: 'danger' }]],
     resize_keyboard: true, one_time_keyboard: true
   }
 };
 
 const cancelBtn = {
   reply_markup: {
-    keyboard: [['❌ انصراف']],
+    keyboard: [[{ text: '❌ انصراف', style: 'danger' }]],
     resize_keyboard: true
   }
 };
 
-bot.onText(/\/start/, async function(msg) {
+bot.onText(/\/start(?:\s+(\S+))?/, async function(msg, match) {
   const chatId = msg.chat.id;
   clearState(chatId);
+  const isNewUser = !db.prepare('SELECT 1 FROM bot_users WHERE chat_id=?').get(String(chatId));
+  db.prepare(`
+    INSERT INTO bot_users (chat_id, first_name, username, last_seen)
+    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(chat_id) DO UPDATE SET first_name=excluded.first_name, username=excluded.username, last_seen=CURRENT_TIMESTAMP
+  `).run(String(chatId), msg.from.first_name || '', msg.from.username || '');
+
+  // کدِ رفرال — فقط بارِ اولی که کاربر با بات آشنا می‌شه ثبت می‌شه (نه هر
+  // بارِ /start)، و رفرالِ خودِ آدم به خودش قبول نمی‌شه
+  const refParam = match && match[1];
+  if (isNewUser && refParam && refParam.startsWith('ref_')) {
+    const refChatId = refParam.slice(4);
+    if (refChatId && refChatId !== String(chatId)) {
+      db.prepare('UPDATE bot_users SET referred_by=? WHERE chat_id=?').run(refChatId, String(chatId));
+    }
+  }
+
   if (isAdmin(chatId)) {
     const pending = db.prepare("SELECT COUNT(*) as c FROM purchase_requests WHERE status='pending'").get().c;
     let txt = '👋 خوش اومدی ادمین!\n\n';
@@ -283,6 +406,10 @@ bot.onText(/\/start/, async function(msg) {
     txt += 'از منوی زیر استفاده کن:';
     return bot.sendMessage(chatId, txt, adminMenu);
   }
+  // گیتِ استارتِ متقابل: باید رباتِ رفرال را استارت کرده باشد
+  if (!refGatePassed(chatId)) return sendRefGate(chatId);
+  // گیتِ عضویتِ اجباریِ کانال
+  if (!(await channelGatePassed(chatId))) return sendChannelGate(chatId);
   const reseller = getReseller(chatId);
   if (reseller) {
     return bot.sendMessage(chatId,
@@ -316,6 +443,9 @@ bot.on('contact', async function(msg) {
     clearState(chatId);
     return bot.sendMessage(chatId, '❌ فقط شمارهٔ موبایلِ ایران (۹۸+) پذیرفته می‌شود.', guestMenu());
   }
+
+  await creditReferralIfNeeded(chatId);
+
   const prev = testClaimOf(phone);
   if (prev) {
     clearState(chatId);
@@ -332,15 +462,198 @@ bot.on('contact', async function(msg) {
     '🔗 کانفیگ تستی: یک کانفیگِ آماده برای اتصال\n\n' +
     'هر دو ' + testGb() + ' گیگ' + (testDays() > 0 ? ' و ' + testDays() + ' روزه' : '') + '.',
     { reply_markup: { inline_keyboard: [
-      [{ text: '📦 پنل تستی', callback_data: 'test_panel' }],
-      [{ text: '🔗 کانفیگ تستی', callback_data: 'test_config' }],
+      [{ text: '📦 پنل تستی', callback_data: 'test_panel', style: 'primary' }],
+      [{ text: '🔗 کانفیگ تستی', callback_data: 'test_config', style: 'primary' }],
     ] } }
   );
+});
+
+// عکسِ بنر — شبیهِ الگوی contact بالا، جدا مدیریت می‌شود
+bot.on('photo', async function(msg) {
+  const chatId = msg.chat.id;
+  if (!isAdmin(chatId)) return;
+  if (getState(chatId).step !== 'promo_banner_photo') return;
+  const st = getState(chatId);
+  const fileId = msg.photo[msg.photo.length - 1].file_id; // بزرگ‌ترین سایز
+  setState(chatId, { step: 'promo_banner_confirm', banner_text: st.banner_text, banner_photo: fileId });
+  return sendPromoPreview(chatId, st.banner_text, fileId);
+});
+
+function showBannerPicker(chatId, channelId) {
+  const banners = db.prepare('SELECT id, text FROM promo_banners ORDER BY created_at DESC LIMIT 15').all();
+  if (!banners.length) {
+    return bot.sendMessage(chatId, '📭 هنوز هیچ بنری ذخیره نشده. از ادمین بخواه یکی بسازه.',
+      isAdmin(chatId) ? adminMenu : resellerMenu());
+  }
+  const buttons = banners.map(function(b) {
+    const preview = b.text.length > 35 ? b.text.slice(0, 35) + '…' : b.text;
+    return [{ text: '📄 ' + preview, callback_data: 'promo_pick_' + b.id, style: 'primary' }];
+  });
+  buttons.push([{ text: '🔄 تغییر کانال', callback_data: 'promo_channel_reset', style: 'danger' }]);
+  return bot.sendMessage(chatId,
+    '📢 کانال ذخیره‌شده: ' + channelId + '\n\nکدوم بنر رو بفرستم؟',
+    { reply_markup: { inline_keyboard: buttons } });
+}
+
+
+function promoKeyboard(referrerChatId) {
+  const link = referrerChatId ? referralLink(referrerChatId) : null;
+  return {
+    inline_keyboard: [
+      link
+        ? [{ text: '🆓 تست رایگان', url: link, style: 'success' }]
+        : [{ text: '🆓 تست رایگان', callback_data: 'promo_test', style: 'success' }],
+      link
+        ? [{ text: '🛒 خرید پنل', url: link, style: 'primary' }]
+        : [{ text: '🛒 خرید پنل', callback_data: 'promo_buy', style: 'primary' }],
+      [{ text: '🎨 شخصی‌سازی', callback_data: 'promo_custom', style: 'primary' }],
+    ]
+  };
+}
+
+async function sendPromoPreview(chatId, text, photoFileId) {
+  const opts = { reply_markup: promoKeyboard(chatId) };
+  if (photoFileId) await bot.sendPhoto(chatId, photoFileId, { caption: text, ...opts });
+  else await bot.sendMessage(chatId, text, opts);
+  return bot.sendMessage(chatId, 'پیش‌نمایش بالا 👆 چیکار کنم؟', {
+    reply_markup: { inline_keyboard: [
+      [{ text: '📢 ذخیره + ارسال به همه', callback_data: 'promo_send_confirm', style: 'success' }],
+      [{ text: '💾 فقط ذخیره (برای کانال‌ها)', callback_data: 'promo_save_only', style: 'primary' }],
+      [{ text: '❌ لغو', callback_data: 'promo_cancel', style: 'danger' }],
+    ] }
+  });
+}
+
+
+// ── Countdown Engine ─────────────────────────────────────────
+const activeCountdowns = {};
+
+function buildCountdownText(bannerText, endTime, photoFileId) {
+  const now = Date.now();
+  const remaining = endTime - now;
+  const elapsed = endTime - (endTime - (12 * 60 * 60 * 1000)) - now;
+  const total = 12 * 60 * 60 * 1000;
+  const pct = Math.min(100, Math.max(0, Math.floor(((total - remaining) / total) * 100)));
+  
+  const filled = Math.floor(pct / 10);
+  const empty = 10 - filled;
+  const bar = '█'.repeat(filled) + '░'.repeat(empty);
+  
+  const icons = ['⏳', '⌛'];
+  const colors = ['🟢', '🟡', '🟠', '🔴'];
+  const colorIdx = remaining < 30*60*1000 ? 3 : remaining < 2*60*60*1000 ? 2 : remaining < 4*60*60*1000 ? 1 : 0;
+  const icon = icons[Math.floor(Date.now()/1000) % 2];
+  const color = colors[colorIdx];
+  
+  const totalSec = Math.max(0, Math.floor(remaining / 1000));
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const timeStr = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  
+  const endDate = new Date(endTime);
+  const endStr = String(endDate.getHours()).padStart(2,'0')+':'+String(endDate.getMinutes()).padStart(2,'0')+':'+String(endDate.getSeconds()).padStart(2,'0');
+
+  return color + ' <b>پیشنهاد ویژه</b>\n\n' +
+    icon + ' شمارش معکوس...\n\n' +
+    '<code>' + bar + ' ' + pct + '%</code>\n\n' +
+    '⏳ <b>زمان باقی‌مانده:</b>\n' +
+    '<code>' + timeStr + '</code>\n\n' +
+    '🎯 فقط تا ساعت <b>' + endStr + '</b>\n\n' +
+    '━━━━━━━━━━━━━━━\n' +
+    bannerText + '\n' +
+    '━━━━━━━━━━━━━━━\n' +
+    '⚠️ با پایان شمارش، این قیمت حذف می‌شود.';
+}
+
+function startCountdown(st, finalBannerId) {
+  const { channel_id, banner_text, photo_file_id, sent_msg_id, end_time } = st;
+  const endTime = parseInt(end_time);
+  const key = channel_id + '_' + sent_msg_id;
+  let finalBannerSent = false;
+
+  if (activeCountdowns[key]) clearInterval(activeCountdowns[key]);
+
+  async function update() {
+    const now = Date.now();
+    const remaining = endTime - now;
+
+    // نیم ساعت مونده — بنر پایانی بفرست
+    if (!finalBannerSent && remaining <= 30 * 60 * 1000 && finalBannerId) {
+      finalBannerSent = true;
+      const finalBanner = db.prepare('SELECT * FROM promo_banners WHERE id=?').get(finalBannerId);
+      if (finalBanner) {
+        try {
+          if (finalBanner.photo_file_id) await bot.sendPhoto(channel_id, finalBanner.photo_file_id, { caption: finalBanner.text, reply_markup: promoKeyboard(null) });
+          else await bot.sendMessage(channel_id, finalBanner.text, { reply_markup: promoKeyboard(null) });
+        } catch(e) { console.error('final banner error:', e.message); }
+      }
+    }
+
+    if (remaining <= 0) {
+      clearInterval(activeCountdowns[key]);
+      delete activeCountdowns[key];
+      // پیام پایان
+      const endMsg = '✅ <b>زمان پیشنهاد ویژه به پایان رسید.</b>\n\n🔔 برای اطلاع از پیشنهادهای بعدی در کانال بمانید.';
+      try {
+        if (sent_msg_id) {
+          if (photo_file_id) await bot.editMessageCaption(endMsg, { chat_id: channel_id, message_id: sent_msg_id, parse_mode: 'HTML' });
+          else await bot.editMessageText(endMsg, { chat_id: channel_id, message_id: sent_msg_id, parse_mode: 'HTML' });
+        }
+      } catch(e) {}
+      return;
+    }
+
+    const newText = buildCountdownText(banner_text, endTime, photo_file_id);
+    try {
+      if (sent_msg_id) {
+        if (photo_file_id) await bot.editMessageCaption(newText, { chat_id: channel_id, message_id: sent_msg_id, parse_mode: 'HTML' });
+        else await bot.editMessageText(newText, { chat_id: channel_id, message_id: sent_msg_id, parse_mode: 'HTML' });
+      }
+    } catch(e) {
+      if (!e.message.includes('not modified')) console.error('countdown edit error:', e.message);
+    }
+  }
+
+  // interval: تا ۵ دقیقه آخر هر ۱۰ ثانیه، بعدش هر ۱ ثانیه
+  const tick = endTime - Date.now() <= 5 * 60 * 1000 ? 1000 : 10000;
+  activeCountdowns[key] = setInterval(async function() {
+    const rem = endTime - Date.now();
+    // switch به ۱ ثانیه وقتی ۵ دقیقه مونده
+    if (rem <= 5 * 60 * 1000 && activeCountdowns[key]._idleTimeout !== 1000) {
+      clearInterval(activeCountdowns[key]);
+      activeCountdowns[key] = setInterval(update, 1000);
+    }
+    await update();
+  }, tick);
+
+  update(); // اولین آپدیت فوری
+}
+
+// ادمین: تنظیمِ کانالِ عضویتِ اجباری
+bot.onText(/^\/forcechannel(?:\s+(\S+))?/, function(msg, match) {
+  const chatId = msg.chat.id;
+  if (!isAdmin(chatId)) return;
+  const arg = match && match[1];
+  if (!arg) {
+    const cur = getSetting('force_channel');
+    return bot.sendMessage(chatId, '📢 عضویتِ اجباریِ کانال\n\nفعلی: ' + (cur || '(خاموش)') + '\n\nتنظیم:  /forcechannel @channel\nخاموش:  /forcechannel off\n\n⚠️ ربات باید ادمینِ آن کانال باشد تا بتواند عضویت را بررسی کند؛ وگرنه گیت باز می‌ماند.');
+  }
+  if (arg === 'off' || arg === 'حذف' || arg === '0') {
+    setSetting('force_channel', '');
+    return bot.sendMessage(chatId, '✅ عضویتِ اجباری خاموش شد.', adminMenu);
+  }
+  const ch = arg.startsWith('@') ? arg : '@' + String(arg).replace(/^@/, '');
+  setSetting('force_channel', ch);
+  return bot.sendMessage(chatId, '✅ عضویتِ اجباری روی ' + ch + ' فعال شد.\n⚠️ حتماً ربات را ادمینِ ' + ch + ' کن، وگرنه نمی‌تواند عضویت را چک کند.', adminMenu);
 });
 
 bot.on('message', async function(msg) {
   if (!msg.text || msg.text.startsWith('/')) return;
   const chatId = msg.chat.id;
+  // گیتِ استارتِ متقابل با رباتِ رفرال
+  if (!isAdmin(chatId) && !refGatePassed(chatId)) return sendRefGate(chatId);
+  if (!isAdmin(chatId) && !(await channelGatePassed(chatId))) return sendChannelGate(chatId);
   const text = msg.text.trim();
   const st = getState(chatId);
 
@@ -350,6 +663,67 @@ bot.on('message', async function(msg) {
     const r = getReseller(chatId);
     if (r) return bot.sendMessage(chatId, 'لغو شد.', resellerMenu());
     return bot.sendMessage(chatId, 'لغو شد.', guestMenu());
+  }
+
+  if (text === '🔄 بروزرسانی منو') {
+    if (isAdmin(chatId)) return bot.sendMessage(chatId, '✅ منو بروز شد.', adminMenu);
+    const r = getReseller(chatId);
+    if (r) return bot.sendMessage(chatId, '✅ منو بروز شد.', resellerMenu());
+    return bot.sendMessage(chatId, '✅ منو بروز شد.', guestMenu());
+  }
+
+  if (text === '📢 کانال من') {
+    const isAdm = isAdmin(chatId);
+    const rs = getReseller(chatId);
+    if (!isAdm && !rs) return; // فقط ادمین/نماینده
+    const channelId = isAdm ? getSetting('admin_promo_channel') : rs.promo_channel_id;
+    if (!channelId) {
+      setState(chatId, { step: 'set_promo_channel' });
+      return bot.sendMessage(chatId,
+        '📢 آیدی عددی یا یوزرنیمِ کانالت رو بفرست (مثلاً @mychannel یا -1001234567890).\n\n' +
+        '⚠️ قبلش باید ربات رو ادمین همون کانال کرده باشی، وگرنه نمی‌تونه پست کنه.',
+        cancelBtn);
+    }
+    return showBannerPicker(chatId, channelId);
+  }
+
+  if (text === '🔗 لینک رفرال من') {
+    if (!isAdmin(chatId) && !getReseller(chatId)) return;
+    return bot.sendMessage(chatId,
+      '🔗 لینکِ رفرالِ شخصیِ تو:\n\n' + referralLink(chatId) + '\n\n' +
+      'به‌ازای هر کسی که از این لینک وارد بات بشه و شمارهٔ ایرانیشو تأیید کنه، ' +
+      formatNum(REFERRAL_BONUS) + ' تومان به کیف‌پولت اضافه می‌شه.');
+  }
+
+  if (st.step === 'set_promo_channel') {
+    const isAdm = isAdmin(chatId);
+    const rs = getReseller(chatId);
+    if (!isAdm && !rs) { clearState(chatId); return; }
+    if (isAdm) setSetting('admin_promo_channel', text);
+    else db.prepare('UPDATE resellers SET promo_channel_id=? WHERE id=?').run(text, rs.id);
+    clearState(chatId);
+    await bot.sendMessage(chatId, '✅ کانال ذخیره شد.');
+    return showBannerPicker(chatId, text);
+  }
+
+  if (st.step === 'countdown_end_time') {
+    // پارس ساعت ورودی مثل 17:05:05
+    const parts = text.trim().split(':');
+    if (parts.length < 2) return bot.sendMessage(chatId, '❌ فرمت اشتباهه. مثال: 17:05:05', cancelBtn);
+    const endTime = new Date();
+    endTime.setHours(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]||0), 0);
+    if (endTime <= new Date()) return bot.sendMessage(chatId, '❌ این ساعت گذشته! یه ساعت آینده بده.', cancelBtn);
+    setState(chatId, { ...st, step: 'countdown_final_ask', end_time: endTime.getTime() });
+    // انتخاب بنر پایانی
+    const banners = db.prepare('SELECT id, text FROM promo_banners ORDER BY created_at DESC LIMIT 10').all();
+    const buttons = banners.map(function(b) {
+      const preview = b.text.length > 35 ? b.text.slice(0,35)+'…' : b.text;
+      return [{ text: '📄 '+preview, callback_data: 'countdown_final_'+b.id }];
+    });
+    buttons.push([{ text: '⏭ بدون بنر پایانی', callback_data: 'countdown_final_banner_skip' }]);
+    return bot.sendMessage(chatId,
+      '🎁 کدوم بنر رو نیم ساعت مونده بفرستم؟ (بنر ویژه پایانی)',
+      { reply_markup: { inline_keyboard: buttons } });
   }
 
   if (isAdmin(chatId)) return handleAdmin(chatId, text, st, msg);
@@ -416,8 +790,8 @@ async function handleGuest(chatId, text, st, msg) {
       {
         reply_markup: {
           inline_keyboard: [[
-            { text: '✅ تایید', callback_data: 'approve_req_' + req.id },
-            { text: '❌ رد', callback_data: 'reject_req_' + req.id },
+            { text: '✅ تایید', callback_data: 'approve_req_' + req.id, style: 'success' },
+            { text: '❌ رد', callback_data: 'reject_req_' + req.id, style: 'danger' },
           ]]
         }
       }
@@ -442,8 +816,8 @@ async function handleAdmin(chatId, text, st, msg) {
         {
           reply_markup: {
             inline_keyboard: [[
-              { text: '✅ تایید', callback_data: 'approve_req_' + r.id },
-              { text: '❌ رد', callback_data: 'reject_req_' + r.id },
+              { text: '✅ تایید', callback_data: 'approve_req_' + r.id, style: 'success' },
+              { text: '❌ رد', callback_data: 'reject_req_' + r.id, style: 'danger' },
             ]]
           }
         }
@@ -463,9 +837,9 @@ async function handleAdmin(chatId, text, st, msg) {
         {
           reply_markup: {
             inline_keyboard: [[
-              { text: r.is_active ? '🔴 غیرفعال' : '🟢 فعال', callback_data: 'toggle_r_' + r.id },
-              { text: '💰 شارژ', callback_data: 'charge_' + r.id },
-              { text: '🗑 حذف', callback_data: 'del_r_' + r.id },
+              { text: r.is_active ? '🔴 غیرفعال' : '🟢 فعال', callback_data: 'toggle_r_' + r.id, style: r.is_active ? 'danger' : 'success' },
+              { text: '💰 شارژ', callback_data: 'charge_' + r.id, style: 'primary' },
+              { text: '🗑 حذف', callback_data: 'del_r_' + r.id, style: 'danger' },
             ]]
           }
         }
@@ -477,7 +851,7 @@ async function handleAdmin(chatId, text, st, msg) {
     const list = db.prepare('SELECT id, name, balance FROM resellers WHERE is_active=1 ORDER BY name').all();
     if (!list.length) return bot.sendMessage(chatId, 'نماینده‌ای وجود ندارد.', adminMenu);
     const buttons = list.map(function(r) {
-      return [{ text: r.name + ' (' + formatNum(r.balance) + ' ت)', callback_data: 'charge_' + r.id }];
+      return [{ text: r.name + ' (' + formatNum(r.balance) + ' ت)', callback_data: 'charge_' + r.id, style: 'primary' }];
     });
     return bot.sendMessage(chatId, 'نماینده را انتخاب کن:', { reply_markup: { inline_keyboard: buttons } });
   }
@@ -540,15 +914,34 @@ async function handleAdmin(chatId, text, st, msg) {
     clearState(chatId);
     return bot.sendMessage(chatId, '✅ ارسال شد!\nموفق: ' + sent + ' | ناموفق: ' + failed, adminMenu);
   }
+  if (text === '🖼 بنر تبلیغاتی') {
+    setState(chatId, { step: 'promo_banner_text' });
+    return bot.sendMessage(chatId,
+      '🖼 متنِ بنر رو بنویس (با ایموجی/فرمت‌بندی که می‌خوای دقیقاً همون‌جوری فرستاده می‌شه):',
+      cancelBtn);
+  }
+  if (st.step === 'promo_banner_text') {
+    setState(chatId, { step: 'promo_banner_photo', banner_text: text });
+    return bot.sendMessage(chatId,
+      '🖼 اگه می‌خوای عکس هم پیوست کنی، همین‌جا بفرستش — وگرنه بنویس «بدون عکس».',
+      cancelBtn);
+  }
+  if (st.step === 'promo_banner_photo') {
+    if (text === 'بدون عکس') {
+      setState(chatId, { step: 'promo_banner_confirm', banner_text: st.banner_text, banner_photo: null });
+      return sendPromoPreview(chatId, st.banner_text, null);
+    }
+    return bot.sendMessage(chatId, 'یا عکس بفرست یا بنویس «بدون عکس».', cancelBtn);
+  }
   if (text === '⚙️ تنظیمات بات') {
     return bot.sendMessage(chatId,
       '⚙️ تنظیمات بات\n\n💳 کارت: ' + (getSetting('card_number') || '-') + '\n👤 صاحب: ' + (getSetting('card_owner') || '-'),
       {
         reply_markup: {
           inline_keyboard: [
-            [{ text: '✏️ شماره کارت', callback_data: 'set_card_number' }],
-            [{ text: '✏️ نام صاحب کارت', callback_data: 'set_card_owner' }],
-            [{ text: '✏️ API Key پلیزیو', callback_data: 'set_plisio_key' }],
+            [{ text: '✏️ شماره کارت', callback_data: 'set_card_number', style: 'primary' }],
+            [{ text: '✏️ نام صاحب کارت', callback_data: 'set_card_owner', style: 'primary' }],
+            [{ text: '✏️ API Key پلیزیو', callback_data: 'set_plisio_key', style: 'primary' }],
           ]
         }
       }
@@ -589,7 +982,7 @@ async function handleReseller(chatId, text, st, reseller, msg) {
   }
   if (text === '⚙️ حساب من') {
     return bot.sendMessage(chatId,
-      '⚙️ حساب من\n\nنام: ' + reseller.name + '\nیوزر: ' + reseller.username + '\nپسورد: ' + (reseller.plain_password || 'نامشخص') + '\nموجودی: ' + formatNum(reseller.balance) + ' تومان\nپنل: http://__MAIN_DOMAIN__/panel',
+      '⚙️ حساب من\n\nنام: ' + reseller.name + '\nیوزر: ' + reseller.username + '\nپسورد: ' + (reseller.plain_password || 'نامشخص') + '\nموجودی: ' + formatNum(reseller.balance) + ' تومان\nپنل: http://panelsub.irsna.top/panel',
       resellerMenu()
     );
   }
@@ -607,7 +1000,7 @@ async function handleReseller(chatId, text, st, reseller, msg) {
     return bot.sendMessage(chatId, '💳 مبلغ شارژ را انتخاب کن:', {
       reply_markup: {
         inline_keyboard: amounts.map(function(a) {
-          return [{ text: '💰 ' + formatNum(a) + ' تومان (~' + Math.floor(a / rate) + 'GB)', callback_data: 'recharge_' + a }];
+          return [{ text: '💰 ' + formatNum(a) + ' تومان', callback_data: 'recharge_' + a, style: 'success' }];
         })
       }
     });
@@ -665,7 +1058,7 @@ async function handleReseller(chatId, text, st, reseller, msg) {
       db.prepare('INSERT INTO transactions (reseller_id, type, amount, description) VALUES (?, ?, ?, ?)').run(reseller.id, 'debit', st.cost, 'کاربر: ' + st.username + ' (' + st.traffic_gb + 'GB)');
       db.prepare('INSERT INTO clients (reseller_id, xui_uuid, xui_inbound_id, username, traffic_limit_gb, expires_at) VALUES (?, ?, ?, ?, ?, ?)').run(reseller.id, uuid, inboundId, st.username, st.traffic_gb, days > 0 ? new Date(expiryTime).toISOString() : null);
       clearState(chatId);
-      await bot.sendMessage(chatId, '✅ کاربر ساخته شد!\n\n👤 ' + st.username + '\n📶 ' + st.traffic_gb + ' GB\n📅 ' + (days > 0 ? days + ' روز' : 'نامحدود') + '\n💰 هزینه: ' + formatNum(st.cost) + '\n\n🔗 ساب:\nhttps://__MAIN_DOMAIN__/sub/' + uuid, resellerMenu());
+      await bot.sendMessage(chatId, '✅ کاربر ساخته شد!\n\n👤 ' + st.username + '\n📶 ' + st.traffic_gb + ' GB\n📅 ' + (days > 0 ? days + ' روز' : 'نامحدود') + '\n💰 هزینه: ' + formatNum(st.cost) + '\n\n🔗 ساب:\nhttps://panelsub.irsna.top/sub/' + uuid, resellerMenu());
     } catch(err) {
       clearState(chatId);
       bot.sendMessage(chatId, '❌ خطا: ' + err.message, resellerMenu());
@@ -684,9 +1077,9 @@ async function handleReseller(chatId, text, st, reseller, msg) {
         {
           reply_markup: {
             inline_keyboard: [[
-              { text: c.is_active ? '🔴 قطع' : '🟢 وصل', callback_data: 'c_toggle_' + c.id },
-              { text: '🔗 لینک', callback_data: 'c_link_' + c.id },
-              { text: '📊 مصرف', callback_data: 'c_usage_' + c.id },
+              { text: c.is_active ? '🔴 قطع' : '🟢 وصل', callback_data: 'c_toggle_' + c.id, style: c.is_active ? 'danger' : 'success' },
+              { text: '🔗 لینک', callback_data: 'c_link_' + c.id, style: 'primary' },
+              { text: '📊 مصرف', callback_data: 'c_usage_' + c.id, style: 'primary' },
             ]]
           }
         }
@@ -695,7 +1088,7 @@ async function handleReseller(chatId, text, st, reseller, msg) {
     return;
   }
   if (text === '🔗 لینک اشتراک') {
-    return bot.sendMessage(chatId, '🔗 لینک‌ها\n\nپنل: http://__MAIN_DOMAIN__/panel\nساب: ' + SUB_BASE_URL + '/\n\nبرای لینک کاربر خاص از «👥 کاربران من» استفاده کن.', resellerMenu());
+    return bot.sendMessage(chatId, '🔗 لینک‌ها\n\nپنل: http://panelsub.irsna.top/panel\nساب: ' + SUB_BASE_URL + '/\n\nبرای لینک کاربر خاص از «👥 کاربران من» استفاده کن.', resellerMenu());
   }
   if (st.step === 'reseller_waiting_receipt') {
     const req = st.purchase_req;
@@ -705,7 +1098,7 @@ async function handleReseller(chatId, text, st, reseller, msg) {
     const userName = (fromUser.first_name || '') + (fromUser.last_name ? ' ' + fromUser.last_name : '');
     await bot.sendMessage(ADMIN_ID,
       '🔔 درخواست شارژ از نماینده!\n\n👤 ' + userName + '\n📱 ' + chatId + '\n📦 ' + req.plan_name + '\n💰 ' + formatNum(req.amount) + ' تومان\n🧾 رسید: ' + text,
-      { reply_markup: { inline_keyboard: [[{ text: '✅ تایید', callback_data: 'approve_req_' + req.id }, { text: '❌ رد', callback_data: 'reject_req_' + req.id }]] } }
+      { reply_markup: { inline_keyboard: [[{ text: '✅ تایید', callback_data: 'approve_req_' + req.id, style: 'success' }, { text: '❌ رد', callback_data: 'reject_req_' + req.id, style: 'danger' }]] } }
     );
     return bot.sendMessage(chatId, '✅ رسید ثبت شد! در انتظار تایید...', resellerMenu());
   }
@@ -716,6 +1109,21 @@ bot.on('callback_query', async function(query) {
   const data = query.data;
   const msgId = query.message.message_id;
   await bot.answerCallbackQuery(query.id);
+
+  // گیتِ استارتِ متقابل با رباتِ رفرال
+  if (data === 'refgate_check') {
+    if (isAdmin(chatId) || refGatePassed(chatId))
+      return bot.sendMessage(chatId, '✅ تأیید شد! حالا /start را بزن.');
+    return sendRefGate(chatId);
+  }
+  if (!isAdmin(chatId) && !refGatePassed(chatId)) return sendRefGate(chatId);
+  // گیتِ عضویتِ اجباریِ کانال
+  if (data === 'chk_join') {
+    if (isAdmin(chatId) || (await channelGatePassed(chatId)))
+      return bot.sendMessage(chatId, '✅ عضویت تأیید شد! حالا /start را بزن.');
+    return sendChannelGate(chatId);
+  }
+  if (!isAdmin(chatId) && !(await channelGatePassed(chatId))) return sendChannelGate(chatId);
 
   // ── تستِ رایگان: ساختِ پنل یا کانفیگ ──
   if (data === 'test_panel' || data === 'test_config') {
@@ -756,28 +1164,20 @@ bot.on('callback_query', async function(query) {
           '🔑 رمز: ' + password + '\n' +
           '📶 ' + gb + ' GB' + (days > 0 ? '\n📅 ' + days + ' روز' : '') + '\n' +
           '👥 تا ' + testMaxClients() + ' کاربر\n\n' +
-          '🌐 https://__MAIN_DOMAIN__/panel\n\n' +
+          '🌐 https://panelsub.irsna.top/panel\n\n' +
           'قیمتِ هر گیگ صفر است، پس آزادانه تست کن. برای نسخهٔ کامل «🛒 خرید پنل نمایندگی» را بزن.',
           resellerMenu());
         tellAdmin('🧪 پنل تستی\n📱 ' + phone + '\n👤 ' + username);
       } else {
-        const inbounds = await getInbounds();
-        if (!inbounds.length) return bot.sendMessage(chatId, '❌ فعلاً سروری در دسترس نیست. بعداً امتحان کن.', guestMenu());
-        const uuid = uuidv4();
-        const email = 'test_' + suffix;
-        const expiryTime = days > 0 ? Date.now() + days * 86400000 : 0;
-        await addClient(inbounds[0].id, { id: uuid, email: email, enable: true, expiryTime: expiryTime, totalGB: gbToBytes(gb) });
-        db.prepare('INSERT INTO test_claims (phone, telegram_id, kind, ref_id) VALUES (?,?,?,?)')
-          .run(phone, tgId, 'config', null);
-        const subId = uuid.replace(/-/g, '').substring(0, 16);
-        await bot.sendMessage(chatId,
-          '🎉 کانفیگ تستی آماده شد!\n\n' +
-          '📶 ' + gb + ' GB' + (days > 0 ? '\n📅 ' + days + ' روز' : '') + '\n\n' +
-          '🔗 لینک اشتراک:\n' + (SUB_BASE_URL ? SUB_BASE_URL + '/' + subId : uuid) + '\n\n' +
-          'این لینک را در v2rayNG / v2box وارد کن.\n' +
-          'راضی بودی؟ «🛒 خرید پنل نمایندگی» را بزن.',
+        // ⚠️ فعلاً غیرفعال: این مسیر مستقیم رو 3X-UI کلاینت می‌ساخت ولی هیچ‌وقت
+        // تو جدولِ clients ثبت نمی‌شد، پس نه تو پنل نه تو گزارش‌ها دیده می‌شد.
+        // تا وقتی این مسیر درست وصل نشده به دیتابیس، فقط «پنل تستی» فعاله —
+        // از همون‌جا کاربر خودش هر کانفیگی خواست می‌سازه.
+        clearState(chatId);
+        return bot.sendMessage(chatId,
+          '⚠️ فعلاً «کانفیگ تستی» غیرفعاله.\n\n' +
+          '«📦 پنل تستی» رو بگیر — از توی خودِ پنل هر کانفیگی که بخوای می‌تونی بسازی.',
           guestMenu());
-        tellAdmin('🧪 کانفیگ تستی\n📱 ' + phone);
       }
     } catch (err) {
       // رکوردِ claim فقط بعد از موفقیت ثبت می‌شود، پس شکست شانسِ کاربر را نمی‌سوزاند
@@ -802,15 +1202,15 @@ bot.on('callback_query', async function(query) {
     }
     const fromUser = query.from;
     const fullName = (fromUser.first_name || '') + (fromUser.last_name ? ' ' + fromUser.last_name : '');
-    const reqId = db.prepare('INSERT INTO purchase_requests (telegram_id, telegram_username, full_name, plan_key, plan_name, amount, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?)').run(String(chatId), fromUser.username || '', fullName, planKey, plan.name, plan.amount, 'pending').lastInsertRowid;
+    const reqId = db.prepare('INSERT INTO purchase_requests (telegram_id, telegram_username, full_name, plan_key, plan_name, amount, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?)').run(String(chatId), fromUser.username || '', fullName, plan.key, plan.name, plan.amount, 'pending').lastInsertRowid;
     return bot.sendMessage(chatId,
       '💳 روش پرداخت:\n\n📦 پلن: ' + plan.name + '\n💰 مبلغ: ' + formatNum(plan.amount) + ' تومان',
       {
         reply_markup: {
           inline_keyboard: [
-            [{ text: '💳 کارت به کارت', callback_data: 'pay_card_' + reqId }],
-            [{ text: '🔗 پرداخت با ارز دیجیتال (Plisio)', callback_data: 'pay_crypto_' + reqId }],
-            [{ text: '❌ انصراف', callback_data: 'cancel_req_' + reqId }],
+            [{ text: '💳 کارت به کارت', callback_data: 'pay_card_' + reqId, style: 'primary' }],
+            [{ text: '🔗 پرداخت با ارز دیجیتال (Plisio)', callback_data: 'pay_crypto_' + reqId, style: 'primary' }],
+            [{ text: '❌ انصراف', callback_data: 'cancel_req_' + reqId, style: 'danger' }],
           ]
         }
       }
@@ -844,7 +1244,7 @@ bot.on('callback_query', async function(query) {
     const result = await createPlisioInvoice('req_' + reqId, req.amount, 'پنل نمایندگی - ' + req.plan_name);
     if (!result.success) {
       return bot.sendMessage(chatId, '❌ خطا در ساخت لینک: ' + result.error + '\n\nاز کارت به کارت استفاده کن.', {
-        reply_markup: { inline_keyboard: [[{ text: '💳 کارت به کارت', callback_data: 'pay_card_' + reqId }]] }
+        reply_markup: { inline_keyboard: [[{ text: '💳 کارت به کارت', callback_data: 'pay_card_' + reqId, style: 'primary' }]] }
       });
     }
     db.prepare('UPDATE purchase_requests SET plisio_invoice_id = ?, plisio_status = ? WHERE id = ?').run(result.txn_id, 'waiting', reqId);
@@ -899,7 +1299,7 @@ bot.on('callback_query', async function(query) {
           '📦 ' + describePlan(plan) + '\n' +
           (f.balance > 0 ? '💰 موجودی: ' + formatNum(f.balance) + ' تومان\n' : '') +
           '\n' +
-          '🌐 پنل: http://__MAIN_DOMAIN__/panel\n\n' +
+          '🌐 پنل: http://panelsub.irsna.top/panel\n\n' +
           'از همین ربات هم می‌تونی مدیریت کنی 👇',
           resellerMenu()
         );
@@ -933,7 +1333,7 @@ bot.on('callback_query', async function(query) {
     const r = db.prepare('SELECT * FROM resellers WHERE id = ?').get(id);
     if (!r) return;
     return bot.sendMessage(chatId, 'حذف ' + r.name + '؟', {
-      reply_markup: { inline_keyboard: [[{ text: '✅ بله', callback_data: 'confirm_del_r_' + id }, { text: '❌ نه', callback_data: 'cancel' }]] }
+      reply_markup: { inline_keyboard: [[{ text: '✅ بله', callback_data: 'confirm_del_r_' + id, style: 'danger' }, { text: '❌ نه', callback_data: 'cancel', style: 'primary' }]] }
     });
   }
 
@@ -979,7 +1379,7 @@ bot.on('callback_query', async function(query) {
       const subId = uuid.replace(/-/g, '').substring(0, 16);
       clearState(chatId);
       await bot.sendMessage(chatId,
-        '✅ کاربر ساخته شد!\n\n👤 ' + st.username + '\n📶 ' + st.traffic_gb + ' GB\n📅 ' + (st.days > 0 ? st.days + ' روز' : 'نامحدود') + '\n💰 هزینه: ' + formatNum(st.cost) + ' تومان\n💳 موجودی باقی: ' + formatNum(reseller.balance - st.cost) + ' تومان\n\n🔗 ساب:\n' + 'https://__VOICE_DOMAIN__/anastia.html?t=' + uuid + '\n\n🌐 صفحه:\nhttp://__MAIN_DOMAIN__/view/' + uuid,
+        '✅ کاربر ساخته شد!\n\n👤 ' + st.username + '\n📶 ' + st.traffic_gb + ' GB\n📅 ' + (st.days > 0 ? st.days + ' روز' : 'نامحدود') + '\n💰 هزینه: ' + formatNum(st.cost) + ' تومان\n💳 موجودی باقی: ' + formatNum(reseller.balance - st.cost) + ' تومان\n\n🔗 ساب:\n' + 'https://panelsub.irsna.top/anastia.html?t=' + uuid + '\n\n🌐 صفحه:\nhttp://panelsub.irsna.top/view/' + uuid,
         resellerMenu()
       );
     } catch(err) {
@@ -1011,7 +1411,7 @@ bot.on('callback_query', async function(query) {
     const c = db.prepare('SELECT * FROM clients WHERE id = ? AND reseller_id = ?').get(cId, reseller.id);
     if (!c) return;
     const subId = c.xui_uuid.replace(/-/g, '').substring(0, 16);
-    bot.sendMessage(chatId, '🔗 لینک‌های ' + c.username + ':\n\nساب:\n' + 'https://__VOICE_DOMAIN__/anastia.html?t=' + c.xui_uuid + '\n\nصفحه:\nhttp://__MAIN_DOMAIN__/view/' + c.xui_uuid);
+    bot.sendMessage(chatId, '🔗 لینک‌های ' + c.username + ':\n\nساب:\n' + 'https://panelsub.irsna.top/anastia.html?t=' + c.xui_uuid + '\n\nصفحه:\nhttp://panelsub.irsna.top/view/' + c.xui_uuid);
     return;
   }
 
@@ -1029,8 +1429,137 @@ bot.on('callback_query', async function(query) {
     return;
   }
 
+  if (data === 'promo_send_confirm') {
+    if (!isAdmin(chatId)) return;
+    const st = getState(chatId);
+    if (st.step !== 'promo_banner_confirm') return;
+    clearState(chatId);
+    await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: msgId }).catch(function(){});
+    db.prepare('INSERT INTO promo_banners (text, photo_file_id) VALUES (?, ?)').run(st.banner_text, st.banner_photo || null);
+    const users = db.prepare('SELECT chat_id FROM bot_users').all();
+    let sent = 0, failed = 0;
+    for (const u of users) {
+      try {
+        if (st.banner_photo) await bot.sendPhoto(u.chat_id, st.banner_photo, { caption: st.banner_text, reply_markup: promoKeyboard(chatId) });
+        else await bot.sendMessage(u.chat_id, st.banner_text, { reply_markup: promoKeyboard(chatId) });
+        sent++;
+      } catch (e) { failed++; }
+      await new Promise(function(r) { setTimeout(r, 40); }); // رعایتِ محدودیتِ نرخِ ارسالِ تلگرام
+    }
+    return bot.sendMessage(chatId, '✅ ذخیره و ارسال شد!\nموفق: ' + sent + ' | ناموفق: ' + failed, adminMenu);
+  }
+
+  if (data === 'promo_save_only') {
+    if (!isAdmin(chatId)) return;
+    const st = getState(chatId);
+    if (st.step !== 'promo_banner_confirm') return;
+    clearState(chatId);
+    await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: msgId }).catch(function(){});
+    db.prepare('INSERT INTO promo_banners (text, photo_file_id) VALUES (?, ?)').run(st.banner_text, st.banner_photo || null);
+    return bot.sendMessage(chatId, '💾 ذخیره شد — از «📢 کانال من» می‌تونی به کانالت بفرستیش.', adminMenu);
+  }
+
+  if (data === 'promo_cancel') {
+    clearState(chatId);
+    await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: msgId }).catch(function(){});
+    return bot.sendMessage(chatId, 'لغو شد.', isAdmin(chatId) ? adminMenu : guestMenu());
+  }
+
+  if (data.startsWith('promo_pick_')) {
+    const isAdm = isAdmin(chatId);
+    const rs = getReseller(chatId);
+    if (!isAdm && !rs) return;
+    const channelId = isAdm ? getSetting('admin_promo_channel') : rs.promo_channel_id;
+    if (!channelId) return bot.sendMessage(chatId, '❌ اول باید کانال رو ثبت کنی.', isAdm ? adminMenu : resellerMenu());
+    const bannerId = data.replace('promo_pick_', '');
+    const banner = db.prepare('SELECT * FROM promo_banners WHERE id=?').get(bannerId);
+    if (!banner) return bot.sendMessage(chatId, '❌ این بنر دیگه موجود نیست.', isAdm ? adminMenu : resellerMenu());
+    try {
+      let sentResult;
+      if (banner.photo_file_id) sentResult = await bot.sendPhoto(channelId, banner.photo_file_id, { caption: banner.text, reply_markup: promoKeyboard(chatId) });
+      else sentResult = await bot.sendMessage(channelId, banner.text, { reply_markup: promoKeyboard(chatId) });
+      setState(chatId, { step: "countdown_ask", channel_id: channelId, banner_text: banner.text, photo_file_id: banner.photo_file_id || null, sent_msg_id: sentResult ? sentResult.message_id : null });
+      return bot.sendMessage(chatId, "✅ به کانال فرستاده شد!\n\n⏳ می‌خوای شمارش معکوس هم باشه؟", { reply_markup: { inline_keyboard: [
+        [{ text: "✅ بله، شمارش معکوس بذار", callback_data: "countdown_yes" }],
+        [{ text: "❌ نه، همینجا تموم", callback_data: "countdown_no" }]
+      ] } });
+    } catch (err) {
+      return bot.sendMessage(chatId,
+        '❌ ارسال به کانال شکست خورد: ' + err.message + '\n\nمطمئن شو ربات ادمینِ همون کانال و اجازهٔ پست‌کردن رو داره.',
+        isAdm ? adminMenu : resellerMenu());
+    }
+  }
+
+  if (data === 'promo_channel_reset') {
+    const isAdm = isAdmin(chatId);
+    const rs = getReseller(chatId);
+    if (!isAdm && !rs) return;
+    if (isAdm) setSetting('admin_promo_channel', '');
+    else db.prepare('UPDATE resellers SET promo_channel_id=NULL WHERE id=?').run(rs.id);
+    setState(chatId, { step: 'set_promo_channel' });
+    return bot.sendMessage(chatId, '📢 آیدی/یوزرنیمِ کانالِ جدید رو بفرست:', cancelBtn);
+  }
+
+  if (data === 'promo_test') {
+    if (getReseller(chatId)) return bot.sendMessage(chatId, '✅ تو از قبل پنل داری!', resellerMenu());
+    if (!testEnabled()) return bot.sendMessage(chatId, '❌ تست رایگان فعلاً غیرفعال است.', guestMenu());
+    setState(chatId, { step: 'test_phone' });
+    return bot.sendMessage(chatId,
+      '🧪 تست رایگان\n\n' +
+      'برای جلوگیری از سوءاستفاده، هر شمارهٔ موبایل فقط یک‌بار می‌تواند تست بگیرد.\n' +
+      'دکمهٔ زیر را بزن تا شماره‌ات از تلگرام تأیید شود 👇',
+      contactBtn
+    );
+  }
+
+  if (data === 'promo_buy') {
+    if (getReseller(chatId)) return bot.sendMessage(chatId, '✅ تو از قبل پنل داری!', resellerMenu());
+    const ps = activePlans();
+    if (!ps.length) return bot.sendMessage(chatId, '❌ فعلاً پلنی برای فروش تعریف نشده. بعداً سر بزن.', guestMenu());
+    return bot.sendMessage(chatId, '🛒 پلن مورد نظرت رو انتخاب کن:', {
+      reply_markup: { inline_keyboard: ps.map(planButton('buy_')) }
+    });
+  }
+
+  if (data === 'promo_custom') {
+    return bot.sendMessage(chatId,
+      '🎨 شخصی‌سازیِ کامل (رنگ، لوگو، دامنه‌ی اختصاصی) بعد از گرفتنِ پنل نمایندگی از داخلِ پنل خودت در دسترسه.',
+      getReseller(chatId) ? resellerMenu() : guestMenu());
+  }
+
   if (data === 'cancel') {
     await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: msgId });
+  }
+
+  if (data === 'countdown_no') {
+    clearState(chatId);
+    return bot.sendMessage(chatId, '✅ باشه، بنر فرستاده شد.', isAdmin(chatId) ? adminMenu : resellerMenu());
+  }
+
+  if (data === 'countdown_yes') {
+    const st = getState(chatId);
+    if (!st || st.step !== 'countdown_ask') return;
+    setState(chatId, { ...st, step: 'countdown_end_time' });
+    return bot.sendMessage(chatId,
+      '⏰ ساعت پایان شمارش رو بنویس (مثلاً 17:05:05):',
+      cancelBtn);
+  }
+
+  if (data === 'countdown_final_banner_skip') {
+    const st = getState(chatId);
+    if (!st) return;
+    startCountdown(st, null);
+    clearState(chatId);
+    return bot.sendMessage(chatId, '✅ شمارش معکوس شروع شد!', isAdmin(chatId) ? adminMenu : resellerMenu());
+  }
+
+  if (data.startsWith('countdown_final_')) {
+    const st = getState(chatId);
+    if (!st) return;
+    const finalBannerId = data.replace('countdown_final_', '');
+    startCountdown(st, finalBannerId);
+    clearState(chatId);
+    return bot.sendMessage(chatId, '✅ شمارش معکوس شروع شد!', isAdmin(chatId) ? adminMenu : resellerMenu());
   }
 });
 // کارمزد ماهانه — هر ساعت چک می‌کنه

@@ -96,6 +96,10 @@ canvas#fx{position:fixed;inset:0;z-index:0;pointer-events:none}
 @keyframes heartbeat{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
 .toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(16px);background:rgba(20,10,35,.95);backdrop-filter:blur(16px);border:1px solid rgba(52,211,153,.3);color:var(--success);border-radius:12px;padding:10px 20px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:all .3s;z-index:9999;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+body.light-theme{--darker:#f5f3fb;--glass-bg:rgba(124,58,237,0.05);--glass-border:rgba(124,58,237,0.14);--text-primary:#241b3a;--text-secondary:rgba(36,27,58,.62);--text-muted:rgba(36,27,58,.4)}
+body.light-theme .link-box,body.light-theme .voice-users{background:rgba(124,58,237,.06)}
+body.light-theme .toast{background:rgba(255,255,255,.96);color:#0f9d70}
+.theme-toggle{position:fixed;top:16px;left:16px;z-index:50;width:40px;height:40px;border-radius:12px;background:var(--glass-bg);border:1px solid var(--glass-border);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;color:var(--text-primary)}
 </style>
 </head>
 <body>
@@ -105,6 +109,7 @@ canvas#fx{position:fixed;inset:0;z-index:0;pointer-events:none}
 </div>
 <div class="bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div></div>
 <canvas id="fx"></canvas>
+<button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="تغییر پوسته">🌙</button>
 <div class="wrapper" id="main-wrapper" style="opacity:0;transition:opacity .5s">
   <div class="header">
     <div class="logo-ring" id="brand-logo">🌐</div>
@@ -181,13 +186,29 @@ canvas#fx{position:fixed;inset:0;z-index:0;pointer-events:none}
 <div class="toast" id="toast"><span id="toast-msg">کپی شد!</span></div>
 <script src="https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js"></script>
 <script>
-var WS_URL='wss://ir.example.top:8443/lk';
+var WS_URL='wss://voice.irsna.top';
 var TOKEN_API='/sub/voice-token';
 var ROOM_NAME='anastia-voice';
 var D={},LINKS=[];
+// اگر ادمین ویس را خاموش کرده باشد، کارتِ ویس مخفی شود
+fetch('/sub/voice-status').then(function(r){return r.json();}).then(function(d){
+  if(d&&d.enabled===false){var c=document.querySelector('.voice-card');if(c)c.style.display='none';}
+}).catch(function(){});
 var room=null,isMuted=false,isConnected=false;
 
 function getUUID(){var p=window.location.pathname.split('/');return p[p.length-1]||p[p.length-2];}
+
+// ── تمِ روشن/تاریک ─────────────────────────────────────────
+function applyTheme(t){
+  document.body.classList.toggle('light-theme', t==='light');
+  document.getElementById('theme-toggle').textContent = t==='light' ? '☀️' : '🌙';
+}
+function toggleTheme(){
+  var cur = localStorage.getItem('sub_theme')==='light' ? 'dark' : 'light';
+  localStorage.setItem('sub_theme', cur);
+  applyTheme(cur);
+}
+applyTheme(localStorage.getItem('sub_theme') || 'dark');
 
 // ── Canvas FX ──────────────────────────────────────────────
 var canvas=document.getElementById('fx');
@@ -255,6 +276,7 @@ function applyBrand(b){
   if(!b) return;
   var r=document.documentElement;
   if(b.color) r.style.setProperty('--brand',b.color);
+  if(b.color2) r.style.setProperty('--brand-light',b.color2);
   if(b.bg) r.style.setProperty('--darker',b.bg);
   if(b.motion) motionType=b.motion;
   document.getElementById('brand-logo').textContent=b.logo||'🌐';

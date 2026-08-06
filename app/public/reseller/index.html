@@ -138,7 +138,22 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
 </style>
 </head>
 <body>
+
+<style>
+  #mx-canvas{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;opacity:.55;pointer-events:none}
+  #auth-screen{position:relative;overflow:hidden;min-height:100vh;display:flex;align-items:center;justify-content:center}
+  #auth-screen .auth-card{position:relative;z-index:2}
+  #mx-loader{position:fixed;inset:0;z-index:9999;background:#05060a;display:flex;align-items:center;justify-content:center;transition:opacity .5s}
+  #mx-loader.hide{opacity:0;pointer-events:none}
+  #mx-loader canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.6}
+  #mx-loader .mx-txt{position:relative;z-index:2;font-family:monospace;letter-spacing:.3em;color:var(--accent);font-size:.9rem;text-shadow:0 0 12px var(--accent);animation:mxblink 1.1s steps(2) infinite}
+  @keyframes mxblink{50%{opacity:.35}}
+</style>
+
+<div id="mx-loader"><canvas id="mxl-canvas"></canvas><div class="mx-txt">[ INITIALIZING PANEL... ]</div></div>
+
 <div id="auth-screen">
+  <canvas id="mx-canvas"></canvas>
   <div class="auth-card">
     <div class="auth-top-actions">
       <button class="auth-action-btn auth-buy-btn" onclick="showBuyPanel()">
@@ -327,6 +342,10 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><circle cx="16" cy="14" r="1"/><path d="M20 7V5a2 2 0 0 0-2-2H4"/></svg>
         شارژ
       </div>
+      <div class="bn-item" id="bn-panels" data-page="panels" onclick="showPage('panels',this)" style="display:none">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        پنل‌ها
+      </div>
       <div class="bn-item" data-page="brand" onclick="showPage('brand',this)">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
         برند
@@ -473,6 +492,17 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
           <div class="form-group"><label>رنگ اصلی</label><input id="brand-color" type="color" value="#7C5CFC" style="height:42px;padding:4px"></div>
           <div class="form-group"><label>رنگ پس‌زمینه</label><input id="brand-bg" type="color" value="#080810" style="height:42px;padding:4px"></div>
         </div>
+        <div class="form-group">
+          <label>رنگ فرعی/تزئینی ساب (گرادینت و درخشش)</label>
+          <input id="brand-color2" type="color" value="#f472b6" style="height:42px;padding:4px;max-width:200px">
+        </div>
+        <div class="form-group">
+          <label>رنگ متنِ ساب</label>
+          <div style="color:var(--text-muted);font-size:.74rem;margin-bottom:6px">
+            اگه پس‌زمینه‌ی ساب رو روشن انتخاب کردی، رنگ متن رو هم تیره کن تا خونا بمونه.
+          </div>
+          <input id="brand-text-color" type="color" value="#f8f0ff" style="height:42px;padding:4px;max-width:200px">
+        </div>
         <button class="btn btn-primary" onclick="saveBrand()">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           ذخیره برند
@@ -483,6 +513,51 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
       <div class="page-header"><h2>حساب من</h2></div>
       <div class="table-wrap" style="padding:24px">
         <div id="account-info"></div>
+
+        <div class="change-pass-section">
+          <h3 style="font-size:.95rem;margin-bottom:14px">ظاهرِ خودِ این پنل</h3>
+          <div style="color:var(--text-muted);font-size:.78rem;margin-bottom:14px">
+            این جدا از برندی است که برای مشتری‌هات (صفحه‌ی ساب) تنظیم می‌کنی — فقط روی
+            همین پنلی که خودت داری توش کار می‌کنی اثر می‌ذاره.
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>عنوانِ بالای پنل</label><input id="panel-title" placeholder="مثلاً: تامی پنل"></div>
+            <div class="form-group"><label>رنگ اصلی پنل</label><input id="panel-accent" type="color" value="#7C5CFC" style="height:42px;padding:4px"></div>
+          </div>
+          <div class="form-group">
+            <label>رنگ متن و آیکون‌های پنل</label>
+            <input id="panel-text" type="color" value="#f0f0ff" style="height:42px;padding:4px;max-width:200px">
+          </div>
+          <button class="btn btn-primary" onclick="savePanelSettings()">ذخیره ظاهر پنل</button>
+        </div>
+
+        <div class="change-pass-section">
+          <h3 style="font-size:.95rem;margin-bottom:14px">دسترسی API (برای بات)</h3>
+          <div id="api-token-disabled-box" style="color:var(--text-muted);font-size:.85rem">
+            دسترسی API برای اکانت شما فعال نیست. اگه می‌خوای بات خودت به این پنل وصل بشه، از ادمین بخواه فعالش کنه.
+          </div>
+          <div id="api-token-enabled-box" style="display:none">
+            <div class="form-group">
+              <label>Base URL</label>
+              <div style="display:flex;gap:8px">
+                <input id="rt-baseurl" readonly dir="ltr" style="font-size:.8rem">
+                <button type="button" class="btn btn-secondary" onclick="copyField('rt-baseurl')">کپی</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>API Token</label>
+              <div style="display:flex;gap:8px">
+                <input id="rt-token" readonly dir="ltr" style="font-size:.8rem">
+                <button type="button" class="btn btn-secondary" onclick="copyField('rt-token')">کپی</button>
+              </div>
+            </div>
+            <div style="color:var(--text-muted);font-size:.74rem;margin:-4px 0 14px">
+              هدر لازم برای بات: <code dir="ltr" style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">Authorization: Bearer &lt;token&gt;</code>
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="regenerateApiToken()">🔄 ساخت توکن جدید</button>
+          </div>
+        </div>
+
         <div class="change-pass-section">
           <h3 style="font-size:.95rem;margin-bottom:14px;display:flex;align-items:center;gap:8px">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
@@ -507,7 +582,20 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
     <h3 id="modal-client-title">کاربر جدید</h3>
     <input type="hidden" id="c-id">
     <input type="hidden" id="c-used-gb" value="0">
-    <div class="form-group"><label>نام کاربر</label><input id="c-name" placeholder="ali123"></div>
+    <div class="form-group">
+      <label>نام کاربر</label>
+      <div style="display:flex;gap:8px">
+        <input id="c-name" placeholder="ali123" style="flex:1">
+        <button type="button" class="btn btn-secondary" onclick="randomizeClientName()" title="نام رندوم">🎲</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>نام نمایشیِ کانفیگ (اختیاری)</label>
+      <input id="c-display-name" placeholder="پیش‌فرض: برند خودت">
+      <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">
+        همینی که تو اپِ کاربر (v2Box/v2rayNG) کنارِ کانفیگ نوشته می‌شه.
+      </div>
+    </div>
     <div class="form-group" id="c-inbounds-wrap">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <label style="margin:0">اینباندها</label>
@@ -632,12 +720,11 @@ async function doLogin(){
 
 function applyBrand(rs){
   if(!rs) return;
-  if(rs.brand_color) document.documentElement.style.setProperty('--accent',rs.brand_color);
-  if(rs.brand_bg_color) document.documentElement.style.setProperty('--bg',rs.brand_bg_color);
+  // نکته: این تابع فقط صفحه‌ی لاگین (پیش از ورود) رو با نام/لوگوی برند پر می‌کنه.
+  // عنوان و رنگِ خودِ پنلِ داخلی (بعد از ورود) رو applyPanelSettings کنترل می‌کنه —
+  // تا تغییرِ برندِ نماینده برای مشتری‌هاش، ظاهرِ کارِ خودش رو عوض نکنه.
   const name=rs.brand_name||'VPN Panel';
   document.getElementById('auth-title').textContent=name;
-  document.getElementById('tb-name').textContent=name;
-  document.title=name;
   if(rs.brand_logo){document.getElementById('auth-logo').textContent=rs.brand_logo;document.getElementById('tb-logo').textContent=rs.brand_logo;}
 }
 
@@ -670,14 +757,23 @@ async function loadProfile(){
   profile=r.data;
   localStorage.setItem('reseller_brand',JSON.stringify(profile));
   applyBrand(profile);
-  // منوی «پنل‌های من» فقط برای کسی که ادمین اجازه‌اش را داده
+  // منوی «پنل‌های من» فقط برای کسی که ادمین اجازه‌اش را داده — هم تو سایدبار
+  // دسکتاپ هم تو نوارِ پایینِ موبایل
   document.getElementById('nav-panels').style.display=profile.can_create_panels?'':'none';
+  document.getElementById('bn-panels').style.display=profile.can_create_panels?'':'none';
   document.getElementById('tb-balance-text').textContent=(profile.balance||0).toLocaleString()+' ت';
   document.getElementById('brand-name').value=profile.brand_name||'';
   document.getElementById('brand-logo').value=profile.brand_logo||'';
   document.getElementById('brand-color').value=profile.brand_color||'#7C5CFC';
   document.getElementById('brand-bg').value=profile.brand_bg_color||'#080810';
+  document.getElementById('brand-color2').value=profile.brand_color2||'#f472b6';
+  document.getElementById('brand-text-color').value=profile.brand_text_color||'#f8f0ff';
   document.getElementById('brand-telegram').value=profile.telegram_support||'';
+  document.getElementById('panel-title').value=profile.panel_title||'';
+  document.getElementById('panel-accent').value=profile.panel_accent_color||'#7C5CFC';
+  document.getElementById('panel-text').value=profile.panel_text_color||'#f0f0ff';
+  applyPanelSettings(profile);
+  loadApiToken();
   const motion=profile.brand_motion||'hearts';
   document.getElementById('brand-motion').value=motion;
   document.querySelectorAll('.motion-btn').forEach(b=>{
@@ -933,7 +1029,7 @@ function openAddClient(){
   document.getElementById('c-used-gb').dataset.limit='0';
   document.getElementById('modal-client-title').textContent='کاربر جدید';
   document.getElementById('c-save-btn').textContent='ایجاد کاربر';
-  ['c-name','c-telegram'].forEach(id=>document.getElementById(id).value='');
+  ['c-name','c-telegram','c-display-name'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('c-traffic').value=30;
   document.getElementById('c-ip').value=0;
   document.getElementById('c-expires').value='';
@@ -950,6 +1046,7 @@ function openEditClient(){
   document.getElementById('modal-client-title').textContent='ویرایش: '+currentClient.username;
   document.getElementById('c-save-btn').textContent='ذخیره تغییرات';
   document.getElementById('c-name').value=currentClient.username;
+  document.getElementById('c-display-name').value=currentClient.display_name||'';
   document.getElementById('c-traffic').value=currentClient.traffic_limit_gb;
   document.getElementById('c-ip').value=currentClient.ip_limit||0;
   document.getElementById('c-telegram').value=currentClient.telegram_id||'';
@@ -961,6 +1058,15 @@ function openEditClient(){
   if(currentClient.xui_inbound_id) document.getElementById('c-inbound').value=currentClient.xui_inbound_id;
   updateClientCost();
   openModal('modal-client');
+}
+
+function randomizeClientName(){
+  const adjectives=['swift','nova','azure','crimson','lunar','solar','shadow','frost','ember','onyx','cobalt','amber'];
+  const nouns=['fox','wolf','falcon','tiger','hawk','lynx','raven','panther','eagle','viper','stag','otter'];
+  const a=adjectives[Math.floor(Math.random()*adjectives.length)];
+  const n=nouns[Math.floor(Math.random()*nouns.length)];
+  const num=Math.floor(Math.random()*900+100);
+  document.getElementById('c-name').value=a+'_'+n+num;
 }
 
 async function saveClient(){
@@ -975,6 +1081,7 @@ async function saveClient(){
   if(!isEdit&&!selectedInboundIds.length) return toast('حداقل یک اینباند انتخاب کنید','error');
   const body={
     username:document.getElementById('c-name').value,
+    display_name:document.getElementById('c-display-name').value||null,
     inbound_ids:isEdit?undefined:selectedInboundIds,
     inbound_id:isEdit?parseInt(document.getElementById('c-inbound').value):selectedInboundIds[0],
     traffic_limit_gb:gb,
@@ -1001,7 +1108,7 @@ function openClientInfo(id){
     <div class="info-row"><span class="info-label">وضعیت</span><span class="badge ${c.is_active?'badge-active':'badge-inactive'}">${c.is_active?'فعال':'غیرفعال'}</span></div>
   `;
   document.getElementById('view-link').textContent=location.origin+'/view/'+c.xui_uuid;
-(function(){var su='https://__VOICE_DOMAIN__/sub/'+c.xui_uuid.replace(/-/g,'').substring(0,16);var m=document.getElementById('sub-details');if(!m)return;var box=document.getElementById('xtra-sub');if(!box){box=document.createElement('div');box.id='xtra-sub';box.style.marginBottom='14px';m.parentNode.insertBefore(box,m.nextSibling);}box.innerHTML='<div style="font-size:.75rem;color:var(--text-muted);margin:8px 0 4px">لینک اشتراک (ساب)</div><div class="sub-box" style="cursor:pointer;word-break:break-all" onclick="copyText(\''+su+'\',\'لینک ساب کپی شد\')">'+su+'</div><div style="text-align:center;margin-top:10px"><div id="xtra-qr" style="display:inline-block;background:#fff;padding:8px;border-radius:8px"></div></div>';var qb=document.getElementById('xtra-qr');qb.innerHTML='';try{new QRCode(qb,{text:su,width:170,height:170});}catch(e){qb.innerHTML='<img width=170 src="https://api.qrserver.com/v1/create-qr-code/?size=170x170&data='+encodeURIComponent(su)+'">';}})();
+(function(){var su='https://panelsub.irsna.top/sub/'+c.xui_uuid.replace(/-/g,'').substring(0,16);var m=document.getElementById('sub-details');if(!m)return;var box=document.getElementById('xtra-sub');if(!box){box=document.createElement('div');box.id='xtra-sub';box.style.marginBottom='14px';m.parentNode.insertBefore(box,m.nextSibling);}box.innerHTML='<div style="font-size:.75rem;color:var(--text-muted);margin:8px 0 4px">لینک اشتراک (ساب)</div><div class="sub-box" style="cursor:pointer;word-break:break-all" onclick="copyText(\''+su+'\',\'لینک ساب کپی شد\')">'+su+'</div><div style="text-align:center;margin-top:10px"><div id="xtra-qr" style="display:inline-block;background:#fff;padding:8px;border-radius:8px"></div></div>';var qb=document.getElementById('xtra-qr');qb.innerHTML='';try{new QRCode(qb,{text:su,width:170,height:170});}catch(e){qb.innerHTML='<img width=170 src="https://api.qrserver.com/v1/create-qr-code/?size=170x170&data='+encodeURIComponent(su)+'">';}})();
   const toggleBtn=document.getElementById('sub-toggle-btn');
   toggleBtn.innerHTML=c.is_active
     ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> غیرفعال'
@@ -1053,15 +1160,68 @@ async function saveBrand(){
     brand_name:document.getElementById('brand-name').value,
     brand_color:document.getElementById('brand-color').value,
     brand_bg_color:document.getElementById('brand-bg').value,
+    brand_color2:document.getElementById('brand-color2').value,
+    brand_text_color:document.getElementById('brand-text-color').value,
     brand_logo:document.getElementById('brand-logo').value,
     telegram_support:document.getElementById('brand-telegram').value,
     brand_motion:document.getElementById('brand-motion').value,
   });
   if(r.success){
-    const bd={brand_name:document.getElementById('brand-name').value,brand_color:document.getElementById('brand-color').value,brand_bg_color:document.getElementById('brand-bg').value,brand_logo:document.getElementById('brand-logo').value};
+    const bd={brand_name:document.getElementById('brand-name').value,brand_color:document.getElementById('brand-color').value,brand_bg_color:document.getElementById('brand-bg').value,brand_color2:document.getElementById('brand-color2').value,brand_logo:document.getElementById('brand-logo').value};
     localStorage.setItem('reseller_brand',JSON.stringify(bd));
     applyBrand(bd);toast('برند ذخیره شد');
   } else toast(r.message||'خطا','error');
+}
+
+// ── ظاهرِ خودِ پنل (جدا از برندِ ساب مشتری) ──────────────────
+function applyPanelSettings(rs){
+  if(!rs) return;
+  const color=rs.panel_accent_color||'#7C5CFC';
+  document.documentElement.style.setProperty('--accent',color);
+  if(rs.panel_text_color) document.documentElement.style.setProperty('--text',rs.panel_text_color);
+  const title=rs.panel_title||rs.brand_name||'VPN Panel';
+  document.getElementById('tb-name').textContent=title;
+  document.title=title;
+}
+
+async function savePanelSettings(){
+  const r=await apiPut('/reseller/panel-settings',{
+    panel_title:document.getElementById('panel-title').value,
+    panel_accent_color:document.getElementById('panel-accent').value,
+    panel_text_color:document.getElementById('panel-text').value,
+  });
+  if(r.success){
+    applyPanelSettings({panel_title:document.getElementById('panel-title').value,panel_accent_color:document.getElementById('panel-accent').value,panel_text_color:document.getElementById('panel-text').value});
+    toast('ظاهر پنل ذخیره شد');
+  } else toast(r.message||'خطا','error');
+}
+
+// ── دسترسی API (خودِ نماینده) ────────────────────────────────
+async function loadApiToken(){
+  const r=await apiGet('/reseller/api-token');
+  if(!r.success) return;
+  const enabled=r.data.enabled;
+  document.getElementById('api-token-disabled-box').style.display=enabled?'none':'block';
+  document.getElementById('api-token-enabled-box').style.display=enabled?'block':'none';
+  if(enabled){
+    document.getElementById('rt-baseurl').value=location.origin;
+    document.getElementById('rt-token').value=r.data.token||'';
+  }
+}
+
+async function regenerateApiToken(){
+  if(!confirm('توکن قبلی از کار می‌افته و بات باید با توکن جدید تنظیم بشه. مطمئنی؟')) return;
+  const r=await apiPost('/reseller/api-token/regenerate',{});
+  if(!r.success) return toast(r.message||'خطا','error');
+  document.getElementById('rt-token').value=r.data.token;
+  toast('توکن جدید ساخته شد');
+}
+
+function copyField(id){
+  const el=document.getElementById(id);
+  el.select();el.setSelectionRange(0,99999);
+  if(navigator.clipboard){navigator.clipboard.writeText(el.value).then(()=>toast('کپی شد'));}
+  else{document.execCommand('copy');toast('کپی شد');}
 }
 
 async function changePassword(){
@@ -1280,6 +1440,34 @@ document.querySelectorAll('.modal-overlay').forEach(m=>{
 // باید آخرِ اسکریپت باشد تا همهٔ constها (apiGet و…) مقداردهی شده باشند.
 // خطا هم دیگر بی‌صدا نمی‌ماند.
 if(token) initApp().catch(e=>console.error('initApp:',e));
+</script>
+<script>
+/* افکتِ Matrix (باران کد) برای صفحهٔ لاگین + لودر — رنگ از accentِ خودِ پنل */
+(function(){
+  function rain(canvas, fade){
+    var ctx=canvas.getContext('2d'); var W,H,cols,drops;
+    var chars='ｱｲｳｴｵｶｷｸｹｺ0123456789ABCDEF<>/{}[]$#*+=@%'.split('');
+    function accent(){return (getComputedStyle(document.documentElement).getPropertyValue('--accent')||'#7C5CFC').trim();}
+    function size(){var r=canvas.getBoundingClientRect();W=canvas.width=Math.max(1,r.width||innerWidth);H=canvas.height=Math.max(1,r.height||innerHeight);cols=Math.max(1,Math.floor(W/14));drops=[];for(var i=0;i<cols;i++)drops[i]=Math.random()*H/14;}
+    size(); addEventListener('resize',size);
+    var col=accent();
+    return setInterval(function(){
+      ctx.fillStyle=fade||'rgba(5,6,10,0.09)'; ctx.fillRect(0,0,W,H);
+      ctx.font='14px monospace';
+      for(var i=0;i<drops.length;i++){
+        var t=chars[Math.floor(Math.random()*chars.length)], y=drops[i]*14;
+        ctx.fillStyle=(Math.random()>0.98)?'#ffffff':col;
+        ctx.fillText(t,i*14,y);
+        if(y>H && Math.random()>0.975) drops[i]=0;
+        drops[i]++;
+      }
+    },55);
+  }
+  var lc=document.getElementById('mx-canvas'); if(lc) rain(lc);
+  var ll=document.getElementById('mxl-canvas'); if(ll) rain(ll,'rgba(5,6,10,0.12)');
+  function hideLoader(){var l=document.getElementById('mx-loader'); if(l){setTimeout(function(){l.classList.add('hide'); setTimeout(function(){l.style.display='none';},600);},1000);}}
+  if(document.readyState==='complete') hideLoader(); else addEventListener('load',hideLoader);
+})();
 </script>
 </body>
 </html>

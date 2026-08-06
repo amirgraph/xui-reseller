@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const { getDB } = require('../models/database');
 const { adminAuth } = require('../middleware/auth');
 const xui = require('../services/xuiService');
+const { generateApiToken } = require('../lib/apiToken');
 const { getDB: db } = require('../models/database');
 
 const router = express.Router();
@@ -142,6 +143,32 @@ router.post('/resellers/:id/balance', adminAuth, (req, res) => {
   }
 });
 
+// ─── Bot API access (per reseller) ─────────────────────────────
+// ادمین تعیین می‌کند کدام نماینده‌ها اجازه دارند بات خودشان را از طریق
+// API این پنل (مسیرهای /panel/api، شبیه API سه‌ایکس‌یو) وصل کنند.
+
+router.post('/resellers/:id/api-token/enable', adminAuth, (req, res) => {
+  const db = getDB();
+  const reseller = db.prepare('SELECT id FROM resellers WHERE id=?').get(req.params.id);
+  if (!reseller) return res.status(404).json({ success: false, message: 'Reseller not found' });
+  const token = generateApiToken();
+  db.prepare('UPDATE resellers SET api_enabled=1, api_token=? WHERE id=?').run(token, req.params.id);
+  res.json({ success: true, data: { token } });
+});
+
+router.post('/resellers/:id/api-token/disable', adminAuth, (req, res) => {
+  const db = getDB();
+  db.prepare('UPDATE resellers SET api_enabled=0 WHERE id=?').run(req.params.id);
+  res.json({ success: true });
+});
+
+router.get('/resellers/:id/api-token', adminAuth, (req, res) => {
+  const db = getDB();
+  const r = db.prepare('SELECT api_enabled, api_token FROM resellers WHERE id=?').get(req.params.id);
+  if (!r) return res.status(404).json({ success: false, message: 'Reseller not found' });
+  res.json({ success: true, data: { enabled: !!r.api_enabled, token: r.api_enabled ? r.api_token : null } });
+});
+
 // ─── Inbounds ───────────────────────────────────────────────
 
 router.get('/inbounds', adminAuth, async (req, res) => {
@@ -264,7 +291,7 @@ router.get('/settings', adminAuth, (req, res) => {
 // پر کند و کدی که با پیش‌فرض کار می‌کند را گیج کند.
 const NUMERIC_SETTINGS = ['panel_price','panel_traffic_gb','panel_price_per_gb','panel_max_clients',
                           'unlimited_price','test_traffic_gb','test_days','test_max_clients'];
-const BOOL_SETTINGS = ['unlimited_enabled','test_enabled'];
+const BOOL_SETTINGS = ['unlimited_enabled','test_enabled','voice_enabled'];
 const TEXT_SETTINGS = ['charge_card_number','charge_card_owner','charge_amounts',
                        'bot_welcome','bot_help','bot_support'];
 // متنِ ربات می‌تواند چندخطی و خالی باشد (خالی = پیش‌فرضِ کد)
@@ -433,6 +460,161 @@ router.delete('/plans/:id', adminAuth, (req, res) => {
   }
   db.prepare('DELETE FROM plans WHERE id=?').run(row.id);
   res.json({ success: true, message: 'پلن حذف شد' });
+});
+
+// ─── بک‌آپ و بازیابی (فقط امیر پنل: x-ui.db + reseller.db + سورس) ───
+const { exec } = require('child_process');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
+// بک‌آپِ فوری: اجرای اسکریپت و ارسال به کانالِ تلگرام
+router.post('/backup/now', adminAuth, (req, res) => {
+  exec('/usr/local/bin/amirpanel-backup.sh', { timeout: 200000 }, (err, stdout, stderr) => {
+    if (err) return res.status(500).json({ success: false, message: 'بک‌آپ ناموفق بود', detail: String(stderr || err).slice(0, 500) });
+    res.json({ success: true, message: 'بک‌آپ گرفته و به کانال ارسال شد', output: String(stdout || '').trim() });
+  });
+});
+
+// بازیابی از فایلِ آپلودی (base64 از tar.gzِ بک‌آپ) — روی همین سرور یا سرورِ جدید
+router.post('/backup/restore', adminAuth, (req, res) => {
+  const b64 = req.body && req.body.file;
+  if (!b64 || typeof b64 !== 'string') return res.status(400).json({ success: false, message: 'فایلِ بک‌آپ ارسال نشد' });
+  try {
+    const buf = Buffer.from(b64.replace(/^data:[^,]*,/, ''), 'base64');
+    if (buf.length < 100) return res.status(400).json({ success: false, message: 'فایل نامعتبر یا خالی' });
+    const tmp = path.join(os.tmpdir(), 'amirpanel-restore-' + Date.now() + '.tar.gz');
+    fs.writeFileSync(tmp, buf);
+    exec('/usr/local/bin/amirpanel-restore.sh ' + tmp, { timeout: 200000 }, (err, stdout, stderr) => {
+      try { fs.unlinkSync(tmp); } catch {}
+      if (err) return res.status(500).json({ success: false, message: 'بازیابی ناموفق بود', detail: String(stderr || err).slice(0, 800) });
+      res.json({ success: true, message: 'بازیابی انجام شد؛ سرویس‌ها ری‌استارت شدند', output: String(stdout || '').trim() });
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, message: 'خطا در پردازشِ فایل: ' + e.message });
+  }
+});
+
+// ─── سرورها (چند-کشوره) ───────────────────────────────────────
+const crypto = require('crypto');
+
+router.get('/servers', adminAuth, (req, res) => {
+  const rows = getDB().prepare('SELECT * FROM servers ORDER BY sort_order, id').all();
+  res.json({ success: true, data: rows });
+});
+
+router.post('/servers', adminAuth, (req, res) => {
+  const b = req.body || {};
+  if (!b.name || !b.xui_url || !b.xui_api_key)
+    return res.status(400).json({ success: false, message: 'نام، آدرسِ 3x-ui و کلیدِ API لازم است' });
+  const tok = crypto.randomBytes(16).toString('hex');
+  const info = getDB().prepare(`INSERT INTO servers
+    (name,flag,xui_url,xui_path,xui_api_key,domains,clean_ips,tunnel_path,inbound_ids,scan_token,active,sort_order)
+    VALUES (@name,@flag,@xui_url,@xui_path,@xui_api_key,@domains,@clean_ips,@tunnel_path,@inbound_ids,@scan_token,1,@sort_order)`).run({
+    name: b.name, flag: b.flag || '', xui_url: b.xui_url, xui_path: b.xui_path || '', xui_api_key: b.xui_api_key,
+    domains: b.domains || '', clean_ips: b.clean_ips || '', tunnel_path: b.tunnel_path || '/fml9vgwfwc',
+    inbound_ids: b.inbound_ids || '', scan_token: tok, sort_order: Number(b.sort_order) || 0,
+  });
+  res.json({ success: true, id: info.lastInsertRowid });
+});
+
+router.put('/servers/:id', adminAuth, (req, res) => {
+  const db = getDB(); const b = req.body || {};
+  const row = db.prepare('SELECT * FROM servers WHERE id=?').get(req.params.id);
+  if (!row) return res.status(404).json({ success: false, message: 'سرور پیدا نشد' });
+  const g = (k) => (b[k] == null ? row[k] : b[k]);
+  db.prepare(`UPDATE servers SET name=@name,flag=@flag,xui_url=@xui_url,xui_path=@xui_path,xui_api_key=@xui_api_key,
+    domains=@domains,clean_ips=@clean_ips,tunnel_path=@tunnel_path,inbound_ids=@inbound_ids,active=@active,sort_order=@sort_order WHERE id=@id`).run({
+    id: row.id, name: g('name'), flag: g('flag'), xui_url: g('xui_url'), xui_path: g('xui_path'),
+    xui_api_key: g('xui_api_key'), domains: g('domains'), clean_ips: g('clean_ips'), tunnel_path: g('tunnel_path'),
+    inbound_ids: g('inbound_ids'), active: (b.active == null ? row.active : (b.active ? 1 : 0)), sort_order: (b.sort_order == null ? row.sort_order : Number(b.sort_order)),
+  });
+  res.json({ success: true });
+});
+
+router.delete('/servers/:id', adminAuth, (req, res) => {
+  getDB().prepare('DELETE FROM servers WHERE id=?').run(req.params.id);
+  res.json({ success: true });
+});
+
+// دانلودِ اسکنرِ IP تمیزِ آمادهٔ همین سرور (ادمین از دستگاهِ ایرانیِ خودش اجرا می‌کند)
+router.get('/servers/:id/scanner', adminAuth, (req, res) => {
+  const row = getDB().prepare('SELECT * FROM servers WHERE id=?').get(req.params.id);
+  if (!row) return res.status(404).send('not found');
+  const panelBase = (process.env.SUB_BASE_URL || 'https://panelsub.irsna.top/sub').replace(/\/sub.*$/, '');
+  const nDomains = String(row.domains || '').split(',').filter(Boolean).length || 3;
+  const applyUrl = panelBase + '/sub/apply-cleanip';
+  const os = String(req.query.os || 'unix').toLowerCase();
+
+  // ── نسخهٔ ویندوز (PowerShell؛ از curl.exe داخلیِ Win10+ استفاده می‌کند) ──
+  if (os === 'win') {
+    const ps = `# AMIR PANEL - Clean IP Scanner - ${row.name}  (Windows / PowerShell)
+$ErrorActionPreference='SilentlyContinue'
+$SID=${row.id}; $TOKEN='${row.scan_token}'; $APPLY='${applyUrl}'; $TOPN=${nDomains}
+Write-Host ''
+Write-Host '  +======================================+' -ForegroundColor Magenta
+Write-Host '  |          A M I R   P A N E L         |' -ForegroundColor Magenta
+Write-Host '  |          Clean-IP Scanner            |' -ForegroundColor Magenta
+Write-Host '  +======================================+' -ForegroundColor Magenta
+Write-Host '  Country: ${row.name}' -ForegroundColor DarkGray
+$geo = (curl.exe -s --max-time 10 https://api.ip.sb/geoip) | ConvertFrom-Json
+if ($geo.country_code -ne 'IR') { Write-Host ('  [X] VPN is ON ('+$geo.country_code+'). Turn it OFF and rerun.') -ForegroundColor Red; Read-Host 'Enter'; exit }
+Write-Host '  [OK] Connected from Iran' -ForegroundColor Green
+$cands=@(); foreach($o in 16,17,18,19,20,21,22,24,25,26,27,28){$cands+="104.$o.$(Get-Random -Max 254).$(Get-Random -Max 254)"}; foreach($o in 96,97,98,99){$cands+="188.114.$o.$(Get-Random -Max 254)"}
+$res=@()
+foreach($ip in $cands){
+  $r = curl.exe -s -o NUL --resolve "speed.cloudflare.com:443:$ip" -w '%{speed_download}|%{http_code}' --max-time 8 "https://speed.cloudflare.com/__down?bytes=3000000"
+  $p=$r -split '\\|'; $sp=[int]($p[0] -replace '\\..*',''); $code=$p[1]
+  if($code -eq '200' -and $sp -gt 0){ $m=[math]::Round($sp*8/1000000,1); Write-Host ("  {0,-18} {1} Mbps" -f $ip,$m) -ForegroundColor Cyan; $res+=[pscustomobject]@{ip=$ip;sp=$sp} }
+  else { Write-Host "  $ip  x" -ForegroundColor DarkGray }
+}
+$best=(($res | Sort-Object sp -Descending | Select-Object -First $TOPN).ip) -join ','
+if(-not $best){ Write-Host '  [X] No clean IP found' -ForegroundColor Red; Read-Host 'Enter'; exit }
+Write-Host "  Best: $best" -ForegroundColor Green
+$body = (@{server_id=$SID;token=$TOKEN;ips=$best} | ConvertTo-Json -Compress)
+$out = curl.exe -s --max-time 20 -X POST $APPLY -H 'Content-Type: application/json' -d $body
+if($out -match '"success":true'){ Write-Host '  [OK] Applied - tell users to refresh sub' -ForegroundColor Green } else { Write-Host "  [X] Failed: $out" -ForegroundColor Red }
+Read-Host 'Press Enter to close'
+`;
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="AmirPanel-Scanner-${row.id}.ps1"`);
+    return res.send(ps);
+  }
+
+  // ── نسخهٔ Mac/Linux (bash با برندِ Amir Panel و رنگ) ──
+  const script = `#!/usr/bin/env bash
+# AMIR PANEL - Clean IP Scanner - ${row.name}
+set -uo pipefail
+G='\\033[1;92m'; C='\\033[1;96m'; R='\\033[1;91m'; M='\\033[1;95m'; D='\\033[0;90m'; N='\\033[0m'
+SERVER_ID=${row.id}; TOKEN="${row.scan_token}"; APPLY_URL="${applyUrl}"; TOP_N=${nDomains}
+clear 2>/dev/null || true
+echo -e "\${M}  ╔══════════════════════════════════════╗"
+echo -e "  ║          A M I R   P A N E L         ║"
+echo -e "  ║          Clean-IP Scanner            ║"
+echo -e "  ╚══════════════════════════════════════╝\${N}"
+echo -e "\${D}  کشور: ${row.name}\${N}\\n"
+echo -e "\${D}▸ بررسی موقعیت…\${N}"
+CC=$(curl -s --max-time 10 https://api.ip.sb/geoip 2>/dev/null | sed -n 's/.*"country_code":"\\([^"]*\\)".*/\\1/p')
+if [ "$CC" != "IR" ]; then echo -e "\${R}✗ VPN روشن است ($CC). خاموش کن و دوباره بزن.\${N}"; read -rp "Enter…" _; exit 1; fi
+echo -e "\${G}✓ از ایران وصلی\${N}\\n"
+CANDIDATES=$( { for o in 16 17 18 19 20 21 22 24 25 26 27 28; do echo "104.$o.$((RANDOM%254+1)).$((RANDOM%254+1))"; done; for o in 96 97 98 99; do echo "188.114.$o.$((RANDOM%254+1))"; done; } | sort -u)
+RESULTS=""
+while read -r ip; do [ -z "$ip" ] && continue
+  r=$(curl -so /dev/null --resolve "speed.cloudflare.com:443:$ip" -w '%{speed_download}|%{http_code}' --max-time 8 "https://speed.cloudflare.com/__down?bytes=3000000" 2>/dev/null)
+  sp=$(echo "$r"|cut -d'|' -f1|cut -d'.' -f1); code=$(echo "$r"|cut -d'|' -f2); [ -z "$sp" ]&&sp=0
+  if [ "$code" = "200" ]&&[ "$sp" -gt 0 ]; then printf "  \${C}%-18s %s Mbps\${N}\\n" "$ip" "$(awk -v s=$sp 'BEGIN{printf "%.1f",s*8/1000000}')"; RESULTS="$RESULTS$sp $ip\\n"; else echo -e "  \${D}$ip ✗\${N}"; fi
+done <<< "$CANDIDATES"
+BEST=$(echo -e "$RESULTS"|grep -v '^$'|sort -rn|head -$TOP_N|awk '{print $2}'|paste -sd, -)
+[ -z "$BEST" ] && { echo -e "\${R}✗ IP سالمی پیدا نشد\${N}"; read -rp "Enter…" _; exit 1; }
+echo -e "\\n\${G}▸ بهترین‌ها: $BEST\${N}"
+echo -e "\${D}▸ ارسال به Amir Panel…\${N}"
+OUT=$(curl -s --max-time 20 -X POST "$APPLY_URL" -H 'Content-Type: application/json' -d "{\\"server_id\\":$SERVER_ID,\\"token\\":\\"$TOKEN\\",\\"ips\\":\\"$BEST\\"}")
+echo "$OUT" | grep -q '"success":true' && echo -e "\${G}✅ اعمال شد — کاربران ساب را رفرش کنند\${N}" || echo -e "\${R}✗ اعمال نشد: $OUT\${N}"
+read -rp "برای بستن Enter بزن…" _
+`;
+  res.setHeader('Content-Type', 'application/x-sh');
+  res.setHeader('Content-Disposition', `attachment; filename="AmirPanel-Scanner-${row.id}.command"`);
+  res.send(script);
 });
 
 module.exports = router;

@@ -213,6 +213,31 @@ async function initDB() {
     )
   `);
 
+  // هرکسی که تا حالا با بات /start زده — برای هدف‌گیریِ پیامِ همگانی/بنر
+  // (قبلاً فقط نمایندگانِ فعال قابل‌ارسال بودند، مهمان‌ها هیچ‌جا ثبت نمی‌شدند)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS bot_users (
+      chat_id TEXT PRIMARY KEY,
+      first_name TEXT,
+      username TEXT,
+      referred_by TEXT,
+      referral_paid INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_seen DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // بنرهای تبلیغاتیِ ذخیره‌شده — فقط ادمین می‌سازد؛ ادمین/نماینده هرکدام
+  // می‌توانند از بینِ همین‌ها انتخاب کنند و به کانالِ خودشان بفرستند
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS promo_banners (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      text TEXT NOT NULL,
+      photo_file_id TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // پیش‌فرض‌های تست — ادمین از پنل عوضشان می‌کند. INSERT OR IGNORE تا
   // مقدارِ ویرایش‌شده را بازنویسی نکند.
   const seed = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
@@ -248,9 +273,68 @@ async function initDB() {
   // کدام پلن‌ها را نماینده حق دارد بفروشد (ادمین تیک می‌زند)
   ensureColumn('plans', 'resellable', "INTEGER DEFAULT 0");
 
+  // دسترسیِ API برای بات‌های نمایندگان — پیش‌فرض غیرفعال، فقط ادمین فعالش می‌کند
+  ensureColumn('resellers', 'api_token', "TEXT");
+  ensureColumn('resellers', 'api_enabled', "INTEGER DEFAULT 0");
+
+  // رنگِ سوم/فرعیِ ساب (قبلاً هاردکد بود، الان قابل تنظیم توسط نماینده)
+  ensureColumn('resellers', 'brand_color2', "TEXT");
+
+  // هویتِ خودِ پنلِ مدیریتِ نماینده — کاملاً جدا از برندِ ساب مشتری‌ها
+  ensureColumn('resellers', 'panel_title', "TEXT");
+  ensureColumn('resellers', 'panel_accent_color', "TEXT");
+  ensureColumn('resellers', 'panel_text_color', "TEXT");
+
+  // رنگِ متنِ ساب — چون اگه نماینده پس‌زمینه‌ی روشن انتخاب کنه، متنِ سفیدِ
+  // ثابت دیگه خونا نیست
+  ensureColumn('resellers', 'brand_text_color', "TEXT");
+
+  // آیدی/یوزرنیمِ کانالی که نماینده برای ارسالِ بنرهای تبلیغاتی ذخیره کرده
+  ensureColumn('resellers', 'promo_channel_id', "TEXT");
+
+  // نامِ نمایشیِ دلخواهِ کانفیگ — چیزی که تو اپِ کاربر (v2Box/v2rayNG) بعدِ #
+  // دیده می‌شه. قبلاً همیشه هاردکد «نهان-۱/۲/۳» بود، مستقل از هرچی نماینده بخواد.
+  ensureColumn('clients', 'display_name', "TEXT");
+
   // ادمینِ پیش‌فرضِ admin/admin123 عمداً ساخته نمی‌شود: نصب‌کننده (30-app.sh)
   // ادمینِ واقعی را با رمزِ خودِ کاربر می‌سازد. وگرنه روی هر نصب یک حسابِ
   // پشتیِ با رمزِ شناخته‌شده می‌ماند.
+
+  // ── سرورها (چند-کشوره / multi-country) ──
+  // هر سرور = یک پنلِ 3x-ui + دامنه‌ها + IPهای تمیزِ خودش. سابْ از همهٔ سرورهای فعال ساخته می‌شود.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS servers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      flag TEXT DEFAULT '',
+      xui_url TEXT NOT NULL,
+      xui_path TEXT DEFAULT '',
+      xui_api_key TEXT NOT NULL,
+      domains TEXT NOT NULL DEFAULT '',      -- کاما-جدا (sni/host)
+      clean_ips TEXT DEFAULT '',             -- کاما-جدا (addr)؛ خالی = دامنه
+      tunnel_path TEXT DEFAULT '/fml9vgwfwc',
+      scan_token TEXT DEFAULT '',            -- توکنِ اسکنر برای POSTِ IPهای تمیز
+      active INTEGER DEFAULT 1,
+      sort_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  // seed: اگر خالی است، سرورِ فعلی را از env بیاور تا رفتارِ تک‌سرورِ فعلی عوض نشود
+  const scount = db.prepare('SELECT COUNT(*) c FROM servers').get().c;
+  if (scount === 0 && process.env.XUI_URL) {
+    const tok = require('crypto').randomBytes(16).toString('hex');
+    db.prepare(`INSERT INTO servers
+      (name, flag, xui_url, xui_path, xui_api_key, domains, clean_ips, tunnel_path, scan_token, active, sort_order)
+      VALUES (?,?,?,?,?,?,?,?,?,1,0)`).run(
+      process.env.SERVER_NAME || 'آلمان', process.env.SERVER_FLAG || '🇩🇪',
+      process.env.XUI_URL, process.env.XUI_PATH || '', process.env.XUI_API_KEY || '',
+      process.env.NAHAN_SUBS || '', process.env.NAHAN_ADDRS || '', '/fml9vgwfwc', tok
+    );
+    console.log('  ↑ server e aval az env seed shod');
+  }
+
+  // اینباند(های) هدف برای provisioning روی هر سرور (کاما-جدا). خالی روی سرورِ env = استفاده از inboundId فراخوان
+  ensureColumn('servers', 'inbound_ids', "TEXT DEFAULT ''");
 
   console.log('✅ Database initialized');
 }

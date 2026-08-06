@@ -267,21 +267,115 @@
   #toast.success { border-color: var(--success); color: var(--success); }
   #toast.error { border-color: var(--danger); color: var(--danger); }
 
+  /* ── Mobile topbar (hidden on desktop) ── */
+  .mobile-topbar {
+    display: none;
+    position: sticky; top: 0; z-index: 90;
+    align-items: center; gap: 12px;
+    padding: 12px 16px;
+    background: rgba(8,8,16,0.85);
+    backdrop-filter: var(--glass);
+    border-bottom: 1px solid var(--border);
+  }
+  .hamburger-btn {
+    width: 38px; height: 38px; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text); font-size: 1.1rem; cursor: pointer;
+  }
+  .mobile-topbar .logo-text { font-size: 0.95rem; font-weight: 700; }
+  .sidebar-overlay {
+    display: none;
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+    z-index: 99;
+  }
+  .sidebar-overlay.open { display: block; }
+
+  /* ── Modal: sticky header/footer so action buttons never get lost ── */
+  .modal { display: flex; flex-direction: column; }
+  .modal-body { overflow-y: auto; }
+  .modal-actions {
+    display: flex; gap: 10px; justify-content: flex-end;
+    margin-top: 8px; padding-top: 14px;
+    border-top: 1px solid var(--border);
+    position: sticky; bottom: -28px;
+    background: #10101e;
+    margin-bottom: -28px; padding-bottom: 28px;
+  }
+
   /* ── Responsive ── */
   @media (max-width: 768px) {
-    .sidebar { display: none; }
+    .mobile-topbar { display: flex; }
+    .sidebar {
+      display: flex;
+      transform: translateX(100%);
+      transition: transform .25s ease;
+      width: 78%; max-width: 300px;
+      z-index: 100;
+    }
+    .sidebar.open { transform: translateX(0); box-shadow: -8px 0 30px rgba(0,0,0,0.5); }
     .main { margin-right: 0; padding: 16px; }
     .form-row { grid-template-columns: 1fr; }
     .stats-grid { grid-template-columns: 1fr 1fr; }
+
+    /* مودال‌ها روی موبایل تقریباً تمام‌صفحه‌اند تا اسکرول‌شدنِ محتوا هیچ‌وقت
+       دکمه‌های پایین (ذخیره/انصراف) را از دید خارج نکند */
+    .modal-overlay { align-items: flex-end; }
+    .modal {
+      max-width: 100%; width: 100%;
+      max-height: 92vh; max-height: 92dvh;
+      border-radius: 20px 20px 0 0;
+      padding: 22px 18px;
+    }
+    .table-wrap { overflow-x: auto; }
+    table { min-width: 640px; }
   }
+
+  .icon-svg { width: 18px; height: 18px; vertical-align: -4px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .nav-item .icon-svg { width: 19px; height: 19px; vertical-align: -5px; margin-left: 2px; }
+  .btn .icon-svg { width: 15px; height: 15px; vertical-align: -2px; margin-left: 4px; }
+  .btn-sm .icon-svg { margin-left: 0; }
 </style>
 </head>
 <body>
 
+<style>
+  #mx-canvas{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;opacity:.55;pointer-events:none}
+  #auth-screen{position:relative;overflow:hidden;min-height:100vh;display:flex;align-items:center;justify-content:center}
+  #auth-screen .auth-card{position:relative;z-index:2;backdrop-filter:blur(6px)}
+  #mx-loader{position:fixed;inset:0;z-index:9999;background:#05060a;display:flex;align-items:center;justify-content:center;transition:opacity .5s}
+  #mx-loader.hide{opacity:0;pointer-events:none}
+  #mx-loader canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.6}
+  #mx-loader .mx-txt{position:relative;z-index:2;font-family:monospace;letter-spacing:.3em;color:var(--accent);font-size:.9rem;text-shadow:0 0 12px var(--accent);animation:mxblink 1.1s steps(2) infinite}
+  @keyframes mxblink{50%{opacity:.35}}
+  /* ── موشن (حسِ Framer Motion) ── */
+  .page.active{animation:pageIn .28s cubic-bezier(.22,1,.36,1)}
+  @keyframes pageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .btn{transition:transform .12s ease,filter .15s ease,background .2s ease}
+  .btn:active{transform:scale(.96)}
+  .nav-item{transition:background .18s ease,color .18s ease,transform .12s ease}
+  .nav-item:active{transform:scale(.98)}
+  tbody tr{animation:rowIn .3s ease-out both}
+  @keyframes rowIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;transition:transform .12s ease,background .18s ease,border-color .18s ease}
+  .icon-btn:hover{background:var(--surface-hover);border-color:var(--accent)}
+  .icon-btn:active{transform:scale(.92)}
+  .icon-btn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%}
+  .dot.on{background:#22c55e;box-shadow:0 0 8px #22c55e88}
+  .dot.off{background:#64748b}
+  .btn svg.icon-svg{width:15px;height:15px;vertical-align:-2px;margin-left:6px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<!-- Matrix loader -->
+<div id="mx-loader"><canvas id="mxl-canvas"></canvas><div class="mx-txt">[ INITIALIZING PANEL... ]</div></div>
+
 <!-- Auth -->
 <div id="auth-screen">
+  <canvas id="mx-canvas"></canvas>
   <div class="auth-card">
-    <div class="logo-icon" style="margin:0 auto 16px;width:52px;height:52px;border-radius:16px;font-size:24px;">🛡️</div>
+    <div class="logo-icon" style="margin:0 auto 16px;width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" style="width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 2 4 5v6c0 5 3.4 8.9 8 10 4.6-1.1 8-5 8-10V5l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg></div>
     <h1>پنل مدیریت</h1>
     <p>ورود به حساب ادمین</p>
     <div class="form-group">
@@ -299,6 +393,12 @@
 
 <!-- App -->
 <div id="app">
+  <div class="mobile-topbar">
+    <button class="hamburger-btn" onclick="toggleSidebar()"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <div class="logo-icon" style="width:30px;height:30px;font-size:14px;">𝓐</div>
+    <div class="logo-text">VPN Panel</div>
+  </div>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
   <div class="sidebar">
     <div class="logo">
       <div class="logo-icon">𝓐</div>
@@ -307,40 +407,57 @@
         <div class="logo-sub">VPN Reseller</div>
       </div>
     </div>
+    <div style="display:flex;gap:8px;padding:0 12px 12px">
+      <a href="https://t.me/Vsevolod_i" target="_blank" rel="noopener" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;border-radius:10px;background:var(--accent);color:#fff;text-decoration:none;font-size:.82rem;font-weight:600">
+        <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> پشتیبانی
+      </a>
+      <a href="https://t.me/+-vl2O_LRnS85YWJk" target="_blank" rel="noopener" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;border-radius:10px;border:1px solid var(--border);color:var(--text);text-decoration:none;font-size:.82rem;font-weight:600">
+        <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="m3 11 18-8-8 18-2-7-8-3Z"/></svg> کانال
+      </a>
+    </div>
 
     <nav>
       <div class="nav-item active" onclick="showPage('dashboard')">
-        <span class="icon">📊</span> داشبورد
+        <span class="icon"><svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></span> داشبورد
       </div>
       <div class="nav-item" onclick="showPage('resellers')">
-        <span class="icon">👥</span> نمایندگان
+        <span class="icon"><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9" r="2.5"/><path d="M15.5 14a5 5 0 0 1 5.5 5"/></svg></span> نمایندگان
       </div>
       <div class="nav-item" onclick="showPage('clients')">
-        <span class="icon">🌐</span> همه کاربران
+        <span class="icon"><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z"/></svg></span> همه کاربران
       </div>
       <div class="nav-item" onclick="showPage('inbounds')">
-        <span class="icon">🔌</span> اینباندها
+        <span class="icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M9 3v5M15 3v5M6 8h12l-1 5a5 5 0 0 1-5 4 5 5 0 0 1-5-4L6 8Z"/><path d="M10 17v4M14 17v4"/></svg></span> اینباندها
+      </div>
+      <div class="nav-item" onclick="showPage('servers')">
+        <span class="icon"><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z"/></svg></span> سرورها
+      </div>
+      <div class="nav-item" onclick="showPage('backup')">
+        <span class="icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7M21 3v5h-5"/></svg></span> بک‌آپ
+      </div>
+      <div class="nav-item" onclick="showPage('voice')">
+        <span class="icon"><svg class="icon-svg" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span> ویس‌چت
       </div>
             <div class="nav-item" onclick="showPage('charge-requests')">
-        <span class="icon">💰</span> شارژ نمایندها
+        <span class="icon"><svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="16.5" cy="14.2" r="1.1" fill="currentColor" stroke="none"/></svg></span> شارژ نمایندها
       </div>
       <div class="nav-item" onclick="showPage('plans')">
-        <span class="icon">🏷️</span> پلن‌ها
+        <span class="icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M20 12.5 12.5 20a1.5 1.5 0 0 1-2.1 0L4 13.6a1.5 1.5 0 0 1 0-2.1L11.5 4H18a2 2 0 0 1 2 2v6.5Z"/><circle cx="14.7" cy="9.3" r="1.3" fill="currentColor" stroke="none"/></svg></span> پلن‌ها
       </div>
       <div class="nav-item" onclick="showPage('settings')">
-        <span class="icon">⚙️</span> تنظیمات
+        <span class="icon"><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a1.7 1.7 0 0 0 .3 1.9 2 2 0 1 1-2.8 2.8 1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6 2 2 0 1 1-4 0 1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.3 2 2 0 1 1-2.8-2.8 1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1 2 2 0 1 1 0-4A1.7 1.7 0 0 0 6.7 6a1.7 1.7 0 0 0-.3-1.9 2 2 0 1 1 2.8-2.8 1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 12.2 0a2 2 0 0 1 3.9 0 1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3 2 2 0 1 1 2.8 2.8 1.7 1.7 0 0 0-.3 1.9c.3.7.9 1.1 1.6 1.1a2 2 0 1 1 0 4c-.7 0-1.3.4-1.7 1Z"/></svg></span> تنظیمات
       </div>
       <div class="nav-item" onclick="showPage('panel-orders')">
-        <span class="icon">🛒</span> درخواست پنل
+        <span class="icon"><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.3" fill="currentColor" stroke="none"/><circle cx="18" cy="20" r="1.3" fill="currentColor" stroke="none"/><path d="M2 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.5a2 2 0 0 0 2-1.6L21 7H6"/></svg></span> درخواست پنل
       </div>
 <div class="nav-item" onclick="showPage('transactions')">
-        <span class="icon">💳</span> تراکنش‌ها
+        <span class="icon"><svg class="icon-svg" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19"/></svg></span> تراکنش‌ها
       </div>
     </nav>
 
     <div class="sidebar-bottom">
       <div class="nav-item" onclick="logout()">
-        <span class="icon">🚪</span> خروج
+        <span class="icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></span> خروج
       </div>
     </div>
   </div>
@@ -350,7 +467,7 @@
     <div class="page active" id="page-dashboard">
       <div class="page-header">
         <h2>داشبورد</h2>
-        <button class="btn btn-secondary btn-sm" onclick="loadDashboard()">🔄 بروزرسانی</button>
+        <button class="btn btn-secondary btn-sm" onclick="loadDashboard()"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg> بروزرسانی</button>
       </div>
       <div class="stats-grid" id="stats-grid">
         <div class="stat-card accent"><div class="stat-label">نمایندگان کل</div><div class="stat-value" id="s-resellers">-</div></div>
@@ -371,7 +488,7 @@
     <div class="page" id="page-resellers">
       <div class="page-header">
         <h2>مدیریت نمایندگان</h2>
-        <button class="btn btn-primary" onclick="openAddReseller()">➕ نماینده جدید</button>
+        <button class="btn btn-primary" onclick="openAddReseller()"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> نماینده جدید</button>
       </div>
       <div class="table-wrap">
         <table>
@@ -386,7 +503,7 @@
       <div class="page-header"><h2>تنظیمات</h2></div>
 
       <div class="table-wrap" style="padding:20px;margin-bottom:18px">
-        <h3 style="font-size:1rem;margin-bottom:4px">🧪 تست رایگان</h3>
+        <h3 style="font-size:1rem;margin-bottom:4px"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M9 2v6.5L4.2 18a2 2 0 0 0 1.8 3h12a2 2 0 0 0 1.8-3L15 8.5V2"/><path d="M8 2h8M7.5 14h9"/></svg> تست رایگان</h3>
         <p style="color:var(--text-dim);font-size:.78rem;margin-bottom:16px">
           کاربر از دکمهٔ ربات درخواست می‌دهد، شماره‌اش را تلگرام تأیید می‌کند، و بین «پنل تستی» و «کانفیگ تستی» یکی را می‌گیرد.
           هر شمارهٔ موبایلِ ایران فقط یک‌بار.
@@ -414,7 +531,7 @@
       </div>
 
       <div class="table-wrap" style="padding:20px;margin-bottom:18px">
-        <h3 style="font-size:1rem;margin-bottom:4px">💬 متن‌های ربات</h3>
+        <h3 style="font-size:1rem;margin-bottom:4px"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H6l-3 3 .8-4A8 8 0 1 1 21 12Z"/></svg> متن‌های ربات</h3>
         <p style="color:var(--text-dim);font-size:.78rem;margin-bottom:16px">
           خالی بگذاری، متنِ پیش‌فرض استفاده می‌شود.
           <b>{name}</b> = نام کاربر، <b>{rate}</b> = نرخ هر گیگ — این‌ها خودکار جایگزین می‌شوند.
@@ -435,7 +552,7 @@
       </div>
 
       <div class="table-wrap" style="padding:20px">
-        <h3 style="font-size:1rem;margin-bottom:16px">💰 قیمت‌ها و پرداخت</h3>
+        <h3 style="font-size:1rem;margin-bottom:16px"><svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="16.5" cy="14.2" r="1.1" fill="currentColor" stroke="none"/></svg> قیمت‌ها و پرداخت</h3>
         <div class="form-row">
           <div class="form-group">
             <label>نرخ پیش‌فرض هر گیگ (تومان)</label><input id="s-panel_price_per_gb" type="number" min="0" dir="ltr">
@@ -457,13 +574,88 @@
         </div>
         <button class="btn btn-primary" onclick="saveSettings(['panel_price_per_gb','unlimited_price','charge_card_number','charge_card_owner','charge_amounts'])">ذخیره</button>
       </div>
+
+    </div>
+
+    <!-- Servers -->
+    <div class="page" id="page-servers">
+      <div class="page-header">
+        <h2>سرورها (چند-کشوره)</h2>
+        <button class="btn btn-primary" onclick="newServer()"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>افزودن سرور</button>
+      </div>
+
+      <div class="table-wrap" style="padding:18px;margin-bottom:16px;border-inline-start:3px solid var(--accent)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+          <b style="font-size:.95rem">اسکنرِ IP تمیز چیست و کِی لازمش داری؟</b>
+        </div>
+        <p style="color:var(--text-dim);font-size:.83rem;line-height:1.9;margin:0">
+          هر سرور از طریقِ IPهای <b>Cloudflare</b> به کاربر می‌رسد. با گذشتِ زمان بعضی از این IPها توسطِ اپراتورهای ایران کُند/مسدود می‌شوند و کاربرها می‌گویند «سرعت کم شده». <b>اسکنر</b> از دیدِ اینترنتِ ایران، سریع‌ترین IPهای سالمِ آن سرور را پیدا می‌کند و خودکار روی همان سرور اعمال می‌کند تا سرعت برگردد.<br>
+          <b>کِی دانلود کنی؟</b> فقط وقتی کاربرهای <u>همان کشور</u> از کندی شکایت کردند.<br>
+          <b>کدام نسخه؟</b> دکمهٔ <span style="color:var(--accent)">دانلود</span> برای مک/لینوکس (فایلِ <code dir="ltr">.command</code>) و دکمهٔ <span style="color:var(--accent)">ویندوز</span> برای ویندوز (<code dir="ltr">.ps1</code>) — نسخهٔ سیستمِ خودت را بگیر.<br>
+          <b>مهم:</b> اسکنر را باید روی کامپیوترِ خودت با <b>نتِ ایران و VPN خاموش</b> اجرا کنی (نه روی سرور) — چون throttle فقط از داخلِ ایران دیده می‌شود.<br>
+          <b>IPِ تمیزِ سرورهای دیگر از کجا می‌آید؟</b> هر سرور دکمهٔ اسکنرِ <u>مخصوصِ خودش</u> را دارد؛ برای هر کشور، اسکنرش را جدا دانلود و اجرا کن تا IPهای همان سرور به‌روز شوند.
+        </p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>کشور</th><th>دامنه‌ها</th><th>IP‌های تمیز</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+          <tbody id="servers-tbody"></tbody>
+        </table>
+      </div>
+      <div class="table-wrap" id="server-form" style="padding:20px;margin-top:16px;display:none">
+        <h3 id="sf-title" style="margin-bottom:14px">سرور جدید</h3>
+        <input type="hidden" id="sf-id">
+        <div class="form-row">
+          <div class="form-group"><label>نام کشور</label><input id="sf-name" placeholder="آلمان"></div>
+          <div class="form-group"><label>پرچم</label><input id="sf-flag" placeholder="🇩🇪" dir="ltr"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>آدرس 3x-ui</label><input id="sf-xui_url" dir="ltr" placeholder="http://127.0.0.1:2053"></div>
+          <div class="form-group"><label>کلید API</label><input id="sf-xui_api_key" dir="ltr"></div>
+        </div>
+        <div class="form-group"><label>دامنه‌ها (کاما-جدا — همان SNI/Host)</label><input id="sf-domains" dir="ltr" placeholder="a.example.ir,b.example.ir"></div>
+        <div class="form-group"><label>IP‌های تمیز (اختیاری — با اسکنر پر می‌شود)</label><input id="sf-clean_ips" dir="ltr"></div>
+        <div class="form-group"><label>مسیر تونل</label><input id="sf-tunnel_path" dir="ltr" value="/fml9vgwfwc"></div>
+        <div class="form-group"><label>اینباند(های) هدف — آیدیِ عددی، کاما-جدا (کاربران روی این‌ها ساخته می‌شوند)</label><input id="sf-inbound_ids" dir="ltr" placeholder="1,2"></div>
+        <button class="btn btn-primary" onclick="saveServer()">ذخیره</button>
+        <button class="btn" onclick="document.getElementById('server-form').style.display='none'">انصراف</button>
+      </div>
+      <p style="color:var(--text-dim);font-size:.8rem;margin-top:10px">روی هر سرور دکمهٔ «دانلودِ اسکنر» هست — اسکریپت را از دستگاهِ ایرانیِ خودت اجرا کن تا IP‌های تمیزِ همان سرور خودکار به‌روز شوند.</p>
+    </div>
+
+    <!-- Backup -->
+    <div class="page" id="page-backup">
+      <div class="page-header"><h2>بک‌آپ و بازیابی</h2></div>
+      <div class="table-wrap" style="padding:20px">
+        <p style="color:var(--text-dim);font-size:.8rem;margin-bottom:14px">بک‌آپِ کاملِ امیر پنل (x-ui + پنل + ربات + reseller.db) هر شب خودکار به کانال می‌رود. اینجا می‌تونی همین لحظه بک‌آپ بگیری، یا روی همین سرور یا سرورِ جدید بازیابی کنی.</p>
+        <button class="btn btn-primary" onclick="backupNow(this)"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 15V3M8 7l4-4 4 4M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>همین حالا بک‌آپ بگیر و به کانال بفرست</button>
+        <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
+          <label style="display:block;margin-bottom:8px">بازیابی از فایلِ بک‌آپ (<code dir="ltr">.tar.gz</code>):</label>
+          <input type="file" id="restore-file" accept=".gz,.tgz,application/gzip" style="margin-bottom:10px">
+          <button class="btn" style="background:#c0392b;color:#fff" onclick="restoreBackup(this)"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7M3 5v4h4"/></svg>بازیابی (سرویس‌ها ری‌استارت می‌شوند)</button>
+          <p style="color:#e0a24a;font-size:.75rem;margin-top:8px">⚠️ بازیابی، دیتابیس و تنظیماتِ فعلی را جایگزین می‌کند. قبلش خودکار بک‌آپِ ایمنی گرفته می‌شود.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Voice -->
+    <div class="page" id="page-voice">
+      <div class="page-header"><h2>ویس‌چتِ مشترک</h2></div>
+      <div class="table-wrap" style="padding:20px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="s-voice_enabled" style="width:auto"> ویس‌چت روی صفحهٔ ساب فعال باشد
+        </label>
+        <p style="color:var(--text-dim);font-size:.75rem;margin:6px 0 14px">توجه: صدای ویس فقط برای کاربرانِ متصل به VPN کار می‌کند (محدودیتِ WebRTC پشتِ CDN).</p>
+        <button class="btn btn-primary" onclick="saveSettings(['voice_enabled'])">ذخیره</button>
+      </div>
     </div>
 
     <!-- Plans -->
     <div class="page" id="page-plans">
       <div class="page-header">
         <h2>پلن‌های فروش پنل</h2>
-        <button class="btn btn-primary" onclick="openAddPlan()">➕ پلن جدید</button>
+        <button class="btn btn-primary" onclick="openAddPlan()"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> پلن جدید</button>
       </div>
       <div class="table-wrap">
         <table>
@@ -492,7 +684,7 @@
     <div class="page" id="page-inbounds">
       <div class="page-header">
         <h2>اینباندها</h2>
-        <button class="btn btn-secondary" onclick="loadInbounds()">🔄 همگام‌سازی</button>
+        <button class="btn btn-secondary" onclick="loadInbounds()"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg> همگام‌سازی</button>
       </div>
       <div class="table-wrap">
         <table>
@@ -521,7 +713,7 @@
           <option value="approved">تایید شده</option>
           <option value="rejected">رد شده</option>
         </select>
-        <button class="btn btn-secondary btn-sm" onclick="loadChargeRequests()">🔄</button>
+        <button class="btn btn-secondary btn-sm" onclick="loadChargeRequests()"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button>
       </div>
     </div>
     <div class="table-wrap">
@@ -541,7 +733,7 @@
           <option value="approved">تایید شده</option>
           <option value="rejected">رد شده</option>
         </select>
-        <button class="btn btn-secondary btn-sm" onclick="loadPanelOrders()">🔄</button>
+        <button class="btn btn-secondary btn-sm" onclick="loadPanelOrders()"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button>
       </div>
     </div>
     <div class="table-wrap">
@@ -558,8 +750,9 @@
 <!-- Add/Edit Reseller Modal -->
 <div class="modal-overlay" id="modal-reseller">
   <div class="modal">
-    <button class="modal-close" onclick="closeModal('modal-reseller')">✕</button>
+    <button class="modal-close" onclick="closeModal('modal-reseller')"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
     <h3 id="modal-reseller-title">نماینده جدید</h3>
+    <div class="modal-body">
     <input type="hidden" id="r-id">
     <div class="form-row">
       <div class="form-group">
@@ -609,9 +802,63 @@
         </div>
       </div>
     </div>
-    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+    <div id="r-api-section" style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px;display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:.85rem;font-weight:600;display:flex;align-items:center;gap:6px"><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.8 12.2 20 3M17 6l3 3M14 9l2.5 2.5"/></svg> دسترسی API بات</div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="openApiToken(document.getElementById('r-id').value, document.getElementById('r-name').value)">مدیریت توکن</button>
+      </div>
+      <div style="color:var(--text-muted);font-size:.74rem;margin-top:6px">
+        برای اینکه بات این نماینده به پنل وصل شود و کاربر بسازد، از اینجا API را فعال و توکن را بگیر.
+      </div>
+    </div>
+    </div>
+    <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('modal-reseller')">انصراف</button>
       <button class="btn btn-primary" onclick="saveReseller()">ذخیره</button>
+    </div>
+  </div>
+</div>
+
+<!-- API Token Modal -->
+<div class="modal-overlay" id="modal-api-token">
+  <div class="modal" style="max-width:440px">
+    <button class="modal-close" onclick="closeModal('modal-api-token')"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    <h3 id="api-token-title">دسترسی API بات</h3>
+    <div class="modal-body">
+      <input type="hidden" id="at-reseller-id">
+      <div style="color:var(--text-muted);font-size:.8rem;margin-bottom:16px">
+        وقتی فعال کنی، بات این نماینده می‌تواند با این توکن (به‌جای لاگین با یوزر/پس)
+        مستقیم روی پنل کاربر بسازد/ویرایش کند — فقط برای کاربران خودش، با همان
+        سقف حجم/تعداد و قیمتی که برایش تعیین کرده‌ای.
+      </div>
+
+      <div id="at-disabled-box">
+        <button class="btn btn-primary" style="width:100%" onclick="enableApiToken()">فعال‌سازی و ساخت توکن</button>
+      </div>
+
+      <div id="at-enabled-box" style="display:none">
+        <div class="form-group">
+          <label>Base URL</label>
+          <div style="display:flex;gap:8px">
+            <input id="at-baseurl" readonly dir="ltr" style="font-size:.78rem">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="copyField('at-baseurl')">کپی</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>API Token</label>
+          <div style="display:flex;gap:8px">
+            <input id="at-token" readonly dir="ltr" style="font-size:.78rem">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="copyField('at-token')">کپی</button>
+          </div>
+        </div>
+        <div style="color:var(--text-muted);font-size:.72rem;margin:-6px 0 16px">
+          هدر لازم برای بات: <code dir="ltr" style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">Authorization: Bearer &lt;token&gt;</code>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn btn-secondary" style="flex:1" onclick="regenerateApiToken()"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg> ساخت توکن جدید</button>
+          <button type="button" class="btn btn-danger" style="flex:1" onclick="disableApiToken()">غیرفعال‌سازی</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -619,8 +866,9 @@
 <!-- Plan Modal -->
 <div class="modal-overlay" id="modal-plan">
   <div class="modal">
-    <button class="modal-close" onclick="closeModal('modal-plan')">✕</button>
+    <button class="modal-close" onclick="closeModal('modal-plan')"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
     <h3 id="modal-plan-title">پلن جدید</h3>
+    <div class="modal-body">
     <input type="hidden" id="p-id">
     <div class="form-row">
       <div class="form-group">
@@ -677,7 +925,8 @@
         <input type="checkbox" id="p-resellable" style="width:auto"> نمایندگان هم بتوانند این پلن را بفروشند
       </label>
     </div>
-    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+    </div>
+    <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('modal-plan')">انصراف</button>
       <button class="btn btn-primary" onclick="savePlan()">ذخیره</button>
     </div>
@@ -687,8 +936,9 @@
 <!-- Balance Modal -->
 <div class="modal-overlay" id="modal-balance">
   <div class="modal" style="max-width:360px">
-    <button class="modal-close" onclick="closeModal('modal-balance')">✕</button>
+    <button class="modal-close" onclick="closeModal('modal-balance')"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
     <h3>شارژ کیف پول</h3>
+    <div class="modal-body">
     <input type="hidden" id="bal-id">
     <div class="form-group">
       <label>مبلغ (تومان)</label>
@@ -698,7 +948,8 @@
       <label>توضیح</label>
       <input id="bal-desc" placeholder="شارژ دستی">
     </div>
-    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+    </div>
+    <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('modal-balance')">انصراف</button>
       <button class="btn btn-success" onclick="doAddBalance()">شارژ</button>
     </div>
@@ -740,7 +991,32 @@ function logout() {
   location.reload();
 }
 
-// ── Navigation ────────────────────────────────
+// ── آیکون‌های SVG (به‌جای ایموجی) ──────────────
+const ICON = {
+  dashboard: '<svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
+  users: '<svg class="icon-svg" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9" r="2.5"/><path d="M15.5 14a5 5 0 0 1 5.5 5"/></svg>',
+  globe: '<svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z"/></svg>',
+  plug: '<svg class="icon-svg" viewBox="0 0 24 24"><path d="M9 3v5M15 3v5M6 8h12l-1 5a5 5 0 0 1-5 4 5 5 0 0 1-5-4L6 8Z"/><path d="M10 17v4M14 17v4"/></svg>',
+  wallet: '<svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="16.5" cy="14.2" r="1.1" fill="currentColor" stroke="none"/></svg>',
+  tag: '<svg class="icon-svg" viewBox="0 0 24 24"><path d="M20 12.5 12.5 20a1.5 1.5 0 0 1-2.1 0L4 13.6a1.5 1.5 0 0 1 0-2.1L11.5 4H18a2 2 0 0 1 2 2v6.5Z"/><circle cx="14.7" cy="9.3" r="1.3" fill="currentColor" stroke="none"/></svg>',
+  settings: '<svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V19a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H5a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 6.7 6a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H11a1.7 1.7 0 0 0 1-1.6V0"/></svg>',
+  cart: '<svg class="icon-svg" viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.3" fill="currentColor" stroke="none"/><circle cx="18" cy="20" r="1.3" fill="currentColor" stroke="none"/><path d="M2 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.5a2 2 0 0 0 2-1.6L21 7H6"/></svg>',
+  card: '<svg class="icon-svg" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19"/></svg>',
+  logout: '<svg class="icon-svg" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>',
+  refresh: '<svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>',
+  plus: '<svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  edit: '<svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+  trash: '<svg class="icon-svg" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z"/><path d="M10 11v6M14 11v6"/></svg>',
+  key: '<svg class="icon-svg" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.8 12.2 20 3M17 6l3 3M14 9l2.5 2.5"/></svg>',
+  close: '<svg class="icon-svg" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  shield: '<svg viewBox="0 0 24 24" style="width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 2 4 5v6c0 5 3.4 8.9 8 10 4.6-1.1 8-5 8-10V5l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>',
+  menu: '<svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+  flask: '<svg class="icon-svg" viewBox="0 0 24 24"><path d="M9 2v6.5L4.2 18a2 2 0 0 0 1.8 3h12a2 2 0 0 0 1.8-3L15 8.5V2"/><path d="M8 2h8M7.5 14h9"/></svg>',
+  chat: '<svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H6l-3 3 .8-4A8 8 0 1 1 21 12Z"/></svg>',
+  check: '<svg class="icon-svg" viewBox="0 0 24 24" style="stroke:#10b981"><path d="M20 6 9 17l-5-5"/></svg>',
+};
+
+
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -748,8 +1024,19 @@ function showPage(name) {
   if (name === 'charge-requests') loadChargeRequests();
   if (name === 'panel-orders') loadPanelOrders();
   event.currentTarget.classList.add('active');
-  const loaders = { dashboard: loadDashboard, resellers: loadResellers, clients: loadClients, inbounds: loadInbounds, transactions: loadTransactions, plans: loadPlans, settings: loadSettings };
+  const loaders = { dashboard: loadDashboard, resellers: loadResellers, clients: loadClients, inbounds: loadInbounds, transactions: loadTransactions, plans: loadPlans, settings: loadSettings, servers: loadServers, voice: loadSettings };
   if (loaders[name]) loaders[name]();
+  toggleSidebar(false); // موبایل: بعد از انتخاب صفحه، منو بسته شود
+}
+
+// منوی کشویی موبایل — سایدبار دسکتاپ روی موبایل به‌جای display:none،
+// از راست به داخل صفحه اسلاید می‌شود (drawer)
+function toggleSidebar(force) {
+  const sb = document.querySelector('.sidebar');
+  const ov = document.getElementById('sidebar-overlay');
+  const open = force !== undefined ? force : !sb.classList.contains('open');
+  sb.classList.toggle('open', open);
+  ov.classList.toggle('open', open);
 }
 
 // ── API helpers ───────────────────────────────
@@ -844,6 +1131,71 @@ async function saveSettings(keys) {
   loadSettings();
 }
 
+// ── بک‌آپ و بازیابی ──────────────────────────────
+// ── سرورها (چند-کشوره) ──
+var _servers = [];
+async function loadServers() {
+  const r = await get('/admin/servers'); if (!r || !r.success) return;
+  _servers = r.data;
+  const tb = document.getElementById('servers-tbody');
+  if (!r.data.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:24px">سروری نیست — «افزودن سرور» را بزن</td></tr>'; return; }
+  tb.innerHTML = r.data.map(function (s) {
+    var doms = (s.domains || '').split(',').filter(Boolean).length;
+    var ips = s.clean_ips ? '<span style="direction:ltr;font-size:.7rem">' + s.clean_ips + '</span>' : '<span style="color:var(--text-dim)">—</span>';
+    return '<tr><td>' + s.id + '</td><td>' + (s.flag || '') + ' ' + s.name + '</td><td>' + doms + ' دامنه</td><td>' + ips + '</td><td><span class="dot ' + (s.active ? 'on' : 'off') + '"></span></td>' +
+      '<td><div style="display:flex;gap:6px">' +
+      '<button class="icon-btn" title="اسکنرِ مک/لینوکس" onclick="downloadScanner(' + s.id + ',&quot;unix&quot;)"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></button>' +
+      '<button class="icon-btn" title="اسکنرِ ویندوز" onclick="downloadScanner(' + s.id + ',&quot;win&quot;)"><svg viewBox="0 0 24 24"><path d="M3 5.5 10 4.5v7H3zM12 4.2 21 3v8h-9zM3 12.5h7v7L3 18.5zM12 12.5h9v8l-9-1.2z"/></svg></button>' +
+      '<button class="icon-btn" title="ویرایش" onclick="editServer(' + s.id + ')"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>' +
+      '<button class="icon-btn" title="حذف" style="color:var(--danger);border-color:var(--danger)" onclick="deleteServer(' + s.id + ')"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>' +
+      '</div></td></tr>';
+  }).join('');
+}
+function sfSet(k, val) { var el = document.getElementById('sf-' + k); if (el) el.value = (val == null ? '' : val); }
+function newServer() { ['id', 'name', 'flag', 'xui_url', 'xui_api_key', 'domains', 'clean_ips', 'inbound_ids'].forEach(function (k) { sfSet(k, ''); }); sfSet('tunnel_path', '/fml9vgwfwc'); document.getElementById('sf-title').textContent = 'سرور جدید'; document.getElementById('server-form').style.display = 'block'; }
+function editServer(id) { var s = _servers.find(function (x) { return x.id === id; }); if (!s) return; ['id', 'name', 'flag', 'xui_url', 'xui_api_key', 'domains', 'clean_ips', 'tunnel_path', 'inbound_ids'].forEach(function (k) { sfSet(k, s[k]); }); document.getElementById('sf-title').textContent = 'ویرایش سرور'; document.getElementById('server-form').style.display = 'block'; }
+async function saveServer() {
+  function g(k) { var el = document.getElementById('sf-' + k); return el ? el.value.trim() : ''; }
+  var b = { name: g('name'), flag: g('flag'), xui_url: g('xui_url'), xui_api_key: g('xui_api_key'), domains: g('domains'), clean_ips: g('clean_ips'), tunnel_path: g('tunnel_path'), inbound_ids: g('inbound_ids') };
+  if (!b.name || !b.xui_url || !b.xui_api_key) return toast('نام، آدرس 3x-ui و کلید API لازم است', 'error');
+  var id = g('id');
+  var r = id ? await put('/admin/servers/' + id, b) : await post('/admin/servers', b);
+  if (r.success) { toast('ذخیره شد'); document.getElementById('server-form').style.display = 'none'; loadServers(); } else toast(r.message || 'خطا', 'error');
+}
+async function deleteServer(id) { if (!confirm('حذف این سرور؟ کاربران دیگر کانفیگش را نمی‌گیرند.')) return; var r = await del('/admin/servers/' + id); if (r.success) { toast('حذف شد'); loadServers(); } }
+async function downloadScanner(id, os) {
+  var q = os === 'win' ? '?os=win' : '';
+  var r = await fetch(API + '/admin/servers/' + id + '/scanner' + q, { headers: { Authorization: 'Bearer ' + token } });
+  if (!r.ok) { toast('خطا در دانلود', 'error'); return; }
+  var txt = await r.text();
+  var fname = 'AmirPanel-Scanner-' + id + (os === 'win' ? '.ps1' : '.command');
+  var blob = new Blob([txt], { type: 'text/plain' });
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click(); a.remove();
+  if (os === 'win') alert('دانلود شد: ' + fname + '\n\nروی ویندوز — نتِ ایران، VPN خاموش:\nراست‌کلیک روی فایل → Run with PowerShell\nیا در PowerShell:\n  powershell -ExecutionPolicy Bypass -File "' + fname + '"');
+  else alert('دانلود شد: ' + fname + '\n\nروی مک/لینوکس — نتِ ایران، VPN خاموش — در ترمینال بزن:\n  bash ~/Downloads/' + fname);
+}
+
+async function backupNow(btn) {
+  const t = btn.textContent; btn.disabled = true; btn.textContent = 'در حال بک‌آپ…';
+  try {
+    const r = await post('/admin/backup/now', {});
+    toast(r.success ? ('بک‌آپ به کانال ارسال شد ✓ ' + (r.output || '')) : (r.message || 'خطا در بک‌آپ'), r.success ? 'success' : 'error');
+  } catch (e) { toast('خطا در ارتباط', 'error'); }
+  btn.disabled = false; btn.textContent = t;
+}
+async function restoreBackup(btn) {
+  const f = document.getElementById('restore-file').files[0];
+  if (!f) return toast('اول فایلِ بک‌آپ را انتخاب کن', 'error');
+  if (!confirm('مطمئنی؟ دیتابیس و تنظیماتِ فعلی با این فایل جایگزین و سرویس‌ها ری‌استارت می‌شوند.')) return;
+  const t = btn.textContent; btn.disabled = true; btn.textContent = 'در حال بازیابی…';
+  try {
+    const b64 = await new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.onerror = rej; rd.readAsDataURL(f); });
+    const r = await post('/admin/backup/restore', { file: b64 });
+    toast(r.success ? 'بازیابی انجام شد ✓ سرویس‌ها ری‌استارت شدند' : (r.message || 'خطا در بازیابی'), r.success ? 'success' : 'error');
+  } catch (e) { toast('خطا در بازیابی', 'error'); }
+  btn.disabled = false; btn.textContent = t;
+}
+
 // ── پلن‌ها ────────────────────────────────────
 // «۰ = نامحدود» در سه جا معنی دارد: حجم، سقف کاربر، مدت.
 const PLAN_FIELDS = ['name','key','description','price','traffic_gb','max_clients',
@@ -871,9 +1223,9 @@ async function loadPlans() {
       <td><span class="badge ${p.is_active ? 'badge-active' : 'badge-inactive'}">${p.is_active ? 'فعال' : 'غیرفعال'}</span></td>
       <td>${p.resellable ? '<span class="badge badge-active">بله</span>' : '<span style="color:var(--text-dim)">خیر</span>'}</td>
       <td style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="btn btn-secondary btn-sm" onclick='editPlan(${JSON.stringify(p).replace(/'/g,"&#39;")})'>✏️</button>
+        <button class="btn btn-secondary btn-sm" onclick='editPlan(${JSON.stringify(p).replace(/'/g,"&#39;")})'>${ICON.edit}</button>
         <button class="btn btn-secondary btn-sm" onclick="togglePlan(${p.id})">${p.is_active ? '⏸' : '▶️'}</button>
-        <button class="btn btn-danger btn-sm" onclick="deletePlan(${p.id},'${esc(p.name)}')">🗑️</button>
+        <button class="btn btn-danger btn-sm" onclick="deletePlan(${p.id},'${esc(p.name)}')">${ICON.trash}</button>
       </td>
     </tr>
   `).join('');
@@ -948,9 +1300,10 @@ async function loadResellers() {
       <td>${rs.current_clients} / ${rs.max_clients}</td>
       <td><span class="badge ${rs.is_active ? 'badge-active' : 'badge-inactive'}">${rs.is_active ? 'فعال' : 'غیرفعال'}</span></td>
       <td style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="btn btn-success btn-sm" onclick="openBalance(${rs.id})">💰 شارژ</button>
-        <button class="btn btn-secondary btn-sm" onclick="editReseller(${JSON.stringify(rs).replace(/"/g,'&quot;')})">✏️</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteReseller(${rs.id},'${rs.name}')">🗑️</button>
+        <button class="btn btn-success btn-sm" onclick="openBalance(${rs.id})">${ICON.wallet} شارژ</button>
+        <button class="btn btn-secondary btn-sm" onclick="openApiToken(${rs.id},'${rs.name}')">${ICON.key} API</button>
+        <button class="btn btn-secondary btn-sm" onclick="editReseller(${JSON.stringify(rs).replace(/"/g,'&quot;')})">${ICON.edit}</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteReseller(${rs.id},'${rs.name}')">${ICON.trash}</button>
       </td>
     </tr>
   `).join('');
@@ -966,6 +1319,7 @@ function openAddReseller() {
   document.getElementById('r-expires').value = '';
   document.getElementById('r-cancreate').checked = false;
   document.getElementById('r-discount').value = 0;
+  document.getElementById('r-api-section').style.display = 'none'; // اول باید نماینده ذخیره شود تا id بگیرد
   openModal('modal-reseller');
 }
 
@@ -984,6 +1338,7 @@ function editReseller(rs) {
   document.getElementById('r-inbounds').value = inbs.join(',');
   document.getElementById('r-cancreate').checked = !!rs.can_create_panels;
   document.getElementById('r-discount').value = rs.discount_percent || 0;
+  document.getElementById('r-api-section').style.display = 'block';
   openModal('modal-reseller');
 }
 
@@ -1005,14 +1360,14 @@ async function saveReseller() {
     discount_percent: parseFloat(document.getElementById('r-discount').value) || 0,
   };
   const r = id ? await put(`/admin/resellers/${id}`, body) : await post('/admin/resellers', body);
-  if (r.success) { toast('✅ ذخیره شد'); closeModal('modal-reseller'); loadResellers(); }
+  if (r.success) { toast('ذخیره شد'); closeModal('modal-reseller'); loadResellers(); }
   else toast(r.message || 'خطا', 'error');
 }
 
 async function deleteReseller(id, name) {
   if (!confirm(`نماینده "${name}" و همه کاربرانش حذف شوند؟`)) return;
   const r = await del(`/admin/resellers/${id}`);
-  if (r.success) { toast('✅ حذف شد'); loadResellers(); }
+  if (r.success) { toast('حذف شد'); loadResellers(); }
   else toast(r.message, 'error');
 }
 
@@ -1023,12 +1378,61 @@ function openBalance(id) {
   openModal('modal-balance');
 }
 
+// ── دسترسی API بات (per reseller) ──────────────
+async function openApiToken(id, name) {
+  document.getElementById('at-reseller-id').value = id;
+  document.getElementById('api-token-title').innerHTML = ICON.key + ' دسترسی API — ' + (name || '');
+  document.getElementById('at-baseurl').value = location.origin;
+  openModal('modal-api-token');
+  const r = await get('/admin/resellers/' + id + '/api-token');
+  if (!r.success) { toast(r.message || 'خطا در دریافت وضعیت', 'error'); return; }
+  renderApiTokenBox(r.data.enabled, r.data.token);
+}
+
+function renderApiTokenBox(enabled, token) {
+  document.getElementById('at-disabled-box').style.display = enabled ? 'none' : 'block';
+  document.getElementById('at-enabled-box').style.display = enabled ? 'block' : 'none';
+  if (enabled) document.getElementById('at-token').value = token || '';
+}
+
+async function enableApiToken() {
+  const id = document.getElementById('at-reseller-id').value;
+  const r = await post('/admin/resellers/' + id + '/api-token/enable', {});
+  if (!r.success) return toast(r.message || 'خطا', 'error');
+  renderApiTokenBox(true, r.data.token);
+  toast('API فعال شد و توکن ساخته شد');
+}
+
+async function regenerateApiToken() {
+  if (!confirm('توکن قبلی از کار می‌افتد و بات باید با توکن جدید تنظیم شود. مطمئنی؟')) return;
+  const id = document.getElementById('at-reseller-id').value;
+  const r = await post('/admin/resellers/' + id + '/api-token/enable', {}); // enable دوباره = توکن جدید می‌سازد
+  if (!r.success) return toast(r.message || 'خطا', 'error');
+  renderApiTokenBox(true, r.data.token);
+  toast('توکن جدید ساخته شد');
+}
+
+async function disableApiToken() {
+  if (!confirm('دسترسی API این نماینده غیرفعال شود؟ بات دیگر جواب نمی‌گیرد.')) return;
+  const id = document.getElementById('at-reseller-id').value;
+  const r = await post('/admin/resellers/' + id + '/api-token/disable', {});
+  if (!r.success) return toast(r.message || 'خطا', 'error');
+  renderApiTokenBox(false, null);
+  toast('API غیرفعال شد');
+}
+
+function copyField(id) {
+  const el = document.getElementById(id);
+  el.select(); el.setSelectionRange(0, 99999);
+  navigator.clipboard?.writeText(el.value).then(() => toast('کپی شد')).catch(() => document.execCommand('copy'));
+}
+
 async function doAddBalance() {
   const id = document.getElementById('bal-id').value;
   const amount = parseFloat(document.getElementById('bal-amount').value);
   const description = document.getElementById('bal-desc').value;
   const r = await post(`/admin/resellers/${id}/balance`, { amount, description });
-  if (r.success) { toast('✅ کیف شارژ شد'); closeModal('modal-balance'); loadResellers(); }
+  if (r.success) { toast('کیف شارژ شد'); closeModal('modal-balance'); loadResellers(); }
   else toast(r.message, 'error');
 }
 
@@ -1195,6 +1599,34 @@ async function rejectPanelOrder(btn) {
   else toast(r.message || 'خطا', 'error');
 }
 
+</script>
+<script>
+/* افکتِ Matrix (باران کد) برای صفحهٔ لاگین + لودر — رنگ از accentِ خودِ پنل */
+(function(){
+  function rain(canvas, fade){
+    var ctx=canvas.getContext('2d'); var W,H,cols,drops;
+    var chars='ｱｲｳｴｵｶｷｸｹｺ0123456789ABCDEF<>/{}[]$#*+=@%'.split('');
+    function accent(){return (getComputedStyle(document.documentElement).getPropertyValue('--accent')||'#7C5CFC').trim();}
+    function size(){var r=canvas.getBoundingClientRect();W=canvas.width=Math.max(1,r.width||innerWidth);H=canvas.height=Math.max(1,r.height||innerHeight);cols=Math.max(1,Math.floor(W/14));drops=[];for(var i=0;i<cols;i++)drops[i]=Math.random()*H/14;}
+    size(); addEventListener('resize',size);
+    var col=accent();
+    return setInterval(function(){
+      ctx.fillStyle=fade||'rgba(5,6,10,0.09)'; ctx.fillRect(0,0,W,H);
+      ctx.font='14px monospace';
+      for(var i=0;i<drops.length;i++){
+        var t=chars[Math.floor(Math.random()*chars.length)], y=drops[i]*14;
+        ctx.fillStyle=(Math.random()>0.98)?'#ffffff':col;
+        ctx.fillText(t,i*14,y);
+        if(y>H && Math.random()>0.975) drops[i]=0;
+        drops[i]++;
+      }
+    },55);
+  }
+  var lc=document.getElementById('mx-canvas'); if(lc) rain(lc);
+  var ll=document.getElementById('mxl-canvas'); if(ll) rain(ll,'rgba(5,6,10,0.12)');
+  function hideLoader(){var l=document.getElementById('mx-loader'); if(l){setTimeout(function(){l.classList.add('hide'); setTimeout(function(){l.style.display='none';},600);},1000);}}
+  if(document.readyState==='complete') hideLoader(); else addEventListener('load',hideLoader);
+})();
 </script>
 </body>
 </html>
