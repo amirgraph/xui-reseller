@@ -49,6 +49,18 @@ const nums = ['۱','۲','۳','۴','۵','۶','۷','۸','۹','۱۰'];
 let inboundCache = null;
 let inboundCacheTime = 0;
 
+// ── «حالتِ ضدفیلترِ پیشرفته» (PattNG) ──
+// مقادیرِ fragment(finalMask)/cipherSuites از کانالِ PattNG. این‌ها فقط در
+// PattNG اثر دارند (fp=unsafe) و روی کانفیگِ Cloudflare هم «محدودیتِ آپلود» و
+// هم «فیلترِ دامنه» را رد می‌کنند. کانفیگِ عادی برای بقیهٔ اپ‌ها دست‌نخورده می‌ماند.
+const ANTIFILTER_FM = '{"tcp": [{"type": "fragment", "settings": {"packets": "tlshello", "lengths": ["5","94", "1"], "delays": ["0"], "maxSplit": "0"}},{"type": "fragment", "settings": {"packets": "1-1", "lengths": ["109", "1"], "delays": ["1"], "maxSplit": "355"}}]}';
+const ANTIFILTER_CS = 'TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256:TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256:TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA:TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256:TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256';
+// توگلِ ادمین: نسخهٔ «⚡ ضدفیلتر» به ساب اضافه شود؟ (settings.antifilter_extra)
+function antifilterOn() {
+  try { const r = getDB().prepare("SELECT value FROM settings WHERE key='antifilter_extra'").get(); return !!(r && r.value === '1'); }
+  catch { return false; }
+}
+
 async function buildLinks(uuid, label) {
   const e = encodeURIComponent;
   const links = [];
@@ -67,24 +79,32 @@ async function buildLinks(uuid, label) {
       tunnel_path: CDN_PATH,
     }];
   }
+  const afOn = antifilterOn();
   for (const srv of servers) {
     const subs = String(srv.domains || '').split(',').map((s) => s.trim()).filter(Boolean);
     const addrs = String(srv.clean_ips || '').split(',').map((s) => s.trim()).filter(Boolean);
     const tpath = srv.tunnel_path || CDN_PATH;
     const tag = (srv.flag ? srv.flag + ' ' : '') + (srv.name || baseLabel);
-    // تعدادِ کانفیگ = تعدادِ IP تمیز (نه دامنه) تا اگر اسکنر IP اضافه (زاپاس) داد،
-    // همه به‌صورتِ کانفیگِ جدا در ساب بیایند. IPهای بیش از تعدادِ دامنه =
-    // کانفیگِ «⚡ ضدفیلتر» (زاپاس روی IP تمیزِ متفاوت). اگر IP نبود → روی دامنه.
+    // یک کانفیگ به ازای هر IP تمیز (اگر IP بیش از دامنه بود، دامنه‌ها cycle می‌شوند).
     const nSubs = subs.length || 1;
     const total = Math.max(subs.length, addrs.length) || 0;
+    // ── کانفیگ‌های عادی (همهٔ اپ‌ها) ──
     for (let i = 0; i < total; i++) {
       const h = subs[i % nSubs];
       const addr = addrs.length ? addrs[i % addrs.length] : h;
-      const extra = i >= subs.length;                       // IP زاپاس (فراتر از تعدادِ دامنه)
-      const label = extra ? `⚡ ضدفیلتر - ${i - subs.length + 1}` : `${tag} - ${i + 1}`;
       links.push(
-        `vless://${uuid}@${addr}:443?encryption=none&security=tls&sni=${e(h)}&fp=chrome&alpn=${e('h2,http/1.1')}&type=xhttp&host=${e(h)}&path=${e(tpath)}&mode=auto&extra=${e('{"xPaddingBytes":"100-1000"}')}#${e(label)}`
+        `vless://${uuid}@${addr}:443?encryption=none&security=tls&sni=${e(h)}&fp=chrome&alpn=${e('h2,http/1.1')}&type=xhttp&host=${e(h)}&path=${e(tpath)}&mode=auto&extra=${e('{"xPaddingBytes":"100-1000"}')}#${e(tag + ' - ' + (i + 1))}`
       );
+    }
+    // ── نسخهٔ «⚡ ضدفیلتر» (فرگمنت/PattNG) — وقتی توگل روشن است، دوقلوی هر کانفیگ ──
+    if (afOn) {
+      for (let i = 0; i < total; i++) {
+        const h = subs[i % nSubs];
+        const addr = addrs.length ? addrs[i % addrs.length] : h;
+        links.push(
+          `vless://${uuid}@${addr}:443?encryption=none&security=tls&sni=${e(h)}&fp=unsafe&alpn=${e('http/1.1')}&type=xhttp&host=${e(h)}&path=${e(tpath)}&mode=auto&fm=${e(ANTIFILTER_FM)}&cs=${e(ANTIFILTER_CS)}&extra=${e('{"xPaddingBytes":"100-1000"}')}&insecure=0&allowInsecure=0#${e('⚡ ضدفیلتر - ' + (i + 1))}`
+        );
+      }
     }
   }
   return links;

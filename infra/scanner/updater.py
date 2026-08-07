@@ -6,34 +6,19 @@ BASE = "/root/v2pn-cleanip"
 ENVF = "/opt/xui-reseller/.env"
 LOG = "/var/log/v2pn-cleanip-changes.log"
 
-def _extra_on():
-    # توگلِ «کانفیگِ اضافهٔ ضدفیلتر» در جدولِ settingsِ دیتابیسِ رزلر.
-    # روشن → دو برابرِ دامنه IP تمیز نگه می‌داریم (۳ عادی + ۳ زاپاس).
-    try:
-        import sqlite3
-        db = os.path.join(os.path.dirname(ENVF), "data", "reseller.db")
-        con = sqlite3.connect(db)
-        r = con.execute("SELECT value FROM settings WHERE key='antifilter_extra'").fetchone()
-        con.close()
-        return bool(r and str(r[0]) == "1")
-    except Exception:
-        return False
-
 def _need():
     # تعداد IP تمیز = تعداد ساب‌دامنه‌ها (AMIRPANEL_SUBS)؛ هر دامنه یک IP اختصاصی.
     # اگر ادمین دامنه اضافه/کم کند، خودکار همان‌قدر IP نگه می‌داریم. حداقل ۱.
-    base = 3
     try:
         # سازگاریِ عقب‌رو: نصب‌های قدیمی هنوز NAHAN_SUBS دارند
         for l in open(ENVF).read().splitlines():
             if l.startswith("AMIRPANEL_SUBS=") or l.startswith("NAHAN_SUBS="):
-                base = max(1, len([x for x in l.split("=", 1)[1].split(",") if x.strip()]))
-                break
+                return max(1, len([x for x in l.split("=", 1)[1].split(",") if x.strip()]))
     except Exception:
         pass
-    return base * 2 if _extra_on() else base
+    return 3
 
-N = _need()  # تعداد IP تمیز (پویا = تعداد دامنه‌ها؛ اگر توگلِ زاپاس روشن باشد ×۲)
+N = _need()  # تعداد IP تمیز برای امیرپنل (پویا = تعداد دامنه‌ها)
 
 def log(msg):
     with open(LOG, "a") as f:

@@ -561,13 +561,6 @@ router.get('/servers/:id/scanner', adminAuth, (req, res) => {
   if (!row) return res.status(404).send('not found');
   const panelBase = (process.env.SUB_BASE_URL || 'https://panelsub.irsna.top/sub').replace(/\/sub.*$/, '');
   const nDomains = String(row.domains || '').split(',').filter(Boolean).length || 3;
-  // حالتِ «کانفیگِ اضافهٔ ضدفیلتر» روشن باشد → دو برابرِ دامنه IP تمیز اسکن کن
-  // (۳ عادی + ۳ زاپاس). خاموش → همان تعدادِ دامنه.
-  const advExtra = (() => {
-    try { const r = getDB().prepare("SELECT value FROM settings WHERE key='antifilter_extra'").get(); return !!(r && r.value === '1'); }
-    catch { return false; }
-  })();
-  const topN = advExtra ? nDomains * 2 : nDomains;
   const applyUrl = panelBase + '/sub/apply-cleanip';
   const os = String(req.query.os || 'unix').toLowerCase();
 
@@ -575,7 +568,7 @@ router.get('/servers/:id/scanner', adminAuth, (req, res) => {
   if (os === 'win') {
     const ps = `# AMIR PANEL - Clean IP Scanner - ${row.name}  (Windows / PowerShell)
 $ErrorActionPreference='SilentlyContinue'
-$SID=${row.id}; $TOKEN='${row.scan_token}'; $APPLY='${applyUrl}'; $TOPN=${topN}
+$SID=${row.id}; $TOKEN='${row.scan_token}'; $APPLY='${applyUrl}'; $TOPN=${nDomains}
 Write-Host ''
 Write-Host '  +======================================+' -ForegroundColor Magenta
 Write-Host '  |          A M I R   P A N E L         |' -ForegroundColor Magenta
@@ -611,7 +604,7 @@ Read-Host 'Press Enter to close'
 # AMIR PANEL - Clean IP Scanner - ${row.name}
 set -uo pipefail
 G='\\033[1;92m'; C='\\033[1;96m'; R='\\033[1;91m'; M='\\033[1;95m'; D='\\033[0;90m'; N='\\033[0m'
-SERVER_ID=${row.id}; TOKEN="${row.scan_token}"; APPLY_URL="${applyUrl}"; TOP_N=${topN}
+SERVER_ID=${row.id}; TOKEN="${row.scan_token}"; APPLY_URL="${applyUrl}"; TOP_N=${nDomains}
 clear 2>/dev/null || true
 echo -e "\${M}  ╔══════════════════════════════════════╗"
 echo -e "  ║          A M I R   P A N E L         ║"
