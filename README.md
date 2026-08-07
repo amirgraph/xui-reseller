@@ -98,6 +98,8 @@ flowchart TB
 
 **سه لایه، سه نقطهٔ شکستِ مستقل:** SNI پشتِ Cloudflare پنهان است · IP مقصد یک IP تمیزِ کلادفلر است (نه IP سرور) · خروجی از WARP می‌رود تا IP واقعیِ سرور لو نرود. **چندسروره:** ساب‌لینک از همهٔ سرورهای فعال ساخته می‌شود و اسکنرِ هر سرور IPهای تمیزِ خودش را جدا نگه می‌دارد.
 
+**لایهٔ چهارم (اختیاری، سمتِ کلاینت):** توگلِ **⚡ ضدفیلتر** یک دوقلوی fragment/PattNG از هر کانفیگ می‌سازد که در خودِ ساب‌لینک (`fm`+`fp=unsafe`+`cs`) جاسازی می‌شود → روی نت‌های پرمحدودیت هم آپلود و هم فیلترِ دامنه را رد می‌کند. جزئیات پایین‌تر در بخشِ «⚡ کانفیگِ ضدفیلتر».
+
 ---
 
 <a id="fa"></a>
@@ -118,6 +120,7 @@ flowchart TB
 | | |
 |---|---|
 | 🛡️ **ضدفیلترِ چندلایه** | تونلِ **xhttp** پشتِ **Cloudflare** با ساب‌دامینِ تصادفی · خروجی از **WARP** · **اسکنرِ IP تمیز** خودکار |
+| ⚡ **کانفیگِ ضدفیلتر (PattNG)** | با یک توگل، دوقلوی **fragment + fp=unsafe + cipherSuites** روی هر کانفیگ → ردِ **throttle آپلود** و **فیلترِ دامنه** بدونِ تنظیمِ دستی |
 | 🌍 **چندکشوره** | چند سرورِ 3x-ui در یک پنل؛ **هر تعداد دامنه → همان‌تعداد کانفیگ و همان‌تعداد IP اسکن** |
 | 💼 **آمادهٔ کسب‌وکار** | پنلِ نماینده با برندینگ · رباتِ تلگرام · قیمت‌گذاریِ کامل · کارت‌به‌کارت و **کریپتو (Plisio)** |
 | 💾 **بکاپِ خودکار** | هر شب به کانالِ تلگرام + بکاپ/بازیابیِ لحظه‌ای از پنل (WAL-safe) |
@@ -157,6 +160,25 @@ curl -fsSL https://raw.githubusercontent.com/amirgraph/xui-reseller/main/scripts
 **اسکنرِ IP این نود از کجا می‌آید؟** 👈 از **خودِ پنلِ اصلی**: بعد از افزودنِ سرور، در **سرورها → دکمهٔ دانلودِ اسکنر**، اسکریپتِ مخصوصِ همان نود (با `server_id` و `token` و آدرسِ پنل درونش) را بگیر و روی نود (یا هر جا) اجرا/cron کن. خودش IPهای تمیز را پیدا و مستقیم به پنلِ اصلی feed می‌کند (endpoint: `/sub/apply-cleanip`). ویندوز و لینوکس/مک هر دو نسخه دارند.
 
 **افزودنِ دامنه:** فیلدِ `domains` هر سرور کاما-جداست و **هر تعداد** می‌پذیرد → به ازای هر دامنه یک کانفیگ و به همان تعداد IP تمیز. بلاکِ ۴۴۳ روی `default_server` است، پس هر ساب‌دامینِ جدیدی که DNSش را به سرور بزنی بدونِ دستکاریِ nginx کار می‌کند.
+
+### ⚡ کانفیگِ «ضدفیلتر» (فرگمنت / PattNG)
+
+روی نت‌های با **محدودیتِ شدید**، دو مشکل هست که کانفیگِ معمولی حلشان نمی‌کند: **کندیِ آپلود** (throttle) و **فیلترِ دامنه** (DPI روی SNI). راهِ کلاسیک SNI-spoofing است، ولی ترکیبِ **fragment + fingerprint + cipherSuites** همان کار را ساده‌تر می‌کند.
+
+**توگل:** پنلِ ادمین → **سرورها** → «کانفیگِ ⚡ ضدفیلتر (فرگمنت / PattNG) فعال باشد».
+
+**وقتی روشن باشد**، به‌ازای هر کانفیگِ عادی، یک **دوقلوی «⚡ ضدفیلتر»** هم به ساب اضافه می‌شود که این‌ها را درونِ خودش دارد (بدونِ هیچ تنظیمِ دستیِ کاربر):
+
+| پارامتر | مقدار | نقش |
+|---|---|---|
+| `fp` | `unsafe` | فینگرپرینتِ TLS مخصوصِ PattNG |
+| `fm` | *finalMask* — دو مرحله fragment (`tlshello` + `1-1`) | ClientHello/SNI را می‌شکند → DPI نمی‌خواند + آپلود باز می‌شود |
+| `cs` | لیستِ کاملِ cipherSuites | دست‌دهیِ TLS طبیعی/ضدِتشخیص |
+| `alpn` | `http/1.1` | (کانفیگِ عادی `h2,http/1.1` دارد) |
+
+**معماری:** این تنظیمات **سمتِ کلاینت**اند و مکملِ زیرساختِ سرور (XHTTP + Cloudflare + IP تمیز). مولدِ ساب (`app/src/routes/sub.js`) دوقلوها را روی **همان IP تمیز/دامنه/مسیرِ** کانفیگِ عادی می‌سازد؛ مقادیرِ `fm`/`cs` ثابت و در همان فایل‌اند (منبع: کانالِ [PattNG](https://t.me/patt_channel_x)).
+
+**⚠️ مهم:** کانفیگِ «⚡ ضدفیلتر» **فقط در اپِ [PattNG](https://github.com/patterniha/PattNG)** کار می‌کند (`fp=unsafe` استانداردِ vless نیست). کانفیگ‌های عادی (`fp=chrome`) برای بقیهٔ اپ‌ها (v2rayNG/هیدیفای/…) سرِ جای‌شان می‌مانند. کاربر فقط PattNG را نصب و ساب را رفرش می‌کند — بقیه خودکار است.
 
 ### ⚙️ بعد از نصب
 
@@ -208,6 +230,7 @@ pm2 logs xui-reseller            # لاگِ پنل
 ### Features
 
 - 🛡️ **Multi-layer evasion** — `xhttp` tunnel behind **Cloudflare** with random subdomains, **WARP** egress (hides origin IP), and an **auto clean-IP scanner**.
+- ⚡ **Anti-filter configs (PattNG)** — one toggle adds a **fragment + fp=unsafe + cipherSuites** twin of every config → beats **upload throttling** and **domain filtering** with zero manual setup.
 - 🌍 **Multi-server** — attach several 3x-ui panels to one dashboard. **Add any number of domains → that many configs and that many scanned IPs**, automatically.
 - 💼 **Business-ready** — branded reseller panel, Telegram bot for sales/top-ups, full pricing, card + **crypto (Plisio)** payments.
 - 💾 **Automatic backups** — nightly to a Telegram channel + on-demand backup/restore from the admin panel (WAL-safe).
@@ -233,6 +256,16 @@ The installer asks for an **install mode**: **Full panel** (panel + bot + sales)
 **Where does the node's IP scanner come from?** 👉 from the **main panel** itself: after adding the server, hit **Servers → Download scanner** to get a per-server script (with its `server_id`, `token` and panel URL baked in). Run/cron it on the node — it finds clean IPs and feeds them straight back to the panel (`/sub/apply-cleanip`). Windows and Linux/macOS versions included.
 
 **Adding domains:** a server's comma-separated `domains` accepts **any number** — one config per domain, and the scanner keeps that many clean IPs. nginx is `default_server`, so any new subdomain just works once DNS points at the server.
+
+### ⚡ "Anti-filter" configs (fragment / PattNG)
+
+On **heavily throttled** networks two problems survive a normal config: **upload throttling** and **SNI-based domain filtering**. Instead of SNI-spoofing, a **fragment + fingerprint + cipherSuites** combo does the same job.
+
+**Toggle:** Admin panel → **Servers** → "Enable ⚡ anti-filter (fragment / PattNG) configs".
+
+When on, each normal config gets an **⚡ anti-filter twin** in the subscription carrying — with zero manual setup — `fp=unsafe`, `fm=` (a two-stage *finalMask* fragment that splits the TLS ClientHello so DPI can't read the SNI and upload isn't throttled), and `cs=` (a full cipher-suite list for a natural TLS handshake). These are **client-side** settings that complement the server stack (XHTTP + Cloudflare + clean IP); the sub generator (`app/src/routes/sub.js`) builds the twins on the **same clean IP / domain / path**, with the `fm`/`cs` values fixed in that file (source: the [PattNG](https://t.me/patt_channel_x) channel).
+
+**⚠️ The ⚡ configs work only in the [PattNG](https://github.com/patterniha/PattNG) app** (`fp=unsafe` isn't standard vless); the normal `fp=chrome` configs stay for every other client. Users just install PattNG and refresh the sub — everything else is automatic.
 
 ### Tech stack
 
