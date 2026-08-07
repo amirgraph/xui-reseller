@@ -291,7 +291,7 @@ router.get('/settings', adminAuth, (req, res) => {
 // پر کند و کدی که با پیش‌فرض کار می‌کند را گیج کند.
 const NUMERIC_SETTINGS = ['panel_price','panel_traffic_gb','panel_price_per_gb','panel_max_clients',
                           'unlimited_price','test_traffic_gb','test_days','test_max_clients'];
-const BOOL_SETTINGS = ['unlimited_enabled','test_enabled','voice_enabled'];
+const BOOL_SETTINGS = ['unlimited_enabled','test_enabled','voice_enabled','antifilter_extra'];
 const TEXT_SETTINGS = ['charge_card_number','charge_card_owner','charge_amounts',
                        'bot_welcome','bot_help','bot_support'];
 // متنِ ربات می‌تواند چندخطی و خالی باشد (خالی = پیش‌فرضِ کد)
@@ -561,6 +561,13 @@ router.get('/servers/:id/scanner', adminAuth, (req, res) => {
   if (!row) return res.status(404).send('not found');
   const panelBase = (process.env.SUB_BASE_URL || 'https://panelsub.irsna.top/sub').replace(/\/sub.*$/, '');
   const nDomains = String(row.domains || '').split(',').filter(Boolean).length || 3;
+  // حالتِ «کانفیگِ اضافهٔ ضدفیلتر» روشن باشد → دو برابرِ دامنه IP تمیز اسکن کن
+  // (۳ عادی + ۳ زاپاس). خاموش → همان تعدادِ دامنه.
+  const advExtra = (() => {
+    try { const r = getDB().prepare("SELECT value FROM settings WHERE key='antifilter_extra'").get(); return !!(r && r.value === '1'); }
+    catch { return false; }
+  })();
+  const topN = advExtra ? nDomains * 2 : nDomains;
   const applyUrl = panelBase + '/sub/apply-cleanip';
   const os = String(req.query.os || 'unix').toLowerCase();
 
@@ -568,7 +575,7 @@ router.get('/servers/:id/scanner', adminAuth, (req, res) => {
   if (os === 'win') {
     const ps = `# AMIR PANEL - Clean IP Scanner - ${row.name}  (Windows / PowerShell)
 $ErrorActionPreference='SilentlyContinue'
-$SID=${row.id}; $TOKEN='${row.scan_token}'; $APPLY='${applyUrl}'; $TOPN=${nDomains}
+$SID=${row.id}; $TOKEN='${row.scan_token}'; $APPLY='${applyUrl}'; $TOPN=${topN}
 Write-Host ''
 Write-Host '  +======================================+' -ForegroundColor Magenta
 Write-Host '  |          A M I R   P A N E L         |' -ForegroundColor Magenta
@@ -604,7 +611,7 @@ Read-Host 'Press Enter to close'
 # AMIR PANEL - Clean IP Scanner - ${row.name}
 set -uo pipefail
 G='\\033[1;92m'; C='\\033[1;96m'; R='\\033[1;91m'; M='\\033[1;95m'; D='\\033[0;90m'; N='\\033[0m'
-SERVER_ID=${row.id}; TOKEN="${row.scan_token}"; APPLY_URL="${applyUrl}"; TOP_N=${nDomains}
+SERVER_ID=${row.id}; TOKEN="${row.scan_token}"; APPLY_URL="${applyUrl}"; TOP_N=${topN}
 clear 2>/dev/null || true
 echo -e "\${M}  ╔══════════════════════════════════════╗"
 echo -e "  ║          A M I R   P A N E L         ║"

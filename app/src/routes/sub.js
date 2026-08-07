@@ -71,11 +71,18 @@ async function buildLinks(uuid, label) {
     const addrs = String(srv.clean_ips || '').split(',').map((s) => s.trim()).filter(Boolean);
     const tpath = srv.tunnel_path || CDN_PATH;
     const tag = (srv.flag ? srv.flag + ' ' : '') + (srv.name || baseLabel);
-    for (let i = 0; i < subs.length; i++) {
-      const h = subs[i];
-      const addr = addrs[i % (addrs.length || 1)] || h;
+    // تعدادِ کانفیگ = تعدادِ IP تمیز (نه دامنه) تا اگر اسکنر IP اضافه (زاپاس) داد،
+    // همه به‌صورتِ کانفیگِ جدا در ساب بیایند. IPهای بیش از تعدادِ دامنه =
+    // کانفیگِ «⚡ ضدفیلتر» (زاپاس روی IP تمیزِ متفاوت). اگر IP نبود → روی دامنه.
+    const nSubs = subs.length || 1;
+    const total = Math.max(subs.length, addrs.length) || 0;
+    for (let i = 0; i < total; i++) {
+      const h = subs[i % nSubs];
+      const addr = addrs.length ? addrs[i % addrs.length] : h;
+      const extra = i >= subs.length;                       // IP زاپاس (فراتر از تعدادِ دامنه)
+      const label = extra ? `⚡ ضدفیلتر - ${i - subs.length + 1}` : `${tag} - ${i + 1}`;
       links.push(
-        `vless://${uuid}@${addr}:443?encryption=none&security=tls&sni=${e(h)}&fp=chrome&alpn=${e('h2,http/1.1')}&type=xhttp&host=${e(h)}&path=${e(tpath)}&mode=auto&extra=${e('{"xPaddingBytes":"100-1000"}')}#${e(tag + ' - ' + (i + 1))}`
+        `vless://${uuid}@${addr}:443?encryption=none&security=tls&sni=${e(h)}&fp=chrome&alpn=${e('h2,http/1.1')}&type=xhttp&host=${e(h)}&path=${e(tpath)}&mode=auto&extra=${e('{"xPaddingBytes":"100-1000"}')}#${e(label)}`
       );
     }
   }

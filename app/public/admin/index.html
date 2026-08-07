@@ -597,6 +597,19 @@
           <b>IPِ تمیزِ سرورهای دیگر از کجا می‌آید؟</b> هر سرور دکمهٔ اسکنرِ <u>مخصوصِ خودش</u> را دارد؛ برای هر کشور، اسکنرش را جدا دانلود و اجرا کن تا IPهای همان سرور به‌روز شوند.
         </p>
       </div>
+
+      <!-- توگلِ کانفیگِ اضافهٔ ضدفیلتر (زاپاس) -->
+      <div class="table-wrap" style="padding:18px;margin-bottom:16px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="s-antifilter_extra" style="width:auto"> کانفیگِ اضافهٔ ضدفیلتر (زاپاس) فعال باشد
+        </label>
+        <p style="color:var(--text-dim);font-size:.8rem;line-height:1.9;margin:6px 0 12px">
+          روشن شود → اسکنر <b>دو برابر</b> IP تمیز پیدا می‌کند و در ساب علاوه بر کانفیگ‌های عادی، به همان تعداد کانفیگِ <b>«⚡ ضدفیلتر»</b> روی IPهای تمیزِ متفاوت اضافه می‌شود. این‌ها <b>زاپاس</b>اند: وقتی چند IP سوخت، کاربر بدونِ اسکنِ فوری روی بقیه سوییچ می‌کند.<br>
+          <span style="color:var(--text-muted)">توجه: بعد از روشن‌کردن، اسکنرِ هر سرور را دوباره دانلود/اجرا کن تا IPهای اضافه پر شوند.</span>
+        </p>
+        <button class="btn btn-primary" onclick="saveSettings(['antifilter_extra'])">ذخیره</button>
+      </div>
+
       <div class="table-wrap">
         <table>
           <thead><tr><th>#</th><th>کشور</th><th>دامنه‌ها</th><th>IP‌های تمیز</th><th>وضعیت</th><th>عملیات</th></tr></thead>
@@ -1141,6 +1154,8 @@ async function saveSettings(keys) {
 // ── سرورها (چند-کشوره) ──
 var _servers = [];
 async function loadServers() {
+  // وضعیتِ توگلِ کانفیگِ اضافهٔ ضدفیلتر را هم روی همین صفحه بازتاب بده
+  try { const st = await get('/admin/settings'); if (st && st.success) { const cb = document.getElementById('s-antifilter_extra'); if (cb) cb.checked = String(st.data.antifilter_extra) === '1'; } } catch (_) {}
   const r = await get('/admin/servers'); if (!r || !r.success) return;
   _servers = r.data;
   const tb = document.getElementById('servers-tbody');
