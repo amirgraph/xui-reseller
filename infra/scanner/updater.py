@@ -24,8 +24,9 @@ def _need():
     # اگر ادمین دامنه اضافه/کم کند، خودکار همان‌قدر IP نگه می‌داریم. حداقل ۱.
     base = 3
     try:
+        # سازگاریِ عقب‌رو: نصب‌های قدیمی هنوز NAHAN_SUBS دارند
         for l in open(ENVF).read().splitlines():
-            if l.startswith("AMIRPANEL_SUBS="):
+            if l.startswith("AMIRPANEL_SUBS=") or l.startswith("NAHAN_SUBS="):
                 base = max(1, len([x for x in l.split("=", 1)[1].split(",") if x.strip()]))
                 break
     except Exception:

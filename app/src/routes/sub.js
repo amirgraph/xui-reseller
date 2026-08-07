@@ -61,8 +61,9 @@ async function buildLinks(uuid, label) {
   if (!servers.length) {
     servers = [{
       name: baseLabel, flag: '',
-      domains: process.env.AMIRPANEL_SUBS || '',
-      clean_ips: process.env.AMIRPANEL_ADDRS || '',
+      // سازگاریِ عقب‌رو: نصب‌های قدیمی هنوز NAHAN_* دارند
+      domains: process.env.AMIRPANEL_SUBS || process.env.NAHAN_SUBS || '',
+      clean_ips: process.env.AMIRPANEL_ADDRS || process.env.NAHAN_ADDRS || '',
       tunnel_path: CDN_PATH,
     }];
   }

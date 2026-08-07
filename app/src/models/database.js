@@ -328,7 +328,7 @@ async function initDB() {
       VALUES (?,?,?,?,?,?,?,?,?,1,0)`).run(
       process.env.SERVER_NAME || 'آلمان', process.env.SERVER_FLAG || '🇩🇪',
       process.env.XUI_URL, process.env.XUI_PATH || '', process.env.XUI_API_KEY || '',
-      process.env.AMIRPANEL_SUBS || '', process.env.AMIRPANEL_ADDRS || '',
+      process.env.AMIRPANEL_SUBS || process.env.NAHAN_SUBS || '', process.env.AMIRPANEL_ADDRS || process.env.NAHAN_ADDRS || '',
       process.env.CDN_XHTTP_PATH || process.env.XHTTP_PATH || '/fml9vgwfwc', tok
     );
     console.log('  ↑ server e aval az env seed shod');

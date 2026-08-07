@@ -642,4 +642,45 @@ read -rp "برای بستن Enter بزن…" _
   res.send(script);
 });
 
+// ─── بررسیِ نسخه و آپدیت ───────────────────────────────────────
+// پنل نسخهٔ محلی (package.json) را با آخرین نسخهٔ ریپو مقایسه می‌کند و اگر
+// جدیدتری بود، فرانت بنرِ «آپدیت موجود است» نشان می‌دهد. آپدیتِ واقعی با
+// اجرای `bash scripts/update.sh` روی سرور انجام می‌شود (وب هرگز خودش git/pm2
+// را root اجرا نمی‌کند — امنیت).
+const _path = require('path');
+let _verCache = { at: 0, latest: null };
+const LOCAL_VERSION = (() => {
+  try { return require(_path.join(__dirname, '..', '..', 'package.json')).version || '0.0.0'; }
+  catch { return '0.0.0'; }
+})();
+function _cmpVer(a, b) {
+  const pa = String(a).split('.').map(Number), pb = String(b).split('.').map(Number);
+  for (let i = 0; i < 3; i++) { const d = (pa[i] || 0) - (pb[i] || 0); if (d) return d > 0 ? 1 : -1; }
+  return 0;
+}
+function _fetchLatest() {
+  return new Promise((resolve) => {
+    try {
+      const https = require('https');
+      const url = 'https://raw.githubusercontent.com/amirgraph/xui-reseller/main/app/package.json';
+      const req = https.get(url, { timeout: 6000, headers: { 'User-Agent': 'amirpanel' } }, (r) => {
+        let d = ''; r.on('data', (c) => (d += c));
+        r.on('end', () => { try { resolve(JSON.parse(d).version || null); } catch { resolve(null); } });
+      });
+      req.on('error', () => resolve(null));
+      req.on('timeout', () => { req.destroy(); resolve(null); });
+    } catch { resolve(null); }
+  });
+}
+router.get('/version', adminAuth, async (req, res) => {
+  let latest = _verCache.latest;
+  if (!latest || Date.now() - _verCache.at > 3600e3) {
+    const fresh = await _fetchLatest();
+    if (fresh) { latest = fresh; _verCache = { at: Date.now(), latest: fresh }; }
+  }
+  const current = LOCAL_VERSION;
+  const updateAvailable = !!(latest && _cmpVer(latest, current) > 0);
+  res.json({ success: true, data: { current, latest: latest || current, updateAvailable } });
+});
+
 module.exports = router;

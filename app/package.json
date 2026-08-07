@@ -1,6 +1,6 @@
 {
   "name": "xui-reseller-panel",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "3X-UI Reseller Panel with Telegram Bot",
   "main": "src/server.js",
   "scripts": {
