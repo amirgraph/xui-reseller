@@ -80,10 +80,16 @@ async function buildLinks(uuid, label) {
     }];
   }
   const afOn = antifilterOn();
+  // بخشِ transport بسته به شبکهٔ سرور: xhttp (Cloudflare) یا ws (آروان/CDN)
+  const transport = (net, h, tpath) =>
+    net === 'ws'
+      ? `type=ws&host=${e(h)}&path=${e(tpath)}`
+      : `type=xhttp&host=${e(h)}&path=${e(tpath)}&mode=auto&extra=${e('{"xPaddingBytes":"100-1000"}')}`;
   for (const srv of servers) {
     const subs = String(srv.domains || '').split(',').map((s) => s.trim()).filter(Boolean);
     const addrs = String(srv.clean_ips || '').split(',').map((s) => s.trim()).filter(Boolean);
     const tpath = srv.tunnel_path || CDN_PATH;
+    const net = (srv.network || 'xhttp').trim();           // xhttp | ws
     const tag = (srv.flag ? srv.flag + ' ' : '') + (srv.name || baseLabel);
     // یک کانفیگ به ازای هر IP تمیز (اگر IP بیش از دامنه بود، دامنه‌ها cycle می‌شوند).
     const nSubs = subs.length || 1;
@@ -93,7 +99,7 @@ async function buildLinks(uuid, label) {
       const h = subs[i % nSubs];
       const addr = addrs.length ? addrs[i % addrs.length] : h;
       links.push(
-        `vless://${uuid}@${addr}:443?encryption=none&security=tls&sni=${e(h)}&fp=chrome&alpn=${e('h2,http/1.1')}&type=xhttp&host=${e(h)}&path=${e(tpath)}&mode=auto&extra=${e('{"xPaddingBytes":"100-1000"}')}#${e(tag + ' - ' + (i + 1))}`
+        `vless://${uuid}@${addr}:443?encryption=none&security=tls&sni=${e(h)}&fp=chrome&alpn=${e(net === 'ws' ? 'http/1.1' : 'h2,http/1.1')}&${transport(net, h, tpath)}#${e(tag + ' - ' + (i + 1))}`
       );
     }
     // ── نسخهٔ «⚡ ضدفیلتر» (فرگمنت/PattNG) — وقتی توگل روشن است، دوقلوی هر کانفیگ ──
@@ -102,7 +108,7 @@ async function buildLinks(uuid, label) {
         const h = subs[i % nSubs];
         const addr = addrs.length ? addrs[i % addrs.length] : h;
         links.push(
-          `vless://${uuid}@${addr}:443?encryption=none&security=tls&sni=${e(h)}&fp=unsafe&alpn=${e('http/1.1')}&type=xhttp&host=${e(h)}&path=${e(tpath)}&mode=auto&fm=${e(ANTIFILTER_FM)}&cs=${e(ANTIFILTER_CS)}&extra=${e('{"xPaddingBytes":"100-1000"}')}&insecure=0&allowInsecure=0#${e('⚡ ضدفیلتر - ' + (i + 1))}`
+          `vless://${uuid}@${addr}:443?encryption=none&security=tls&sni=${e(h)}&fp=unsafe&alpn=${e('http/1.1')}&${transport(net, h, tpath)}&fm=${e(ANTIFILTER_FM)}&cs=${e(ANTIFILTER_CS)}&insecure=0&allowInsecure=0#${e('⚡ ضدفیلتر - ' + (i + 1))}`
         );
       }
     }

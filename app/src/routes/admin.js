@@ -527,11 +527,11 @@ router.post('/servers', adminAuth, (req, res) => {
     return res.status(400).json({ success: false, message: 'نام، آدرسِ 3x-ui و کلیدِ API لازم است' });
   const tok = crypto.randomBytes(16).toString('hex');
   const info = getDB().prepare(`INSERT INTO servers
-    (name,flag,xui_url,xui_path,xui_api_key,domains,clean_ips,tunnel_path,inbound_ids,scan_token,active,sort_order)
-    VALUES (@name,@flag,@xui_url,@xui_path,@xui_api_key,@domains,@clean_ips,@tunnel_path,@inbound_ids,@scan_token,1,@sort_order)`).run({
+    (name,flag,xui_url,xui_path,xui_api_key,domains,clean_ips,tunnel_path,inbound_ids,network,scan_token,active,sort_order)
+    VALUES (@name,@flag,@xui_url,@xui_path,@xui_api_key,@domains,@clean_ips,@tunnel_path,@inbound_ids,@network,@scan_token,1,@sort_order)`).run({
     name: b.name, flag: b.flag || '', xui_url: b.xui_url, xui_path: b.xui_path || '', xui_api_key: b.xui_api_key,
     domains: b.domains || '', clean_ips: b.clean_ips || '', tunnel_path: b.tunnel_path || '/fml9vgwfwc',
-    inbound_ids: b.inbound_ids || '', scan_token: tok, sort_order: Number(b.sort_order) || 0,
+    inbound_ids: b.inbound_ids || '', network: (b.network === 'ws' ? 'ws' : 'xhttp'), scan_token: tok, sort_order: Number(b.sort_order) || 0,
   });
   res.json({ success: true, id: info.lastInsertRowid });
 });
@@ -542,10 +542,11 @@ router.put('/servers/:id', adminAuth, (req, res) => {
   if (!row) return res.status(404).json({ success: false, message: 'سرور پیدا نشد' });
   const g = (k) => (b[k] == null ? row[k] : b[k]);
   db.prepare(`UPDATE servers SET name=@name,flag=@flag,xui_url=@xui_url,xui_path=@xui_path,xui_api_key=@xui_api_key,
-    domains=@domains,clean_ips=@clean_ips,tunnel_path=@tunnel_path,inbound_ids=@inbound_ids,active=@active,sort_order=@sort_order WHERE id=@id`).run({
+    domains=@domains,clean_ips=@clean_ips,tunnel_path=@tunnel_path,inbound_ids=@inbound_ids,network=@network,active=@active,sort_order=@sort_order WHERE id=@id`).run({
     id: row.id, name: g('name'), flag: g('flag'), xui_url: g('xui_url'), xui_path: g('xui_path'),
     xui_api_key: g('xui_api_key'), domains: g('domains'), clean_ips: g('clean_ips'), tunnel_path: g('tunnel_path'),
-    inbound_ids: g('inbound_ids'), active: (b.active == null ? row.active : (b.active ? 1 : 0)), sort_order: (b.sort_order == null ? row.sort_order : Number(b.sort_order)),
+    inbound_ids: g('inbound_ids'), network: (g('network') === 'ws' ? 'ws' : 'xhttp'),
+    active: (b.active == null ? row.active : (b.active ? 1 : 0)), sort_order: (b.sort_order == null ? row.sort_order : Number(b.sort_order)),
   });
   res.json({ success: true });
 });
@@ -564,6 +565,20 @@ router.get('/servers/:id/scanner', adminAuth, (req, res) => {
   const applyUrl = panelBase + '/sub/apply-cleanip';
   const os = String(req.query.os || 'unix').toLowerCase();
 
+  // اسکنر بسته به نوعِ سرور:
+  //  xhttp (Cloudflare) → رنجِ CF + speed.cloudflare.com
+  //  ws (آروان/CDN داخلی) → رنجِ آروان (185.143.232-235) + تستِ خودِ دامنه (endpoint 200)
+  const isWs = (row.network || 'xhttp') === 'ws';
+  const firstDom = (String(row.domains || '').split(',').map((s) => s.trim()).filter(Boolean)[0]) || '';
+  const scHost = isWs && firstDom ? firstDom : 'speed.cloudflare.com';
+  const scUrl = isWs && firstDom ? `https://${firstDom}/sub/voice-status` : 'https://speed.cloudflare.com/__down?bytes=3000000';
+  const candU = isWs
+    ? 'for o in 232 233 234 235; do for k in $(seq 1 20); do echo "185.143.$o.$((RANDOM%254+1))"; done; done'
+    : 'for o in 16 17 18 19 20 21 22 24 25 26 27 28; do echo "104.$o.$((RANDOM%254+1)).$((RANDOM%254+1))"; done; for o in 96 97 98 99; do echo "188.114.$o.$((RANDOM%254+1))"; done';
+  const candW = isWs
+    ? 'foreach($o in 232,233,234,235){ 1..20 | %{ $cands+="185.143.$o.$(Get-Random -Max 254)" } }'
+    : 'foreach($o in 16,17,18,19,20,21,22,24,25,26,27,28){$cands+="104.$o.$(Get-Random -Max 254).$(Get-Random -Max 254)"}; foreach($o in 96,97,98,99){$cands+="188.114.$o.$(Get-Random -Max 254)"}';
+
   // ── نسخهٔ ویندوز (PowerShell؛ از curl.exe داخلیِ Win10+ استفاده می‌کند) ──
   if (os === 'win') {
     const ps = `# AMIR PANEL - Clean IP Scanner - ${row.name}  (Windows / PowerShell)
@@ -578,10 +593,10 @@ Write-Host '  Country: ${row.name}' -ForegroundColor DarkGray
 $geo = (curl.exe -s --max-time 10 https://api.ip.sb/geoip) | ConvertFrom-Json
 if ($geo.country_code -ne 'IR') { Write-Host ('  [X] VPN is ON ('+$geo.country_code+'). Turn it OFF and rerun.') -ForegroundColor Red; Read-Host 'Enter'; exit }
 Write-Host '  [OK] Connected from Iran' -ForegroundColor Green
-$cands=@(); foreach($o in 16,17,18,19,20,21,22,24,25,26,27,28){$cands+="104.$o.$(Get-Random -Max 254).$(Get-Random -Max 254)"}; foreach($o in 96,97,98,99){$cands+="188.114.$o.$(Get-Random -Max 254)"}
+$cands=@(); ${candW}
 $res=@()
 foreach($ip in $cands){
-  $r = curl.exe -s -o NUL --resolve "speed.cloudflare.com:443:$ip" -w '%{speed_download}|%{http_code}' --max-time 8 "https://speed.cloudflare.com/__down?bytes=3000000"
+  $r = curl.exe -s -o NUL --resolve "${scHost}:443:$ip" -w '%{speed_download}|%{http_code}' --max-time 8 "${scUrl}"
   $p=$r -split '\\|'; $sp=[int]($p[0] -replace '\\..*',''); $code=$p[1]
   if($code -eq '200' -and $sp -gt 0){ $m=[math]::Round($sp*8/1000000,1); Write-Host ("  {0,-18} {1} Mbps" -f $ip,$m) -ForegroundColor Cyan; $res+=[pscustomobject]@{ip=$ip;sp=$sp} }
   else { Write-Host "  $ip  x" -ForegroundColor DarkGray }
@@ -615,10 +630,10 @@ echo -e "\${D}▸ بررسی موقعیت…\${N}"
 CC=$(curl -s --max-time 10 https://api.ip.sb/geoip 2>/dev/null | sed -n 's/.*"country_code":"\\([^"]*\\)".*/\\1/p')
 if [ "$CC" != "IR" ]; then echo -e "\${R}✗ VPN روشن است ($CC). خاموش کن و دوباره بزن.\${N}"; read -rp "Enter…" _; exit 1; fi
 echo -e "\${G}✓ از ایران وصلی\${N}\\n"
-CANDIDATES=$( { for o in 16 17 18 19 20 21 22 24 25 26 27 28; do echo "104.$o.$((RANDOM%254+1)).$((RANDOM%254+1))"; done; for o in 96 97 98 99; do echo "188.114.$o.$((RANDOM%254+1))"; done; } | sort -u)
+CANDIDATES=$( { ${candU}; } | sort -u)
 RESULTS=""
 while read -r ip; do [ -z "$ip" ] && continue
-  r=$(curl -so /dev/null --resolve "speed.cloudflare.com:443:$ip" -w '%{speed_download}|%{http_code}' --max-time 8 "https://speed.cloudflare.com/__down?bytes=3000000" 2>/dev/null)
+  r=$(curl -so /dev/null --resolve "${scHost}:443:$ip" -w '%{speed_download}|%{http_code}' --max-time 8 "${scUrl}" 2>/dev/null)
   sp=$(echo "$r"|cut -d'|' -f1|cut -d'.' -f1); code=$(echo "$r"|cut -d'|' -f2); [ -z "$sp" ]&&sp=0
   if [ "$code" = "200" ]&&[ "$sp" -gt 0 ]; then printf "  \${C}%-18s %s Mbps\${N}\\n" "$ip" "$(awk -v s=$sp 'BEGIN{printf "%.1f",s*8/1000000}')"; RESULTS="$RESULTS$sp $ip\\n"; else echo -e "  \${D}$ip ✗\${N}"; fi
 done <<< "$CANDIDATES"

@@ -277,6 +277,9 @@ async function initDB() {
   ensureColumn('resellers', 'api_token', "TEXT");
   ensureColumn('resellers', 'api_enabled', "INTEGER DEFAULT 0");
 
+  // نوعِ transport هر سرور: xhttp (Cloudflare) یا ws (آروان/CDN داخلی)
+  ensureColumn('servers', 'network', "TEXT DEFAULT 'xhttp'");
+
   // رنگِ سوم/فرعیِ ساب (قبلاً هاردکد بود، الان قابل تنظیم توسط نماینده)
   ensureColumn('resellers', 'brand_color2', "TEXT");
 

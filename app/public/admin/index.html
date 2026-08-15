@@ -640,6 +640,13 @@
         <div class="form-group"><label>دامنه‌ها (کاما-جدا — همان SNI/Host)</label><input id="sf-domains" dir="ltr" placeholder="a.example.ir,b.example.ir"></div>
         <div class="form-group"><label>IP‌های تمیز (اختیاری — با اسکنر پر می‌شود)</label><input id="sf-clean_ips" dir="ltr"></div>
         <div class="form-group"><label>مسیر تونل</label><input id="sf-tunnel_path" dir="ltr" value="/fml9vgwfwc"></div>
+        <div class="form-group"><label>نوعِ تونل (transport)</label>
+          <select id="sf-network" dir="ltr" style="width:100%">
+            <option value="xhttp">xhttp — Cloudflare (پیش‌فرض)</option>
+            <option value="ws">ws — آروان / CDN داخلی (پرسرعت، پینگ پایین)</option>
+          </select>
+          <small style="color:var(--text-dim)">برای سرورِ آروان «ws» را بزن؛ آدرس در کانفیگ = IP سفیدِ آروان، مسیر تونل = مسیرِ ws.</small>
+        </div>
         <div class="form-group"><label>اینباند(های) هدف — آیدیِ عددی، کاما-جدا (کاربران روی این‌ها ساخته می‌شوند)</label><input id="sf-inbound_ids" dir="ltr" placeholder="1,2"></div>
         <button class="btn btn-primary" onclick="saveServer()">ذخیره</button>
         <button class="btn" onclick="document.getElementById('server-form').style.display='none'">انصراف</button>
@@ -1193,11 +1200,11 @@ async function loadServers() {
   }).join('');
 }
 function sfSet(k, val) { var el = document.getElementById('sf-' + k); if (el) el.value = (val == null ? '' : val); }
-function newServer() { ['id', 'name', 'flag', 'xui_url', 'xui_api_key', 'domains', 'clean_ips', 'inbound_ids'].forEach(function (k) { sfSet(k, ''); }); sfSet('tunnel_path', '/fml9vgwfwc'); document.getElementById('sf-title').textContent = 'سرور جدید'; document.getElementById('server-form').style.display = 'block'; }
-function editServer(id) { var s = _servers.find(function (x) { return x.id === id; }); if (!s) return; ['id', 'name', 'flag', 'xui_url', 'xui_api_key', 'domains', 'clean_ips', 'tunnel_path', 'inbound_ids'].forEach(function (k) { sfSet(k, s[k]); }); document.getElementById('sf-title').textContent = 'ویرایش سرور'; document.getElementById('server-form').style.display = 'block'; }
+function newServer() { ['id', 'name', 'flag', 'xui_url', 'xui_api_key', 'domains', 'clean_ips', 'inbound_ids'].forEach(function (k) { sfSet(k, ''); }); sfSet('tunnel_path', '/fml9vgwfwc'); sfSet('network', 'xhttp'); document.getElementById('sf-title').textContent = 'سرور جدید'; document.getElementById('server-form').style.display = 'block'; }
+function editServer(id) { var s = _servers.find(function (x) { return x.id === id; }); if (!s) return; ['id', 'name', 'flag', 'xui_url', 'xui_api_key', 'domains', 'clean_ips', 'tunnel_path', 'inbound_ids', 'network'].forEach(function (k) { sfSet(k, s[k]); }); document.getElementById('sf-title').textContent = 'ویرایش سرور'; document.getElementById('server-form').style.display = 'block'; }
 async function saveServer() {
   function g(k) { var el = document.getElementById('sf-' + k); return el ? el.value.trim() : ''; }
-  var b = { name: g('name'), flag: g('flag'), xui_url: g('xui_url'), xui_api_key: g('xui_api_key'), domains: g('domains'), clean_ips: g('clean_ips'), tunnel_path: g('tunnel_path'), inbound_ids: g('inbound_ids') };
+  var b = { name: g('name'), flag: g('flag'), xui_url: g('xui_url'), xui_api_key: g('xui_api_key'), domains: g('domains'), clean_ips: g('clean_ips'), tunnel_path: g('tunnel_path'), inbound_ids: g('inbound_ids'), network: g('network') };
   if (!b.name || !b.xui_url || !b.xui_api_key) return toast('نام، آدرس 3x-ui و کلید API لازم است', 'error');
   var id = g('id');
   var r = id ? await put('/admin/servers/' + id, b) : await post('/admin/servers', b);
