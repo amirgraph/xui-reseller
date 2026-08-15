@@ -10,7 +10,9 @@ const https = require('https');
 const { v4: uuidv4 } = require('uuid');
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const ADMIN_ID = String(process.env.ADMIN_TELEGRAM_ID);
+// چند-ادمین: ADMIN_TELEGRAM_ID می‌تواند چند آیدیِ کاما-جدا باشد. اولی = ادمینِ اصلی (اعلان‌ها به آن می‌رود).
+const ADMIN_IDS = String(process.env.ADMIN_TELEGRAM_ID || '').split(',').map((s) => s.trim()).filter(Boolean);
+const ADMIN_ID = ADMIN_IDS[0] || '';
 const XUI_URL = process.env.XUI_URL;
 const XUI_PATH = process.env.XUI_PATH || '';
 const XUI_API_KEY = process.env.XUI_API_KEY;
@@ -201,7 +203,7 @@ const state = {};
 function setState(chatId, s) { state[chatId] = s; }
 function getState(chatId) { return state[chatId] || {}; }
 function clearState(chatId) { delete state[chatId]; }
-function isAdmin(chatId) { return String(chatId) === ADMIN_ID; }
+function isAdmin(chatId) { return ADMIN_IDS.includes(String(chatId)); }
 function getReseller(chatId) {
   return db.prepare('SELECT * FROM resellers WHERE telegram_id = ? AND is_active = 1').get(String(chatId));
 }
