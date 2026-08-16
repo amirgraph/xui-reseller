@@ -1329,9 +1329,12 @@ bot.on('callback_query', async function(query) {
         const gb = Number(plan.traffic_gb) || 0, days = Number(plan.duration_days) || 0;
         const expiryTime = days > 0 ? Date.now() + days * 86400000 : 0;
         const uname = 'cfg' + String(tgId).slice(-6) + Date.now().toString().slice(-4);
-        // همان uuid روی همهٔ اینباندها (auth با uuid است)؛ email باید per-inbound یکتا باشد
+        // همان uuid روی همهٔ اینباندها (auth با uuid است)؛ ولی email و subId باید
+        // per-inbound یکتا باشند وگرنه x-ui افزودن به اینباندِ دوم را رد می‌کند
+        // («subId already in use»). ساب‌لینک بر اساسِ uuid است پس subId متفاوت بی‌اثر است.
+        const subBase = uuid.replace(/-/g, '').substring(0, 12);
         for (const iid of targetIds) {
-          await addClient(iid, { id: uuid, email: uname + '_' + iid, enable: true, expiryTime: expiryTime, totalGB: gbToBytes(gb), limitIp: 2, flow: '', tgId: 0, subId: uuid.replace(/-/g, '').substring(0, 16) });
+          await addClient(iid, { id: uuid, email: uname + '_' + iid, enable: true, expiryTime: expiryTime, totalGB: gbToBytes(gb), limitIp: 2, flow: '', tgId: 0, subId: subBase + iid });
         }
         db.prepare('INSERT INTO clients (reseller_id, xui_uuid, xui_inbound_id, username, traffic_limit_gb, expires_at) VALUES (?,?,?,?,?,?)').run(dsr.id, uuid, targetIds[0], uname, gb, days > 0 ? new Date(expiryTime).toISOString() : null);
         db.prepare('UPDATE resellers SET current_clients = current_clients + 1 WHERE id = ?').run(dsr.id);
