@@ -272,6 +272,7 @@ function resellerMenu() {
         [{ text: '🛒 شارژ کیف پول', style: 'success' }, { text: '📞 پشتیبانی', style: 'primary' }],
         [{ text: '📢 کانال من', style: 'primary' }],
         [{ text: '🔗 لینک رفرال من', style: 'success' }],
+        [{ text: '🛒 خرید / ارتقا پنل', style: 'success' }],
         [{ text: '🔄 بروزرسانی منو', style: 'primary' }],
       ],
       resize_keyboard: true
@@ -769,9 +770,10 @@ async function handleGuest(chatId, text, st, msg) {
       guestMenu()
     );
   }
-  if (text === '🛒 خرید پنل نمایندگی') {
+  if (text === '🛒 خرید پنل نمایندگی' || text === '🛒 خرید / ارتقا پنل') {
     const ps = activePlans();
-    if (!ps.length) return bot.sendMessage(chatId, '❌ فعلاً پلنی برای فروش تعریف نشده. بعداً سر بزن.', guestMenu());
+    const backMenu = getReseller(chatId) ? resellerMenu() : guestMenu();
+    if (!ps.length) return bot.sendMessage(chatId, '❌ فعلاً پلنی برای فروش تعریف نشده. بعداً سر بزن.', backMenu);
     return bot.sendMessage(chatId, '🛒 پلن مورد نظرت رو انتخاب کن:', {
       reply_markup: { inline_keyboard: ps.map(planButton('buy_')) }
     });
