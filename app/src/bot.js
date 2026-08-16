@@ -282,7 +282,7 @@ function resellerMenu() {
 
 function guestMenu() {
   const rows = [[{ text: '🛒 خرید پنل نمایندگی', style: 'success' }]];
-  if (activeConfigPlans().length) rows.push([{ text: '🔗 خرید کانفیگ', style: 'success' }]);
+  if (activeConfigPlans().length) rows.push([{ text: '🔗 خرید کانفیگ', style: 'success' }, { text: '🔗 کانفیگ‌های من', style: 'primary' }]);
   if (testEnabled()) rows.push([{ text: '🧪 تست رایگان', style: 'primary' }]);
   rows.push([{ text: '📋 تعرفه‌ها', style: 'primary' }, { text: '❓ راهنما', style: 'primary' }], [{ text: '📞 پشتیبانی', style: 'primary' }]);
   rows.push([{ text: '🔄 بروزرسانی منو', style: 'primary' }]);
@@ -819,6 +819,19 @@ async function handleGuest(chatId, text, st, msg) {
       reply_markup: { inline_keyboard: ps.map(planButton('buy_')) }
     });
   }
+  if (text === '🔗 کانفیگ‌های من') {
+    const mine = db.prepare("SELECT c.xui_uuid, c.traffic_limit_gb, c.expires_at, c.is_active FROM clients c JOIN resellers r ON r.id=c.reseller_id WHERE r.username='direct_sales' AND c.telegram_id=? ORDER BY c.id DESC").all(String(chatId));
+    if (!mine.length) return bot.sendMessage(chatId, '📭 هنوز کانفیگی نخریده‌ای.\n«🔗 خرید کانفیگ» را بزن.', guestMenu());
+    const base = SUB_BASE_URL || 'https://panelsub.irsna.top/sub';
+    let m = '🔗 کانفیگ‌های تو:\n\n';
+    mine.forEach(function (c, i) {
+      m += (i + 1) + ') 📦 ' + (c.traffic_limit_gb > 0 ? c.traffic_limit_gb + ' GB' : 'نامحدود') +
+           (c.expires_at ? ' · تا ' + String(c.expires_at).substring(0, 10) : '') +
+           (c.is_active ? '' : ' (غیرفعال)') + '\n' + base + '/' + c.xui_uuid + '\n\n';
+    });
+    m += 'لینک را در v2rayNG/هیدیفای «Import from URL» کن.';
+    return bot.sendMessage(chatId, m, guestMenu());
+  }
   if (st.step === 'waiting_receipt') {
     const req = st.purchase_req;
     db.prepare('UPDATE purchase_requests SET card_receipt = ?, status = ? WHERE id = ?').run(text, 'pending', req.id);
@@ -1336,13 +1349,15 @@ bot.on('callback_query', async function(query) {
         for (const iid of targetIds) {
           await addClient(iid, { id: uuid, email: uname + '_' + iid, enable: true, expiryTime: expiryTime, totalGB: gbToBytes(gb), limitIp: 2, flow: '', tgId: 0, subId: subBase + iid });
         }
-        db.prepare('INSERT INTO clients (reseller_id, xui_uuid, xui_inbound_id, username, traffic_limit_gb, expires_at) VALUES (?,?,?,?,?,?)').run(dsr.id, uuid, targetIds[0], uname, gb, days > 0 ? new Date(expiryTime).toISOString() : null);
+        // telegram_id خریدار ذخیره می‌شود تا خودش از «کانفیگ‌های من» ببیندش
+        db.prepare('INSERT INTO clients (reseller_id, xui_uuid, xui_inbound_id, username, traffic_limit_gb, expires_at, telegram_id) VALUES (?,?,?,?,?,?,?)').run(dsr.id, uuid, targetIds[0], uname, gb, days > 0 ? new Date(expiryTime).toISOString() : null, String(tgId));
         db.prepare('UPDATE resellers SET current_clients = current_clients + 1 WHERE id = ?').run(dsr.id);
         db.prepare('UPDATE purchase_requests SET status = ?, confirmed_at = CURRENT_TIMESTAMP WHERE id = ?').run('approved', reqId);
+        const subLink = (SUB_BASE_URL || 'https://panelsub.irsna.top/sub') + '/' + uuid;
         await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: msgId });
         await bot.sendMessage(chatId, '✅ کانفیگ ساخته شد و برای کاربر رفت.\n📦 ' + plan.name, adminMenu);
         try {
-          await bot.sendMessage(tgId, '🎉 کانفیگت آماده شد!\n\n📦 ' + plan.name + '\n📶 ' + (gb > 0 ? gb + ' GB' : 'نامحدود') + (days > 0 ? '\n📅 ' + days + ' روز' : '') + '\n\n🔗 لینکِ اتصال (در اپت وارد کن):\nhttps://panelsub.irsna.top/anastia.html?t=' + uuid, guestMenu());
+          await bot.sendMessage(tgId, '🎉 کانفیگت آماده شد!\n\n📦 ' + plan.name + '\n📶 ' + (gb > 0 ? gb + ' GB' : 'نامحدود') + (days > 0 ? '\n📅 ' + days + ' روز' : '') + '\n\n🔗 لینکِ اشتراک (در v2rayNG/هیدیفای «Import from URL» کن):\n' + subLink + '\n\nهر وقت خواستی از «🔗 کانفیگ‌های من» دوباره ببینش.', guestMenu());
         } catch (e) {}
       } catch (err) {
         await bot.sendMessage(chatId, '❌ خطا در ساختِ کانفیگ: ' + err.message, adminMenu);
