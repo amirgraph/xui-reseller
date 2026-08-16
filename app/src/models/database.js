@@ -282,6 +282,8 @@ async function initDB() {
 
   // نوعِ پلن: panel (پنلِ نمایندگی — پیش‌فرض) یا config (فروشِ کانفیگ به کاربرِ نهایی)
   ensureColumn('plans', 'kind', "TEXT DEFAULT 'panel'");
+  // اینباند(های) هدفِ محصولِ کانفیگ — کاما-جدا؛ خالی = همهٔ اینباندها
+  ensureColumn('plans', 'config_inbounds', "TEXT DEFAULT ''");
 
   // رنگِ سوم/فرعیِ ساب (قبلاً هاردکد بود، الان قابل تنظیم توسط نماینده)
   ensureColumn('resellers', 'brand_color2', "TEXT");

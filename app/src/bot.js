@@ -489,8 +489,8 @@ bot.on('contact', async function(msg) {
 bot.on('photo', async function(msg) {
   const chatId = msg.chat.id;
   const stp = getState(chatId);
-  // رسیدِ تصویریِ خرید (از کاربر — پیش از گیتِ ادمین). هم برای پنل هم کانفیگ.
-  if (stp.step === 'waiting_receipt' && stp.purchase_req) {
+  // رسیدِ تصویریِ خرید (از کاربر — پیش از گیتِ ادمین). هم مهمان هم رزلر، هم پنل هم کانفیگ.
+  if ((stp.step === 'waiting_receipt' || stp.step === 'reseller_waiting_receipt') && stp.purchase_req) {
     const req = stp.purchase_req;
     const fileId = msg.photo[msg.photo.length - 1].file_id;
     db.prepare('UPDATE purchase_requests SET card_receipt = ?, status = ? WHERE id = ?').run('📷 رسیدِ تصویری', 'pending', req.id);
@@ -761,6 +761,8 @@ bot.on('message', async function(msg) {
   }
 
   if (isAdmin(chatId)) return handleAdmin(chatId, text, st, msg);
+  // دکمه‌های خرید در منوی رزلر هم هستند؛ رزلر باید به فلوی خرید (handleGuest) برسد
+  if (text === '🛒 خرید / ارتقا پنل' || text === '🔗 خرید کانفیگ') return handleGuest(chatId, text, st, msg);
   const reseller = getReseller(chatId);
   if (reseller) return handleReseller(chatId, text, st, reseller, msg);
   return handleGuest(chatId, text, st, msg);
@@ -1316,14 +1318,22 @@ bot.on('callback_query', async function(query) {
     if (plan.kind === 'config') {
       try {
         const dsr = directSalesReseller();
-        const inbs = await getInbounds();
-        const inboundId = (inbs && inbs.length) ? inbs[0].id : 1;
+        const allInbs = await getInbounds();
+        // اینباندهای هدف: انتخابِ محصول (config_inbounds) وگرنه همهٔ اینباندها.
+        // روی همه ساخته می‌شود تا همهٔ کانفیگ‌های ساب (هر سرور) معتبر باشند.
+        let targetIds = (allInbs || []).map((i) => i.id);
+        const chosen = String(plan.config_inbounds || '').split(',').map((s) => parseInt(s.trim())).filter(Boolean);
+        if (chosen.length) targetIds = targetIds.filter((id) => chosen.includes(id));
+        if (!targetIds.length) targetIds = (allInbs && allInbs.length) ? [allInbs[0].id] : [1];
         const uuid = uuidv4();
         const gb = Number(plan.traffic_gb) || 0, days = Number(plan.duration_days) || 0;
         const expiryTime = days > 0 ? Date.now() + days * 86400000 : 0;
         const uname = 'cfg' + String(tgId).slice(-6) + Date.now().toString().slice(-4);
-        await addClient(inboundId, { id: uuid, email: uname + '_' + dsr.id, enable: true, expiryTime: expiryTime, totalGB: gbToBytes(gb), limitIp: 2, flow: '', tgId: 0, subId: uuid.replace(/-/g, '').substring(0, 16) });
-        db.prepare('INSERT INTO clients (reseller_id, xui_uuid, xui_inbound_id, username, traffic_limit_gb, expires_at) VALUES (?,?,?,?,?,?)').run(dsr.id, uuid, inboundId, uname, gb, days > 0 ? new Date(expiryTime).toISOString() : null);
+        // همان uuid روی همهٔ اینباندها (auth با uuid است)؛ email باید per-inbound یکتا باشد
+        for (const iid of targetIds) {
+          await addClient(iid, { id: uuid, email: uname + '_' + iid, enable: true, expiryTime: expiryTime, totalGB: gbToBytes(gb), limitIp: 2, flow: '', tgId: 0, subId: uuid.replace(/-/g, '').substring(0, 16) });
+        }
+        db.prepare('INSERT INTO clients (reseller_id, xui_uuid, xui_inbound_id, username, traffic_limit_gb, expires_at) VALUES (?,?,?,?,?,?)').run(dsr.id, uuid, targetIds[0], uname, gb, days > 0 ? new Date(expiryTime).toISOString() : null);
         db.prepare('UPDATE resellers SET current_clients = current_clients + 1 WHERE id = ?').run(dsr.id);
         db.prepare('UPDATE purchase_requests SET status = ?, confirmed_at = CURRENT_TIMESTAMP WHERE id = ?').run('approved', reqId);
         await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: msgId });

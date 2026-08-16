@@ -914,6 +914,11 @@
       </select>
       <small style="color:var(--text-dim)">برای «۳۰ روز ۳۰ گیگ» که ربات مستقیم به کاربر می‌فروشد، «کانفیگ» را بزن؛ حجم/مدت/قیمت را پایین تعیین کن.</small>
     </div>
+    <div class="form-group">
+      <label>اینباندهای هدف (فقط کانفیگ — کاما-جدا مثل <code dir="ltr">1,2</code>)</label>
+      <input id="p-config_inbounds" dir="ltr" placeholder="خالی = روی همهٔ اینباند/سرورها ساخته شود">
+      <small style="color:var(--text-dim)">تعیین می‌کند کانفیگ از کدام پنل/سرور (اینباند) ساخته شود. خالی بگذاری = روی همه، تا همهٔ لینک‌های ساب معتبر باشند.</small>
+    </div>
     <div class="form-row">
       <div class="form-group">
         <label>نام پلن</label><input id="p-name" placeholder="پنل طلایی">
@@ -1267,7 +1272,7 @@ async function restoreBackup(btn) {
 // ── پلن‌ها ────────────────────────────────────
 // «۰ = نامحدود» در سه جا معنی دارد: حجم، سقف کاربر، مدت.
 const PLAN_FIELDS = ['name','key','description','price','traffic_gb','max_clients',
-                     'duration_days','billing','price_per_gb','initial_balance','sort_order','kind'];
+                     'duration_days','billing','price_per_gb','initial_balance','sort_order','kind','config_inbounds'];
 const unlim = v => Number(v) > 0 ? Number(v).toLocaleString() : '<span style="color:var(--accent)">نامحدود</span>';
 
 async function loadPlans() {
