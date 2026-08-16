@@ -413,6 +413,7 @@ function validatePlan(b, { requireKey }) {
   if (out.billing === 'monthly' && out.duration_days <= 0) out.duration_days = 30;
   out.is_active = b.is_active ? 1 : 0;
   out.resellable = b.resellable ? 1 : 0;
+  out.kind = b.kind === 'config' ? 'config' : 'panel';   // config = محصولِ فروشِ کانفیگ
   out.sort_order = Number(b.sort_order) || 0;
   return { value: out };
 }
@@ -429,8 +430,8 @@ router.post('/plans', adminAuth, (req, res) => {
     return res.status(400).json({ success: false, message: 'این شناسه قبلاً استفاده شده' });
   }
   const r = db.prepare(`INSERT INTO plans
-    (key,name,description,price,traffic_gb,max_clients,duration_days,billing,price_per_gb,initial_balance,is_active,resellable,sort_order)
-    VALUES (@key,@name,@description,@price,@traffic_gb,@max_clients,@duration_days,@billing,@price_per_gb,@initial_balance,@is_active,@resellable,@sort_order)`).run(p);
+    (key,name,description,price,traffic_gb,max_clients,duration_days,billing,price_per_gb,initial_balance,is_active,resellable,kind,sort_order)
+    VALUES (@key,@name,@description,@price,@traffic_gb,@max_clients,@duration_days,@billing,@price_per_gb,@initial_balance,@is_active,@resellable,@kind,@sort_order)`).run(p);
   res.json({ success: true, id: r.lastInsertRowid, message: 'پلن ساخته شد' });
 });
 
@@ -443,7 +444,7 @@ router.put('/plans/:id', adminAuth, (req, res) => {
   if (error) return res.status(400).json({ success: false, message: error });
   db.prepare(`UPDATE plans SET name=@name, description=@description, price=@price, traffic_gb=@traffic_gb,
     max_clients=@max_clients, duration_days=@duration_days, billing=@billing, price_per_gb=@price_per_gb,
-    initial_balance=@initial_balance, is_active=@is_active, resellable=@resellable,
+    initial_balance=@initial_balance, is_active=@is_active, resellable=@resellable, kind=@kind,
     sort_order=@sort_order WHERE id=@id`).run({ ...p, id: row.id });
   res.json({ success: true, message: 'پلن ذخیره شد' });
 });

@@ -22,7 +22,7 @@ const SUB_BASE_URL = process.env.SUB_BASE_URL || '';
 // نتیجه: ربات نرخِ واقعیِ هر نماینده را نادیده می‌گرفت و همان کاربر از پنل ۲۰۰
 // و از ربات ۳۵۰۰ حساب می‌شد. حالا نرخ از خودِ نماینده و پلن‌ها از DB می‌آیند.
 const {
-  rateOf, defaultPricePerGb, activePlans, planByKey, allPlans,
+  rateOf, defaultPricePerGb, activePlans, activeConfigPlans, planByKey, allPlans,
   describePlan, resellerFieldsFromPlan,
 } = require('./models/plans');
 
@@ -282,6 +282,7 @@ function resellerMenu() {
 
 function guestMenu() {
   const rows = [[{ text: '🛒 خرید پنل نمایندگی', style: 'success' }]];
+  if (activeConfigPlans().length) rows.push([{ text: '🔗 خرید کانفیگ', style: 'success' }]);
   if (testEnabled()) rows.push([{ text: '🧪 تست رایگان', style: 'primary' }]);
   rows.push([{ text: '📋 تعرفه‌ها', style: 'primary' }, { text: '❓ راهنما', style: 'primary' }], [{ text: '📞 پشتیبانی', style: 'primary' }]);
   rows.push([{ text: '🔄 بروزرسانی منو', style: 'primary' }]);
@@ -319,6 +320,19 @@ function testClaimOf(phone) {
 // موفقِ تست بود، کاربر پنلش را می‌گرفت و بلافاصله «خطا در ساخت تست» می‌دید.
 function tellAdmin(text) {
   try { bot.sendMessage(ADMIN_ID, text).catch(function(){}); } catch (e) { /* هرگز جریان را نشکن */ }
+}
+
+// رزلرِ «فروش مستقیم» — همهٔ کانفیگ‌هایی که ربات مستقیم به کاربر می‌فروشد زیرِ این
+// ثبت می‌شوند تا ادمین (که telegram_idش را دارد) از پنلِ رزلر مدیریت‌شان کند.
+function directSalesReseller() {
+  let r = db.prepare("SELECT * FROM resellers WHERE username='direct_sales'").get();
+  if (!r) {
+    const pw = randomPass();
+    const info = db.prepare("INSERT INTO resellers (username,password,plain_password,name,telegram_id,traffic_limit_gb,max_clients,price_per_gb,balance,is_active,allowed_inbounds) VALUES ('direct_sales',?,?,?,?,0,0,0,0,1,'[]')")
+      .run(bcrypt.hashSync(pw, 10), pw, 'فروش مستقیم (ربات)', String(ADMIN_ID || ''));
+    r = db.prepare('SELECT * FROM resellers WHERE id=?').get(info.lastInsertRowid);
+  }
+  return r;
 }
 
 // ── متن‌های قابلِ تنظیم توسط ادمین ─────────────────────────
@@ -474,6 +488,23 @@ bot.on('contact', async function(msg) {
 // عکسِ بنر — شبیهِ الگوی contact بالا، جدا مدیریت می‌شود
 bot.on('photo', async function(msg) {
   const chatId = msg.chat.id;
+  const stp = getState(chatId);
+  // رسیدِ تصویریِ خرید (از کاربر — پیش از گیتِ ادمین). هم برای پنل هم کانفیگ.
+  if (stp.step === 'waiting_receipt' && stp.purchase_req) {
+    const req = stp.purchase_req;
+    const fileId = msg.photo[msg.photo.length - 1].file_id;
+    db.prepare('UPDATE purchase_requests SET card_receipt = ?, status = ? WHERE id = ?').run('📷 رسیدِ تصویری', 'pending', req.id);
+    clearState(chatId);
+    const uName = (msg.from.first_name || '') + (msg.from.last_name ? ' ' + msg.from.last_name : '');
+    await bot.sendMessage(chatId, '✅ رسیدت رسید. بعد از تأییدِ ادمین فعال می‌شود.', getReseller(chatId) ? resellerMenu() : guestMenu());
+    try {
+      await bot.sendPhoto(ADMIN_ID, fileId, {
+        caption: '🔔 درخواستِ خریدِ جدید (رسیدِ تصویری)!\n\n👤 ' + uName + '\n📱 ' + chatId + '\n📦 ' + req.plan_name + '\n💰 ' + formatNum(req.amount) + ' تومان',
+        reply_markup: { inline_keyboard: [[{ text: '✅ تایید', callback_data: 'approve_req_' + req.id, style: 'success' }, { text: '❌ رد', callback_data: 'reject_req_' + req.id, style: 'danger' }]] }
+      });
+    } catch (e) {}
+    return;
+  }
   if (!isAdmin(chatId)) return;
   if (getState(chatId).step !== 'promo_banner_photo') return;
   const st = getState(chatId);
@@ -775,6 +806,14 @@ async function handleGuest(chatId, text, st, msg) {
     const backMenu = getReseller(chatId) ? resellerMenu() : guestMenu();
     if (!ps.length) return bot.sendMessage(chatId, '❌ فعلاً پلنی برای فروش تعریف نشده. بعداً سر بزن.', backMenu);
     return bot.sendMessage(chatId, '🛒 پلن مورد نظرت رو انتخاب کن:', {
+      reply_markup: { inline_keyboard: ps.map(planButton('buy_')) }
+    });
+  }
+  if (text === '🔗 خرید کانفیگ') {
+    const ps = activeConfigPlans();
+    const backMenu = getReseller(chatId) ? resellerMenu() : guestMenu();
+    if (!ps.length) return bot.sendMessage(chatId, '❌ فعلاً کانفیگی برای فروش نیست.', backMenu);
+    return bot.sendMessage(chatId, '🔗 کانفیگِ مورد نظرت رو انتخاب کن:', {
       reply_markup: { inline_keyboard: ps.map(planButton('buy_')) }
     });
   }
@@ -1273,6 +1312,30 @@ bot.on('callback_query', async function(query) {
     const plan = planByKey(req.plan_key);
     if (!plan) return bot.sendMessage(chatId, '❌ پلنِ این درخواست دیگر وجود ندارد: ' + req.plan_key);
     const tgId = req.telegram_id;
+    // ── فروشِ کانفیگ (kind=config): کانفیگ ساخته، زیرِ رزلرِ «فروش مستقیم» ثبت، لینک به کاربر ──
+    if (plan.kind === 'config') {
+      try {
+        const dsr = directSalesReseller();
+        const inbs = await getInbounds();
+        const inboundId = (inbs && inbs.length) ? inbs[0].id : 1;
+        const uuid = uuidv4();
+        const gb = Number(plan.traffic_gb) || 0, days = Number(plan.duration_days) || 0;
+        const expiryTime = days > 0 ? Date.now() + days * 86400000 : 0;
+        const uname = 'cfg' + String(tgId).slice(-6) + Date.now().toString().slice(-4);
+        await addClient(inboundId, { id: uuid, email: uname + '_' + dsr.id, enable: true, expiryTime: expiryTime, totalGB: gbToBytes(gb), limitIp: 2, flow: '', tgId: 0, subId: uuid.replace(/-/g, '').substring(0, 16) });
+        db.prepare('INSERT INTO clients (reseller_id, xui_uuid, xui_inbound_id, username, traffic_limit_gb, expires_at) VALUES (?,?,?,?,?,?)').run(dsr.id, uuid, inboundId, uname, gb, days > 0 ? new Date(expiryTime).toISOString() : null);
+        db.prepare('UPDATE resellers SET current_clients = current_clients + 1 WHERE id = ?').run(dsr.id);
+        db.prepare('UPDATE purchase_requests SET status = ?, confirmed_at = CURRENT_TIMESTAMP WHERE id = ?').run('approved', reqId);
+        await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: msgId });
+        await bot.sendMessage(chatId, '✅ کانفیگ ساخته شد و برای کاربر رفت.\n📦 ' + plan.name, adminMenu);
+        try {
+          await bot.sendMessage(tgId, '🎉 کانفیگت آماده شد!\n\n📦 ' + plan.name + '\n📶 ' + (gb > 0 ? gb + ' GB' : 'نامحدود') + (days > 0 ? '\n📅 ' + days + ' روز' : '') + '\n\n🔗 لینکِ اتصال (در اپت وارد کن):\nhttps://panelsub.irsna.top/anastia.html?t=' + uuid, guestMenu());
+        } catch (e) {}
+      } catch (err) {
+        await bot.sendMessage(chatId, '❌ خطا در ساختِ کانفیگ: ' + err.message, adminMenu);
+      }
+      return;
+    }
     let existingReseller = db.prepare('SELECT * FROM resellers WHERE telegram_id = ?').get(tgId);
     if (existingReseller) {
       db.prepare('UPDATE resellers SET balance = balance + ? WHERE id = ?').run(req.amount, existingReseller.id);

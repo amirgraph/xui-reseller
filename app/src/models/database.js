@@ -280,6 +280,9 @@ async function initDB() {
   // نوعِ transport هر سرور: xhttp (Cloudflare) یا ws (آروان/CDN داخلی)
   ensureColumn('servers', 'network', "TEXT DEFAULT 'xhttp'");
 
+  // نوعِ پلن: panel (پنلِ نمایندگی — پیش‌فرض) یا config (فروشِ کانفیگ به کاربرِ نهایی)
+  ensureColumn('plans', 'kind', "TEXT DEFAULT 'panel'");
+
   // رنگِ سوم/فرعیِ ساب (قبلاً هاردکد بود، الان قابل تنظیم توسط نماینده)
   ensureColumn('resellers', 'brand_color2', "TEXT");
 

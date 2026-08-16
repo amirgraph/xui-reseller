@@ -26,8 +26,13 @@ function unlimitedMonthly() {
   return Number.isFinite(v) && v > 0 ? v : 180000;
 }
 
+// پلن‌های پنلِ نمایندگی (kind=panel یا قدیمیِ بدونِ kind)
 function activePlans() {
-  return getDB().prepare('SELECT * FROM plans WHERE is_active=1 ORDER BY sort_order, price').all();
+  return getDB().prepare("SELECT * FROM plans WHERE is_active=1 AND (kind='panel' OR kind IS NULL) ORDER BY sort_order, price").all();
+}
+// محصولاتِ کانفیگ — فروشِ مستقیم به کاربرِ نهایی
+function activeConfigPlans() {
+  return getDB().prepare("SELECT * FROM plans WHERE is_active=1 AND kind='config' ORDER BY sort_order, price").all();
 }
 
 // پلن‌هایی که نماینده حق دارد بفروشد — ادمین با تیکِ resellable تعیین می‌کند
@@ -82,6 +87,6 @@ function resellerFieldsFromPlan(plan) {
 
 module.exports = {
   defaultPricePerGb, rateOf, unlimitedMonthly,
-  activePlans, allPlans, planByKey, describePlan, resellerFieldsFromPlan,
+  activePlans, activeConfigPlans, allPlans, planByKey, describePlan, resellerFieldsFromPlan,
   sellablePlans, priceForReseller,
 };

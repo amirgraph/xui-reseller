@@ -906,6 +906,14 @@
     <h3 id="modal-plan-title">پلن جدید</h3>
     <div class="modal-body">
     <input type="hidden" id="p-id">
+    <div class="form-group">
+      <label>نوعِ محصول</label>
+      <select id="p-kind" style="width:100%">
+        <option value="panel">📦 پنلِ نمایندگی (به نماینده فروخته می‌شود)</option>
+        <option value="config">🔗 کانفیگ (مستقیم به کاربرِ نهایی — از ربات)</option>
+      </select>
+      <small style="color:var(--text-dim)">برای «۳۰ روز ۳۰ گیگ» که ربات مستقیم به کاربر می‌فروشد، «کانفیگ» را بزن؛ حجم/مدت/قیمت را پایین تعیین کن.</small>
+    </div>
     <div class="form-row">
       <div class="form-group">
         <label>نام پلن</label><input id="p-name" placeholder="پنل طلایی">
@@ -1259,7 +1267,7 @@ async function restoreBackup(btn) {
 // ── پلن‌ها ────────────────────────────────────
 // «۰ = نامحدود» در سه جا معنی دارد: حجم، سقف کاربر، مدت.
 const PLAN_FIELDS = ['name','key','description','price','traffic_gb','max_clients',
-                     'duration_days','billing','price_per_gb','initial_balance','sort_order'];
+                     'duration_days','billing','price_per_gb','initial_balance','sort_order','kind'];
 const unlim = v => Number(v) > 0 ? Number(v).toLocaleString() : '<span style="color:var(--accent)">نامحدود</span>';
 
 async function loadPlans() {
@@ -1302,7 +1310,7 @@ function fillPlan(p) {
 function openAddPlan() {
   document.getElementById('modal-plan-title').textContent = 'پلن جدید';
   fillPlan({ name:'', key:'', description:'', price:0, traffic_gb:0, max_clients:0,
-             duration_days:0, billing:'once', price_per_gb:0, initial_balance:0, sort_order:0 });
+             duration_days:0, billing:'once', price_per_gb:0, initial_balance:0, sort_order:0, kind:'panel' });
   openModal('modal-plan');
 }
 
