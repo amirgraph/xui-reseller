@@ -277,9 +277,6 @@ async function initDB() {
   ensureColumn('resellers', 'api_token', "TEXT");
   ensureColumn('resellers', 'api_enabled', "INTEGER DEFAULT 0");
 
-  // نوعِ transport هر سرور: xhttp (Cloudflare) یا ws (آروان/CDN داخلی)
-  ensureColumn('servers', 'network', "TEXT DEFAULT 'xhttp'");
-
   // نوعِ پلن: panel (پنلِ نمایندگی — پیش‌فرض) یا config (فروشِ کانفیگ به کاربرِ نهایی)
   ensureColumn('plans', 'kind', "TEXT DEFAULT 'panel'");
   // اینباند(های) هدفِ محصولِ کانفیگ — کاما-جدا؛ خالی = همهٔ اینباندها
@@ -354,6 +351,8 @@ async function initDB() {
 
   // اینباند(های) هدف برای provisioning روی هر سرور (کاما-جدا). خالی روی سرورِ env = استفاده از inboundId فراخوان
   ensureColumn('servers', 'inbound_ids', "TEXT DEFAULT ''");
+  // نوعِ transport هر سرور: xhttp (Cloudflare) یا ws (آروان/CDN داخلی) — بعد از CREATE servers
+  ensureColumn('servers', 'network', "TEXT DEFAULT 'xhttp'");
 
   console.log('✅ Database initialized');
 }
