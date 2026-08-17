@@ -47,6 +47,27 @@ else
   ROOT_UPSTREAM="http://127.0.0.1:$PORT"
 fi
 
+# ── location ws برای Arvan (فقط اگر CDN شاملِ آروان باشد) — دامنه‌های آروان + پروکسیِ ws ──
+# (متغیرِ shell تا مشکلِ double-expansionِ heredoc پیش نیاید؛ $host نیتیوِ nginx می‌ماند)
+ARVAN_SN=""; WS_BLOCK=""
+if [ "${CDN_MODE:-cf}" = arvan ] || [ "${CDN_MODE:-cf}" = both ]; then
+  ARVAN_SN=$(printf '%s' "${ARVAN_SUBS:-}" | tr ',' ' ')
+  WS_BLOCK='    # تونل آروان (ws) → xray:8002
+    location '"${WS_PATH:-/ws}"' {
+        proxy_pass http://127.0.0.1:8002;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header X-Real-IP "";
+        proxy_set_header X-Forwarded-For "";
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        proxy_buffering off;
+    }
+'
+fi
+
 # ── سرورِ اصلی nginx روی 443 ──
 cat > /etc/nginx/sites-available/amirpanel.conf <<EOF
 # استخرِ keepalive به xray — از churnِ اتصال (packet-up) جلوگیری می‌کند
@@ -59,7 +80,7 @@ upstream amirpanel_xray {
 
 server {
     $LISTEN_443
-    server_name $MAIN_DOMAIN $NSUB1 $NSUB2 $NSUB3;
+    server_name $MAIN_DOMAIN $NSUB1 $NSUB2 $NSUB3 $ARVAN_SN;
 
     ssl_certificate     $CERTDIR/fullchain.pem;
     ssl_certificate_key $CERTDIR/privkey.pem;
@@ -80,6 +101,7 @@ server {
         chunked_transfer_encoding off;
     }
 
+$WS_BLOCK
     # پنل/ساب (full) یا x-ui (node) → بسته به نوعِ نصب
     location / {
         proxy_pass $ROOT_UPSTREAM;

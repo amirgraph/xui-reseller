@@ -320,26 +320,36 @@ async function initDB() {
       xui_api_key TEXT NOT NULL,
       domains TEXT NOT NULL DEFAULT '',      -- کاما-جدا (sni/host) — هر تعداد که بخواهی
       clean_ips TEXT DEFAULT '',             -- کاما-جدا (addr)؛ خالی = دامنه
-      tunnel_path TEXT DEFAULT '',           -- مسیرِ xhttp؛ از CDN_XHTTP_PATH پر می‌شود
+      tunnel_path TEXT DEFAULT '',           -- مسیرِ تونل (xhttp یا ws)؛ از env پر می‌شود
+      network TEXT DEFAULT 'xhttp',          -- xhttp (Cloudflare) | ws (Arvan/CDN داخلی)
+      inbound_ids TEXT DEFAULT '',           -- اینباند(های) هدف روی این سرور
       scan_token TEXT DEFAULT '',            -- توکنِ اسکنر برای POSTِ IPهای تمیز
       active INTEGER DEFAULT 1,
       sort_order INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
-  // seed: اگر خالی است، سرورِ فعلی را از env بیاور تا رفتارِ تک‌سرورِ فعلی عوض نشود
+  // seed: اگر خالی است، سرور(ها) را از env بیاور. بسته به CDN_MODE ممکن است
+  // فقط Cloudflare (xhttp)، فقط Arvan (ws)، یا هر دو seed شوند.
   const scount = db.prepare('SELECT COUNT(*) c FROM servers').get().c;
   if (scount === 0 && process.env.XUI_URL) {
-    const tok = require('crypto').randomBytes(16).toString('hex');
-    db.prepare(`INSERT INTO servers
-      (name, flag, xui_url, xui_path, xui_api_key, domains, clean_ips, tunnel_path, scan_token, active, sort_order)
-      VALUES (?,?,?,?,?,?,?,?,?,1,0)`).run(
-      process.env.SERVER_NAME || 'آلمان', process.env.SERVER_FLAG || '🇩🇪',
-      process.env.XUI_URL, process.env.XUI_PATH || '', process.env.XUI_API_KEY || '',
+    const crypto = require('crypto');
+    const seedServer = (name, flag, domains, cleanIps, tpath, net, sort) => {
+      if (!domains) return;
+      db.prepare(`INSERT INTO servers
+        (name, flag, xui_url, xui_path, xui_api_key, domains, clean_ips, tunnel_path, network, scan_token, active, sort_order)
+        VALUES (?,?,?,?,?,?,?,?,?,?,1,?)`).run(
+        name, flag, process.env.XUI_URL, process.env.XUI_PATH || '', process.env.XUI_API_KEY || '',
+        domains, cleanIps || '', tpath || '', net, crypto.randomBytes(16).toString('hex'), sort);
+    };
+    // Cloudflare (xhttp)
+    seedServer(process.env.SERVER_NAME || 'آلمان', process.env.SERVER_FLAG || '🇩🇪',
       process.env.AMIRPANEL_SUBS || process.env.NAHAN_SUBS || '', process.env.AMIRPANEL_ADDRS || process.env.NAHAN_ADDRS || '',
-      process.env.CDN_XHTTP_PATH || process.env.XHTTP_PATH || '/fml9vgwfwc', tok
-    );
-    console.log('  ↑ server e aval az env seed shod');
+      process.env.CDN_XHTTP_PATH || process.env.XHTTP_PATH || '', 'xhttp', 0);
+    // Arvan (ws)
+    seedServer('آروان', '🚀', process.env.ARVAN_SUBS || '', process.env.ARVAN_ADDRS || '',
+      process.env.WS_PATH || '', 'ws', 1);
+    if (db.prepare('SELECT COUNT(*) c FROM servers').get().c) console.log('  ↑ server(ha) az env seed shod');
   }
 
   // اینباند(های) هدف برای provisioning روی هر سرور (کاما-جدا). خالی روی سرورِ env = استفاده از inboundId فراخوان

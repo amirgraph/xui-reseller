@@ -119,28 +119,50 @@ title "1/6  Domain ha"
 echo "  Domaine asli: panel va sube poshtiban (mamulan poshte CDN dakheli mesle Arvan)."
 ask MAIN_DOMAIN "Domaine asli (mesle panel.example.com)"
 echo
-echo "  AmirPanel: domaine Cloudflare ke 3 subdomaine tasadofi zirash sakhte mishavad (sube asli / zedde filter)."
-ask CF_DOMAIN "Domaine Cloudflare paye, bedune subdomain (mesle example.ir)"
-# گواهیِ رایگانِ Cloudflare فقط یک سطح ساب‌دامین (*.domain) را پوشش می‌دهد
-CF_DOTS="${CF_DOMAIN//[^.]/}"
-if [ "${#CF_DOTS}" -gt 1 ]; then
-  warn "\"$CF_DOMAIN\" khodash yek subdomain ast."
-  warn "Sube tasadofi rooye an mishavad 3 sath, va gavahiye rayegane Cloudflare (*.domain)"
-  warn "faghat yek sath ra pushesh midahad -> TLS dar edge khata midahad."
-  yesno "Bazam edame bedam?" || die "Domaine paye (mesle example.ir) ra bezan va dobare ejra kon."
+# ── entekhabe CDN/foronting: config roye kodam sakhte shavad? ──
+echo "  Config roye kodam CDN sakhte shavad?"
+echo "   1) Cloudflare (xhttp)  — pishfarz, khosusi-tar"
+echo "   2) Arvan (ws)          — CDN dakheli, ping payin (bazi faghat ino mikhan)"
+echo "   3) Har do"
+read -rp "  Entekhab [1]: " __cdn
+case "${__cdn:-1}" in 2) CDN_MODE=arvan;; 3) CDN_MODE=both;; *) CDN_MODE=cf;; esac
+ok "CDN: $CDN_MODE"
+# پیش‌فرض‌ها تا زیرِ set -u خالی نمانند
+NSUB1=""; NSUB2=""; NSUB3=""; CF_DOMAIN=""; ARVAN_SUBS=""; WS_PATH="/ws$(rand 10)"
+
+# ── Cloudflare (xhttp) ──
+if [ "$CDN_MODE" = cf ] || [ "$CDN_MODE" = both ]; then
+  echo
+  echo "  AmirPanel: domaine Cloudflare ke 3 subdomaine tasadofi zirash sakhte mishavad (sube asli / zedde filter)."
+  ask CF_DOMAIN "Domaine Cloudflare paye, bedune subdomain (mesle example.ir)"
+  CF_DOTS="${CF_DOMAIN//[^.]/}"
+  if [ "${#CF_DOTS}" -gt 1 ]; then
+    warn "\"$CF_DOMAIN\" khodash yek subdomain ast."
+    warn "Sube tasadofi rooye an mishavad 3 sath, va gavahiye rayegane Cloudflare (*.domain)"
+    warn "faghat yek sath ra pushesh midahad -> TLS dar edge khata midahad."
+    yesno "Bazam edame bedam?" || die "Domaine paye (mesle example.ir) ra bezan va dobare ejra kon."
+  fi
+  if [ -z "$(ns_of "$CF_DOMAIN")" ]; then
+    warn "\"$CF_DOMAIN\" hich nameserveri nadarad — sabt nashode ya typo ast."
+    warn "Age typo bashad, har 3 sube AmirPanel rooye domaine eshtebah sakhte mishavad."
+    yesno "Bazam edame bedam?" || die "Emlaye domain ra check kon va dobare ejra kon."
+  fi
+  if yesno "Subdomain haye AmirPanel khodkar tasadofi sakhte shavand?"; then
+    NSUB1="$(rand 18).$CF_DOMAIN"; NSUB2="$(rand 22).$CF_DOMAIN"; NSUB3="$(rand 16).$CF_DOMAIN"
+    ok "Sakhte shod: $NSUB1 , $NSUB2 , $NSUB3"
+    warn "In 3 record ra dar Cloudflare (proxy/narenji) be IPe server ezafe kon."
+  else
+    ask NSUB1 "Subdomaine AmirPanel 1"; ask NSUB2 "Subdomaine AmirPanel 2"; ask NSUB3 "Subdomaine AmirPanel 3"
+  fi
 fi
-# دامنه باید واقعاً ثبت شده باشد — یک تایپو یعنی کلِ لایهٔ امیرپنل روی دامنهٔ بیگانه
-if [ -z "$(ns_of "$CF_DOMAIN")" ]; then
-  warn "\"$CF_DOMAIN\" hich nameserveri nadarad — sabt nashode ya typo ast."
-  warn "Age typo bashad, har 3 sube AmirPanel rooye domaine eshtebah sakhte mishavad."
-  yesno "Bazam edame bedam?" || die "Emlaye domain ra check kon va dobare ejra kon."
-fi
-if yesno "Subdomain haye AmirPanel khodkar tasadofi sakhte shavand?"; then
-  NSUB1="$(rand 18).$CF_DOMAIN"; NSUB2="$(rand 22).$CF_DOMAIN"; NSUB3="$(rand 16).$CF_DOMAIN"
-  ok "Sakhte shod: $NSUB1 , $NSUB2 , $NSUB3"
-  warn "In 3 record ra dar Cloudflare (proxy/narenji) be IPe server ezafe kon."
-else
-  ask NSUB1 "Subdomaine AmirPanel 1"; ask NSUB2 "Subdomaine AmirPanel 2"; ask NSUB3 "Subdomaine AmirPanel 3"
+
+# ── Arvan (ws) ──
+if [ "$CDN_MODE" = arvan ] || [ "$CDN_MODE" = both ]; then
+  echo
+  echo "  Arvan: domain(haye) ke poshte Arvan (CDN dakheli) be IP server ashare mikonand — transport ws."
+  ask ARVAN_SUBS "Domaine(haye) Arvan (comma-joda mesle a.example.ir,b.example.ir)"
+  ok "Arvan (ws) faal shod — masire ws: $WS_PATH"
+  warn "In domain(ha) ra dar panele Arvan (CDN roshan) be IPe server ezafe kon."
 fi
 
 # ═══════════════ ۲) تلگرام و ادمین (فقط پنلِ کامل) ═══════════════
@@ -223,6 +245,10 @@ AMIRPANEL_SUBS=$NSUB1,$NSUB2,$NSUB3
 SUB_BASE_FRB=https://$NSUB1/sub
 AMIRPANEL_ADDRS=
 CDN_XHTTP_PATH=$XHTTP_PATH
+CDN_MODE=$CDN_MODE
+ARVAN_SUBS=$ARVAN_SUBS
+ARVAN_ADDRS=
+WS_PATH=$WS_PATH
 SERVER_NAME=$SERVER_NAME
 SERVER_FLAG=$SERVER_FLAG
 LIVEKIT_KEY=amirpanel
@@ -245,6 +271,9 @@ XUI_PATH=$XUI_PATH
 XUI_API_KEY=$XUI_API_KEY
 XUI_USER=$XUI_USER
 XHTTP_PATH=$XHTTP_PATH
+CDN_MODE=$CDN_MODE
+ARVAN_SUBS=$ARVAN_SUBS
+WS_PATH=$WS_PATH
 ADMIN_USER=$ADMIN_USER
 PANEL_PRICE=$PANEL_PRICE
 PANEL_GB=$PANEL_GB

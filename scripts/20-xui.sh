@@ -72,6 +72,25 @@ print("  ✓ Ghalebe routing + inbounde AmirPanel derj shod")
 PY
 rm -f /tmp/xray-tmpl.json
 
+# ── inbounde Arvan (ws) — faghat age CDN shamele arvan bashad ──
+if [ "${CDN_MODE:-cf}" = arvan ] || [ "${CDN_MODE:-cf}" = both ]; then
+  python3 - "$DB" "${WS_PATH:-/ws}" <<'PY'
+import sqlite3, json, sys
+db_path, wspath = sys.argv[1:3]
+db = sqlite3.connect(db_path)
+ss = json.dumps({"network":"ws","security":"none","wsSettings":{"path":wspath,"headers":{}}})
+st = json.dumps({"clients":[],"decryption":"none","fallbacks":[]})
+sniff = json.dumps({"enabled":False,"destOverride":["http","tls"]})
+db.execute("DELETE FROM inbounds WHERE tag=?", ("amirpanel-ws",))
+db.execute("""INSERT INTO inbounds
+  (user_id,up,down,total,remark,enable,expiry_time,listen,port,protocol,settings,stream_settings,tag,sniffing)
+  VALUES (1,0,0,0,?,1,0,?,?,?,?,?,?,?)""",
+  ("امیرپنل آروان","127.0.0.1",8002,"vless",st,ss,"amirpanel-ws",sniff))
+db.commit(); db.close()
+print("  ✓ inbounde Arvan (ws) sakhte shod (port 8002)")
+PY
+fi
+
 systemctl restart x-ui; sleep 6
 [ "$(systemctl is-active x-ui)" = active ] && ok "x-ui faal (port $XUI_PORT)." || echo "  ! x-ui bala nayamad — barresi: journalctl -u x-ui"
 
