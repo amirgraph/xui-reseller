@@ -122,6 +122,9 @@ flowchart TB
 | 🛡️ **ضدفیلترِ چندلایه** | تونلِ **xhttp** پشتِ **Cloudflare** با ساب‌دامینِ تصادفی · خروجی از **WARP** · **اسکنرِ IP تمیز** خودکار |
 | ⚡ **کانفیگِ ضدفیلتر (PattNG)** | با یک توگل، دوقلوی **fragment + fp=unsafe + cipherSuites** روی هر کانفیگ → ردِ **throttle آپلود** و **فیلترِ دامنه** بدونِ تنظیمِ دستی |
 | 🌍 **چندکشوره** | چند سرورِ 3x-ui در یک پنل؛ **هر تعداد دامنه → همان‌تعداد کانفیگ و همان‌تعداد IP اسکن** |
+| 🚀 **آروان / CDN داخلی (ws)** | افزودنِ سرورِ آروان با ترنسپورتِ **WebSocket** برای **پینگِ پایین**؛ IP سفیدِ آروان + اسکنرِ مخصوصِ آروان |
+| 🔗 **فروشِ کانفیگ در ربات** | علاوه بر پنل، **کانفیگِ آماده** به کاربرِ نهایی بفروش — محصول‌ساز (روز/گیگ/قیمت) · **رسیدِ تصویری + تأییدِ ادمین** · «کانفیگ‌های من» · پنلِ مدیریتِ فروش |
+| 👥 **چند-ادمینِ ربات** | `ADMIN_TELEGRAM_ID` کاما-جدا → چند نفر ادمینِ ربات |
 | 💼 **آمادهٔ کسب‌وکار** | پنلِ نماینده با برندینگ · رباتِ تلگرام · قیمت‌گذاریِ کامل · کارت‌به‌کارت و **کریپتو (Plisio)** |
 | 💾 **بکاپِ خودکار** | هر شب به کانالِ تلگرام + بکاپ/بازیابیِ لحظه‌ای از پنل (WAL-safe) |
 | 🎙️ **ویس‌چتِ زنده** | LiveKit روی صفحهٔ ساب (اختیاری) |
@@ -180,6 +183,21 @@ curl -fsSL https://raw.githubusercontent.com/amirgraph/xui-reseller/main/scripts
 
 **⚠️ مهم:** کانفیگِ «⚡ ضدفیلتر» **فقط در اپِ [PattNG](https://github.com/patterniha/PattNG)** کار می‌کند (`fp=unsafe` استانداردِ vless نیست). کانفیگ‌های عادی (`fp=chrome`) برای بقیهٔ اپ‌ها (v2rayNG/هیدیفای/…) سرِ جای‌شان می‌مانند. کاربر فقط PattNG را نصب و ساب را رفرش می‌کند — بقیه خودکار است.
 
+### 🚀 سرورِ آروان / CDN داخلی (WebSocket)
+
+Cloudflare از ایران **throttle** می‌شود (سقفِ ~۱۵–۲۰ Mbps و پینگِ بالا). یک CDN داخلی مثلِ **آروان** پیرینگِ محلی دارد → **پینگِ پایین‌تر و بدونِ خفگی**. چون آروان `xhttp` را بافر می‌کند، از **WebSocket** استفاده می‌شود.
+
+پنلِ ادمین → **سرورها → افزودن** → فیلدِ **«نوعِ تونل: ws»**، دامنهٔ آروان (SNI/Host)، IP سفیدِ آروان، و مسیرِ ws. مولد خودکار کانفیگِ `type=ws` می‌سازد؛ اسکنرِ per-serverِ آروان (رنجِ `185.143.232.0/22`) هم IP سفید را پیدا می‌کند. یک کانفیگِ Cloudflare (خصوصی) و یک کانفیگِ آروان (پرسرعت) کنارِ هم به همهٔ کاربرها می‌رسد.
+
+### 🔗 فروشِ کانفیگ در ربات (به کاربرِ نهایی)
+
+علاوه بر فروشِ **پنلِ نمایندگی**، ربات می‌تواند **کانفیگِ آماده** هم بفروشد:
+
+1. **محصول‌ساز:** پنلِ ادمین → پلن‌ها → «نوعِ محصول: کانفیگ» → اسم/روز/گیگ/قیمت (+ انتخابِ اینباند/سرورِ هدف).
+2. **خرید:** کاربر در ربات «🔗 خرید کانفیگ» → محصول → **عکسِ رسیدِ کارت‌به‌کارت** می‌فرستد → ادمین **تایید/رد** می‌کند.
+3. **تحویل:** بعد از تأیید، کانفیگ روی همهٔ اینباندها ساخته و **لینکِ اشتراک** برای کاربر ارسال می‌شود؛ کاربر از «🔗 کانفیگ‌های من» همیشه می‌بیندش.
+4. **مدیریت:** همهٔ کانفیگ‌های فروخته‌شده زیرِ یک رزلرِ **«فروش مستقیم»** جمع می‌شوند → ادمین از پنلِ همان رزلر مثلِ نماینده‌ها مدیریتشان می‌کند (تمدید/غیرفعال/حذف).
+
 ### ⚙️ بعد از نصب
 
 1. **Cloudflare** — ساب‌دامین‌های امیرپنل را با پروکسیِ نارنجی به IP سرور بزن.
@@ -232,6 +250,9 @@ pm2 logs xui-reseller            # لاگِ پنل
 - 🛡️ **Multi-layer evasion** — `xhttp` tunnel behind **Cloudflare** with random subdomains, **WARP** egress (hides origin IP), and an **auto clean-IP scanner**.
 - ⚡ **Anti-filter configs (PattNG)** — one toggle adds a **fragment + fp=unsafe + cipherSuites** twin of every config → beats **upload throttling** and **domain filtering** with zero manual setup.
 - 🌍 **Multi-server** — attach several 3x-ui panels to one dashboard. **Add any number of domains → that many configs and that many scanned IPs**, automatically.
+- 🚀 **Arvan / domestic CDN (ws)** — add an ArvanCloud server with **WebSocket** transport for **low ping** (Cloudflare is throttled from Iran); white-IP + Arvan-specific scanner.
+- 🔗 **Sell configs from the bot** — beyond reseller panels, sell **ready configs** to end users: product builder (days/GB/price), **photo receipt + admin approval**, "my configs", and a sales panel to manage them.
+- 👥 **Multi-admin bot** — comma-separated `ADMIN_TELEGRAM_ID` for several bot admins.
 - 💼 **Business-ready** — branded reseller panel, Telegram bot for sales/top-ups, full pricing, card + **crypto (Plisio)** payments.
 - 💾 **Automatic backups** — nightly to a Telegram channel + on-demand backup/restore from the admin panel (WAL-safe).
 - 🎙️ **Live voice chat** — optional LiveKit room on the subscription page.
