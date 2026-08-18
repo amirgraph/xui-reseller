@@ -42,14 +42,16 @@ async function syncUsersJob() {
       }
 
       const usedGb = stat.total / Math.pow(1024, 3);
+      const mult = Number(client.multiplier) > 0 ? Number(client.multiplier) : 1;  // ضریبِ مصرف
+      const effUsed = usedGb * mult;                       // مصرفِ مؤثر (با ضریب)
       const diff = Math.max(0, usedGb - (client.traffic_used_gb || 0));
-      updateTraffic.run(usedGb, client.id);
+      updateTraffic.run(usedGb, client.id);                // خامِ واقعی ذخیره می‌شود
 
       if (!resellerDelta[client.reseller_id]) resellerDelta[client.reseller_id] = 0;
-      resellerDelta[client.reseller_id] += diff;
+      resellerDelta[client.reseller_id] += diff * mult;    // کسر از نماینده با ضریب
 
-      // غیرفعال کردن وقتی حجم تموم شد
-      if (client.is_active && client.traffic_limit_gb > 0 && usedGb >= client.traffic_limit_gb) {
+      // غیرفعال کردن وقتی حجمِ مؤثر (×ضریب) تموم شد
+      if (client.is_active && client.traffic_limit_gb > 0 && effUsed >= client.traffic_limit_gb) {
         try {
           await xui.toggleClient(client.xui_inbound_id, client.xui_uuid, false, client.email || stat.email);
         } catch (e) {}

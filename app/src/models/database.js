@@ -277,6 +277,10 @@ async function initDB() {
   ensureColumn('resellers', 'api_token', "TEXT");
   ensureColumn('resellers', 'api_enabled', "INTEGER DEFAULT 0");
 
+  // ضریبِ مصرفِ حجم روی هر کانفیگ (۱ = عادی، ۲ = هر گیگ دوبرابر حساب می‌شود).
+  // نماینده فقط اگر ادمین اجازه دهد (setting: multiplier_enabled) می‌تواند تغییرش دهد.
+  ensureColumn('clients', 'multiplier', "REAL DEFAULT 1");
+
   // نوعِ پلن: panel (پنلِ نمایندگی — پیش‌فرض) یا config (فروشِ کانفیگ به کاربرِ نهایی)
   ensureColumn('plans', 'kind', "TEXT DEFAULT 'panel'");
   // اینباند(های) هدفِ محصولِ کانفیگ — کاما-جدا؛ خالی = همهٔ اینباندها

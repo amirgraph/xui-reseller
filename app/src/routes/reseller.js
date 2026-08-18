@@ -101,9 +101,12 @@ router.post('/clients', resellerAuth, async (req, res) => {
   const reseller = req.reseller;
   const {
     username, email, inbound_id, inbound_ids,
-    traffic_limit_gb = 10, ip_limit = 1,
+    traffic_limit_gb = 10, ip_limit = 1, multiplier = 1,
     expires_at = null, telegram_id = null, display_name = null
   } = req.body;
+  // ضریبِ مصرف فقط اگر ادمین اجازه داده باشد اعمال می‌شود؛ وگرنه همیشه ۱
+  const mAllowed = (() => { try { const r = db.prepare("SELECT value FROM settings WHERE key='multiplier_enabled'").get(); return !!(r && r.value === '1'); } catch { return false; } })();
+  const mult = (mAllowed && Number(multiplier) > 0) ? Number(multiplier) : 1;
 
   // Checks — ۰ یعنی «بی‌نهایت»، نه «هیچ». قبلاً نمایندهٔ ساخته‌شده از ربات
   // max_clients=0 می‌گرفت و 0>=0 درست بود، پس پنلش از لحظهٔ اول قفل می‌شد.
@@ -183,10 +186,10 @@ router.post('/clients', resellerAuth, async (req, res) => {
     // Save to DB
     db.prepare(`
       INSERT INTO clients (reseller_id, xui_uuid, xui_inbound_id, username, email,
-        telegram_id, traffic_limit_gb, ip_limit, expires_at, display_name)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        telegram_id, traffic_limit_gb, ip_limit, multiplier, expires_at, display_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(reseller.id, uuid, primaryInbound, username, clientEmail,
-      telegram_id, traffic_limit_gb, ip_limit, expires_at, display_name || null);
+      telegram_id, traffic_limit_gb, ip_limit, mult, expires_at, display_name || null);
 
     // Update reseller counts
     db.prepare(`

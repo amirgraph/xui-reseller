@@ -291,7 +291,7 @@ router.get('/settings', adminAuth, (req, res) => {
 // پر کند و کدی که با پیش‌فرض کار می‌کند را گیج کند.
 const NUMERIC_SETTINGS = ['panel_price','panel_traffic_gb','panel_price_per_gb','panel_max_clients',
                           'unlimited_price','test_traffic_gb','test_days','test_max_clients'];
-const BOOL_SETTINGS = ['unlimited_enabled','test_enabled','voice_enabled','antifilter_extra'];
+const BOOL_SETTINGS = ['unlimited_enabled','test_enabled','voice_enabled','antifilter_extra','multiplier_enabled'];
 const TEXT_SETTINGS = ['charge_card_number','charge_card_owner','charge_amounts',
                        'bot_welcome','bot_help','bot_support'];
 // متنِ ربات می‌تواند چندخطی و خالی باشد (خالی = پیش‌فرضِ کد)

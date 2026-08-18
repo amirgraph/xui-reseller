@@ -620,6 +620,17 @@
         <button class="btn btn-primary" onclick="saveSettings(['antifilter_extra'])">ذخیره</button>
       </div>
 
+      <!-- توگلِ ضریبِ مصرف برای نمایندگان -->
+      <div class="table-wrap" style="padding:18px;margin-bottom:16px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="s-multiplier_enabled" style="width:auto"> نمایندگان بتوانند «ضریبِ مصرف» روی کانفیگ‌هایشان بگذارند
+        </label>
+        <p style="color:var(--text-dim);font-size:.8rem;line-height:1.9;margin:6px 0 12px">
+          روشن شود → نماینده موقعِ ساختِ کانفیگ می‌تواند <b>ضریب</b> بگذارد (مثلاً <b>۲</b> = هر گیگِ مصرفِ واقعی، دو گیگ از حجمِ کانفیگ کم می‌کند و دوبرابر از موجودیِ نماینده). خاموش → ضریب همیشه ۱.
+        </p>
+        <button class="btn btn-primary" onclick="saveSettings(['multiplier_enabled'])">ذخیره</button>
+      </div>
+
       <div class="table-wrap">
         <table>
           <thead><tr><th>#</th><th>کشور</th><th>دامنه‌ها</th><th>IP‌های تمیز</th><th>وضعیت</th><th>عملیات</th></tr></thead>
@@ -1195,7 +1206,7 @@ async function saveSettings(keys) {
 var _servers = [];
 async function loadServers() {
   // وضعیتِ توگلِ کانفیگِ اضافهٔ ضدفیلتر را هم روی همین صفحه بازتاب بده
-  try { const st = await get('/admin/settings'); if (st && st.success) { const cb = document.getElementById('s-antifilter_extra'); if (cb) cb.checked = String(st.data.antifilter_extra) === '1'; } } catch (_) {}
+  try { const st = await get('/admin/settings'); if (st && st.success) { const cb = document.getElementById('s-antifilter_extra'); if (cb) cb.checked = String(st.data.antifilter_extra) === '1'; const cm = document.getElementById('s-multiplier_enabled'); if (cm) cm.checked = String(st.data.multiplier_enabled) === '1'; } } catch (_) {}
   const r = await get('/admin/servers'); if (!r || !r.success) return;
   _servers = r.data;
   const tb = document.getElementById('servers-tbody');

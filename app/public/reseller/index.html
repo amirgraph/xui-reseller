@@ -611,6 +611,7 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
         <div style="font-size:.72rem;color:var(--warning);margin-top:4px" id="c-cost-hint"></div>
       </div>
       <div class="form-group"><label>محدودیت IP (0=نامحدود)</label><input id="c-ip" type="number" value="0" min="0" dir="ltr"></div>
+      <div class="form-group"><label>ضریبِ مصرف (۱=عادی · فقط اگر ادمین اجازه داده)</label><input id="c-multiplier" type="number" value="1" min="0.1" step="0.1" dir="ltr"></div>
     </div>
     <div class="form-group">
       <label>تاریخ انقضا</label>
@@ -1086,6 +1087,7 @@ async function saveClient(){
     inbound_id:isEdit?parseInt(document.getElementById('c-inbound').value):selectedInboundIds[0],
     traffic_limit_gb:gb,
     ip_limit:parseInt(document.getElementById('c-ip').value)||0,
+    multiplier:parseFloat((document.getElementById('c-multiplier')||{}).value)||1,
     expires_at:document.getElementById('c-expires').value||null,
     telegram_id:document.getElementById('c-telegram').value||null,
   };
