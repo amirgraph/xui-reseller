@@ -1100,28 +1100,41 @@ function toggleSidebar(force) {
 }
 
 // ── API helpers ───────────────────────────────
+// پاسخ را امن پارس می‌کند: اگر بدنه JSON نبود (مثلِ صفحهٔ ۵۰۴/۵۰۲ nginx یا
+// قطعِ اتصال حینِ عملیاتِ طولانی)، به‌جای throw یک آبجکتِ خطای ساخت‌یافته برمی‌گرداند
+// تا کالر «خطا»ی گمراه‌کننده نشان ندهد.
+async function parseJson(r) {
+  try { return await r.json(); }
+  catch (e) {
+    if (r.ok) return { success: true };
+    return { success: false, message: 'خطای سرور (' + r.status + ') — ممکن است عملیات با تأخیر انجام شده باشد' };
+  }
+}
 async function get(path) {
   const r = await fetch(API + path, { headers: { Authorization: 'Bearer ' + token } });
   if (r.status === 401) { logout(); return {}; }
-  return r.json();
+  return parseJson(r);
 }
 async function post(path, body) {
   const r = await fetch(API + path, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
     body: JSON.stringify(body)
   });
-  return r.json();
+  if (r.status === 401) { logout(); return {}; }
+  return parseJson(r);
 }
 async function put(path, body) {
   const r = await fetch(API + path, {
     method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
     body: JSON.stringify(body)
   });
-  return r.json();
+  if (r.status === 401) { logout(); return {}; }
+  return parseJson(r);
 }
 async function del(path) {
   const r = await fetch(API + path, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
-  return r.json();
+  if (r.status === 401) { logout(); return {}; }
+  return parseJson(r);
 }
 
 function toast(msg, type = 'success') {

@@ -112,6 +112,10 @@ $WS_BLOCK
         proxy_set_header X-Forwarded-Proto https;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection \$connection_upgrade;
+        # عملیاتِ طولانی (بکاپ/آپلود به تلگرام، بازیابی) نباید با پیش‌فرضِ ۶۰s
+        # nginx قطع شوند؛ وگرنه پنل «خطا» نشان می‌دهد در حالی که کار انجام شده.
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
     }
 }
 EOF
