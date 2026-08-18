@@ -562,7 +562,7 @@ router.delete('/servers/:id', adminAuth, (req, res) => {
 router.get('/servers/:id/scanner', adminAuth, (req, res) => {
   const row = getDB().prepare('SELECT * FROM servers WHERE id=?').get(req.params.id);
   if (!row) return res.status(404).send('not found');
-  const panelBase = (process.env.SUB_BASE_URL || 'https://panelsub.irsna.top/sub').replace(/\/sub.*$/, '');
+  const panelBase = (process.env.SUB_BASE_URL || 'http://localhost:3000/sub').replace(/\/sub.*$/, '');
   const nDomains = String(row.domains || '').split(',').filter(Boolean).length || 3;
   const applyUrl = panelBase + '/sub/apply-cleanip';
   const os = String(req.query.os || 'unix').toLowerCase();

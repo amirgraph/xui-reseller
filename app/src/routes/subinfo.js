@@ -91,7 +91,7 @@ router.get('/:uuid', async (req, res) => {
     is_active: !!client.is_active,
     // لینک اصلی x-ui رو برای کپی برگردون
     sub_url: `${process.env.SUB_BASE_FRB || 'https://lshftui617qxzfns4r.frbboks.ir/sub'}/${uuid}`, // ساب ۱: کلادفلر (cloudflare)
-    sub_url_2: `${process.env.SUB_BASE_URL || 'https://panelsub.irsna.top/sub'}/${uuid}`, // ساب ۲: آروان (bot.example)
+    sub_url_2: `${process.env.SUB_BASE_URL || 'http://localhost:3000/sub'}/${uuid}`, // ساب ۲: آروان (bot.example)
     links,
     brand: {
       name: reseller?.brand_name || 'VPN Service',

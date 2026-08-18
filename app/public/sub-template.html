@@ -186,13 +186,15 @@ body.light-theme .toast{background:rgba(255,255,255,.96);color:#0f9d70}
 <div class="toast" id="toast"><span id="toast-msg">کپی شد!</span></div>
 <script src="https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js"></script>
 <script>
-var WS_URL='wss://voice.irsna.top';
+// آدرسِ سرورِ ویس از خودِ پنل می‌آید (LIVEKIT_WS_URL) — نباید دامنه‌ای hardcode شود
+var WS_URL='';
 var TOKEN_API='/sub/voice-token';
 var ROOM_NAME='anastia-voice';
 var D={},LINKS=[];
-// اگر ادمین ویس را خاموش کرده باشد، کارتِ ویس مخفی شود
+// اگر ادمین ویس را خاموش کرده یا سرورِ ویس تنظیم نشده باشد، کارتِ ویس مخفی شود
 fetch('/sub/voice-status').then(function(r){return r.json();}).then(function(d){
-  if(d&&d.enabled===false){var c=document.querySelector('.voice-card');if(c)c.style.display='none';}
+  if(d&&d.ws_url){WS_URL=d.ws_url;}
+  if(d&&(d.enabled===false||!d.ws_url)){var c=document.querySelector('.voice-card');if(c)c.style.display='none';}
 }).catch(function(){});
 var room=null,isMuted=false,isConnected=false;
 

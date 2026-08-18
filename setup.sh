@@ -317,20 +317,46 @@ fi
 run_module 99-verify.sh
 
 # ═══════════════ راهنمای نودِ چندکشوره ═══════════════
+# بعدِ نصبِ نود، دقیقاً همان مقادیری که باید در «پنلِ مرکزی → سرورها → افزودن سرور»
+# وارد شوند را چاپ می‌کنیم. مهم‌ترینشان tunnel_path و network اند که اگر اشتباه
+# وارد شوند، کانفیگ‌های آن نود «پینگ نمی‌دهند».
 if [ "$INSTALL_MODE" = node ]; then
   echo
   echo "$(c '1;36' '  ✅ NODE amade shod (zed-filter bedune panel).')"
-  echo "  Baraye vasl kardane in node be panele ASLI (afzudane keshvare jadid):"
-  echo "   1) Dar panele asli → Server ha → afzudane server:"
-  echo "        - xui_url  : https://$NSUB1   (ya har kodam az subdomain ha)"
-  echo "        - xui_path : $XUI_PATH"
-  echo "        - API token: hamun tokeni ke bala sakhti"
-  echo "        - domain ha: $NSUB1,$NSUB2,$NSUB3"
-  echo "   2) Record haye DNS in subdomain ha ra (proxy narenji) be $SERVER_IP bezan."
-  echo "   3) Az panele asli → Server ha → dokmeye 'Downloade Scanner' ra bezan;"
-  echo "      scanner makhsuse hamin server (ba token) ra inja run/cron kon ta"
-  echo "      IP haye tamiz khodkar be panele asli feed shavand."
-  echo "  (Scanner az panele asli miayad — chun token va URL panel dar khodesh hast.)"
+  echo "  ┌──────────────────────────────────────────────────────────────┐"
+  echo "  │  Ina ra AYNAN dar panele MARKAZI → 'Server ha' → 'Afzudan'     │"
+  echo "  │  vared kon. (tunnel_path va network mohemtarin-and!)           │"
+  echo "  └──────────────────────────────────────────────────────────────┘"
+  if [ "$CDN_MODE" = cf ] || [ "$CDN_MODE" = both ]; then
+    echo
+    echo "$(c '1;33' '  ── Server-e Cloudflare (xhttp) ──')"
+    echo "     name         : ${SERVER_NAME:-Node}"
+    echo "     xui_url      : http://$SERVER_IP:$XUI_PORT"
+    echo "     xui_path     : $XUI_PATH"
+    echo "     api_key      : $XUI_API_KEY"
+    echo "     inbound_ids  : 1"
+    echo "     tunnel_path  : $XHTTP_PATH"
+    echo "     network      : xhttp"
+    echo "     domains      : $NSUB1,$NSUB2,$NSUB3"
+  fi
+  if [ "$CDN_MODE" = arvan ] || [ "$CDN_MODE" = both ]; then
+    echo
+    echo "$(c '1;33' '  ── Server-e Arvan (ws) ──')"
+    echo "     name         : ${SERVER_NAME:-Node}-Arvan"
+    echo "     xui_url      : http://$SERVER_IP:$XUI_PORT"
+    echo "     xui_path     : $XUI_PATH"
+    echo "     api_key      : $XUI_API_KEY"
+    echo "     inbound_ids  : $([ "$CDN_MODE" = both ] && echo 2 || echo 1)"
+    echo "     tunnel_path  : $WS_PATH"
+    echo "     network      : ws"
+    echo "     domains      : $ARVAN_SUBS"
+  fi
+  echo
+  echo "  (Age motmaen nisti, inbound_ids ra az panele x-ui in node → 'Inbounds' bebin.)"
+  echo "  Badesh:"
+  echo "   1) DNS in domain ha ra (Cloudflare narenji / Arvan roshan) be $SERVER_IP bezan."
+  echo "   2) Az panele markazi → Server ha → 'Downloade Scanner' ra rooye hamin node run/cron kon"
+  echo "      ta IP haye tamiz khodkar be panele markazi feed shavand."
 fi
 
 title "✅ AMIR PANEL — nasb kamel shod"

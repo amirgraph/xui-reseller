@@ -223,7 +223,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
         </div>
         <div style="background:rgba(94,234,212,.06);border:1px solid rgba(94,234,212,.15);border-radius:7px;padding:6px 8px">
           <div style="font-size:.48rem;color:var(--muted);margin-bottom:3px">سابلینک شما</div>
-          <div style="font-size:.44rem;color:var(--acc2);font-family:monospace;direction:ltr;text-align:left;word-break:break-all;line-height:1.5" id="ps-sublink-dash">panelsub.irsna.top/sub/a3f8b2...</div>
+          <div style="font-size:.44rem;color:var(--acc2);font-family:monospace;direction:ltr;text-align:left;word-break:break-all;line-height:1.5" id="ps-sublink-dash">sub.example.ir/sub/a3f8b2...</div>
         </div>
       </div>
 
@@ -248,7 +248,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
         </div>
         <div class="ps-sublink-wrap">
           <div class="ps-sublink-label">سابلینک اختصاصی</div>
-          <div class="ps-sublink-val" id="ps-typed-sub">panelsub.irsna.top/sub/a3f8b2...</div>
+          <div class="ps-sublink-val" id="ps-typed-sub">sub.example.ir/sub/a3f8b2...</div>
         </div>
       </div>
 
@@ -259,7 +259,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
             <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
           </div>
           <div class="ps-success-text">لینک کپی شد!</div>
-          <div class="ps-success-sub" id="ps-final-sub">panelsub.irsna.top/sub/a3f8b2...</div>
+          <div class="ps-success-sub" id="ps-final-sub">sub.example.ir/sub/a3f8b2...</div>
         </div>
       </div>
     </div>
@@ -455,7 +455,7 @@ if(tg){tg.ready();tg.expand();tg.setHeaderColor('#07030f');tg.setBackgroundColor
 const params = new URLSearchParams(location.search);
 const resellerId = params.get('r');
 let brandTelegram = '';
-let demoSubLink = 'https://panelsub.irsna.top/sub/a3f8b2c14d5e6f7a8b9c0d1e2f3a4b5c';
+let demoSubLink = 'https://sub.example.ir/sub/a3f8b2c14d5e6f7a8b9c0d1e2f3a4b5c';
 let brandName = 'VPN Panel';
 
 // ─── Load brand ───
@@ -546,7 +546,7 @@ async function loadBrand(){
 
   function runCycle(){
     const name=names[nameIdx%names.length];nameIdx++;
-    const sub=`panelsub.irsna.top/sub/${Math.random().toString(36).slice(2,18)}`;
+    const sub=`sub.example.ir/sub/${Math.random().toString(36).slice(2,18)}`;
 
     // Phase 1: dashboard (2.5s)
     showScreen(ps1);
@@ -554,12 +554,12 @@ async function loadBrand(){
       // Phase 2: brand settings
       showScreen(ps2);
       typedEl.textContent='';
-      typedSub.textContent='panelsub.irsna.top/sub/...';
+      typedSub.textContent='sub.example.ir/sub/...';
       // Type the name
       typeText(typedEl,name,90,()=>{
         // Update sub link
-        typedSub.textContent=`panelsub.irsna.top/sub/${sub.split('/').pop().slice(0,14)}...`;
-        finalSub.textContent=`panelsub.irsna.top/sub/${sub.split('/').pop().slice(0,14)}...`;
+        typedSub.textContent=`sub.example.ir/sub/${sub.split('/').pop().slice(0,14)}...`;
+        finalSub.textContent=`sub.example.ir/sub/${sub.split('/').pop().slice(0,14)}...`;
         setTimeout(()=>{
           // Phase 3: success
           showScreen(ps3);

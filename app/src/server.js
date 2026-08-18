@@ -52,7 +52,7 @@ app.get('/admin*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/admin/index.html'));
 });
 
-// Mini App Telegram (panelsub.irsna.top/mini)
+// Mini App Telegram (<MAIN_DOMAIN>/mini)
 app.get('/mini*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/mini/index.html'));
 });

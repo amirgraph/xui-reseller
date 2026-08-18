@@ -17,6 +17,10 @@ const XUI_URL = process.env.XUI_URL;
 const XUI_PATH = process.env.XUI_PATH || '';
 const XUI_API_KEY = process.env.XUI_API_KEY;
 const SUB_BASE_URL = process.env.SUB_BASE_URL || '';
+// آدرسِ پایهٔ پنلِ همین نصب (برای لینکِ پنل/صفحهٔ کاربر). از دامنهٔ خودِ مشتری
+// مشتق می‌شود — نباید دامنهٔ توسعه‌دهنده hardcode شود. PANEL_BASE_URL مقدم است،
+// وگرنه از SUB_BASE_URL با حذفِ «/sub» ساخته می‌شود.
+const PANEL_BASE = (process.env.PANEL_BASE_URL || SUB_BASE_URL.replace(/\/sub.*$/, '') || 'http://localhost:3000').replace(/\/+$/, '');
 
 // ⚠️ PRICE_PER_GB و PLANS قبلاً همین‌جا هاردکد بودند (۳۵۰۰ و برنزی/نقره‌ای/طلایی).
 // نتیجه: ربات نرخِ واقعیِ هر نماینده را نادیده می‌گرفت و همان کاربر از پنل ۲۰۰
@@ -822,7 +826,7 @@ async function handleGuest(chatId, text, st, msg) {
   if (text === '🔗 کانفیگ‌های من') {
     const mine = db.prepare("SELECT c.xui_uuid, c.traffic_limit_gb, c.expires_at, c.is_active FROM clients c JOIN resellers r ON r.id=c.reseller_id WHERE r.username='direct_sales' AND c.telegram_id=? ORDER BY c.id DESC").all(String(chatId));
     if (!mine.length) return bot.sendMessage(chatId, '📭 هنوز کانفیگی نخریده‌ای.\n«🔗 خرید کانفیگ» را بزن.', guestMenu());
-    const base = SUB_BASE_URL || 'https://panelsub.irsna.top/sub';
+    const base = SUB_BASE_URL || 'http://localhost:3000/sub';
     let m = '🔗 کانفیگ‌های تو:\n\n';
     mine.forEach(function (c, i) {
       m += (i + 1) + ') 📦 ' + (c.traffic_limit_gb > 0 ? c.traffic_limit_gb + ' GB' : 'نامحدود') +
@@ -1040,7 +1044,7 @@ async function handleReseller(chatId, text, st, reseller, msg) {
   }
   if (text === '⚙️ حساب من') {
     return bot.sendMessage(chatId,
-      '⚙️ حساب من\n\nنام: ' + reseller.name + '\nیوزر: ' + reseller.username + '\nپسورد: ' + (reseller.plain_password || 'نامشخص') + '\nموجودی: ' + formatNum(reseller.balance) + ' تومان\nپنل: http://panelsub.irsna.top/panel',
+      '⚙️ حساب من\n\nنام: ' + reseller.name + '\nیوزر: ' + reseller.username + '\nپسورد: ' + (reseller.plain_password || 'نامشخص') + '\nموجودی: ' + formatNum(reseller.balance) + ' تومان\nپنل: ' + PANEL_BASE + '/panel',
       resellerMenu()
     );
   }
@@ -1116,7 +1120,7 @@ async function handleReseller(chatId, text, st, reseller, msg) {
       db.prepare('INSERT INTO transactions (reseller_id, type, amount, description) VALUES (?, ?, ?, ?)').run(reseller.id, 'debit', st.cost, 'کاربر: ' + st.username + ' (' + st.traffic_gb + 'GB)');
       db.prepare('INSERT INTO clients (reseller_id, xui_uuid, xui_inbound_id, username, traffic_limit_gb, expires_at) VALUES (?, ?, ?, ?, ?, ?)').run(reseller.id, uuid, inboundId, st.username, st.traffic_gb, days > 0 ? new Date(expiryTime).toISOString() : null);
       clearState(chatId);
-      await bot.sendMessage(chatId, '✅ کاربر ساخته شد!\n\n👤 ' + st.username + '\n📶 ' + st.traffic_gb + ' GB\n📅 ' + (days > 0 ? days + ' روز' : 'نامحدود') + '\n💰 هزینه: ' + formatNum(st.cost) + '\n\n🔗 ساب:\nhttps://panelsub.irsna.top/sub/' + uuid, resellerMenu());
+      await bot.sendMessage(chatId, '✅ کاربر ساخته شد!\n\n👤 ' + st.username + '\n📶 ' + st.traffic_gb + ' GB\n📅 ' + (days > 0 ? days + ' روز' : 'نامحدود') + '\n💰 هزینه: ' + formatNum(st.cost) + '\n\n🔗 ساب:\n' + SUB_BASE_URL + '/' + uuid, resellerMenu());
     } catch(err) {
       clearState(chatId);
       bot.sendMessage(chatId, '❌ خطا: ' + err.message, resellerMenu());
@@ -1146,7 +1150,7 @@ async function handleReseller(chatId, text, st, reseller, msg) {
     return;
   }
   if (text === '🔗 لینک اشتراک') {
-    return bot.sendMessage(chatId, '🔗 لینک‌ها\n\nپنل: http://panelsub.irsna.top/panel\nساب: ' + SUB_BASE_URL + '/\n\nبرای لینک کاربر خاص از «👥 کاربران من» استفاده کن.', resellerMenu());
+    return bot.sendMessage(chatId, '🔗 لینک‌ها\n\nپنل: ' + PANEL_BASE + '/panel\nساب: ' + SUB_BASE_URL + '/\n\nبرای لینک کاربر خاص از «👥 کاربران من» استفاده کن.', resellerMenu());
   }
   if (st.step === 'reseller_waiting_receipt') {
     const req = st.purchase_req;
@@ -1222,7 +1226,7 @@ bot.on('callback_query', async function(query) {
           '🔑 رمز: ' + password + '\n' +
           '📶 ' + gb + ' GB' + (days > 0 ? '\n📅 ' + days + ' روز' : '') + '\n' +
           '👥 تا ' + testMaxClients() + ' کاربر\n\n' +
-          '🌐 https://panelsub.irsna.top/panel\n\n' +
+          '🌐 ' + PANEL_BASE + '/panel\n\n' +
           'قیمتِ هر گیگ صفر است، پس آزادانه تست کن. برای نسخهٔ کامل «🛒 خرید پنل نمایندگی» را بزن.',
           resellerMenu());
         tellAdmin('🧪 پنل تستی\n📱 ' + phone + '\n👤 ' + username);
@@ -1353,7 +1357,7 @@ bot.on('callback_query', async function(query) {
         db.prepare('INSERT INTO clients (reseller_id, xui_uuid, xui_inbound_id, username, traffic_limit_gb, expires_at, telegram_id) VALUES (?,?,?,?,?,?,?)').run(dsr.id, uuid, targetIds[0], uname, gb, days > 0 ? new Date(expiryTime).toISOString() : null, String(tgId));
         db.prepare('UPDATE resellers SET current_clients = current_clients + 1 WHERE id = ?').run(dsr.id);
         db.prepare('UPDATE purchase_requests SET status = ?, confirmed_at = CURRENT_TIMESTAMP WHERE id = ?').run('approved', reqId);
-        const subLink = (SUB_BASE_URL || 'https://panelsub.irsna.top/sub') + '/' + uuid;
+        const subLink = (SUB_BASE_URL || 'http://localhost:3000/sub') + '/' + uuid;
         await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: msgId });
         await bot.sendMessage(chatId, '✅ کانفیگ ساخته شد و برای کاربر رفت.\n📦 ' + plan.name, adminMenu);
         try {
@@ -1394,7 +1398,7 @@ bot.on('callback_query', async function(query) {
           '📦 ' + describePlan(plan) + '\n' +
           (f.balance > 0 ? '💰 موجودی: ' + formatNum(f.balance) + ' تومان\n' : '') +
           '\n' +
-          '🌐 پنل: http://panelsub.irsna.top/panel\n\n' +
+          '🌐 پنل: ' + PANEL_BASE + '/panel\n\n' +
           'از همین ربات هم می‌تونی مدیریت کنی 👇',
           resellerMenu()
         );
@@ -1474,7 +1478,7 @@ bot.on('callback_query', async function(query) {
       const subId = uuid.replace(/-/g, '').substring(0, 16);
       clearState(chatId);
       await bot.sendMessage(chatId,
-        '✅ کاربر ساخته شد!\n\n👤 ' + st.username + '\n📶 ' + st.traffic_gb + ' GB\n📅 ' + (st.days > 0 ? st.days + ' روز' : 'نامحدود') + '\n💰 هزینه: ' + formatNum(st.cost) + ' تومان\n💳 موجودی باقی: ' + formatNum(reseller.balance - st.cost) + ' تومان\n\n🔗 ساب:\n' + 'https://panelsub.irsna.top/anastia.html?t=' + uuid + '\n\n🌐 صفحه:\nhttp://panelsub.irsna.top/view/' + uuid,
+        '✅ کاربر ساخته شد!\n\n👤 ' + st.username + '\n📶 ' + st.traffic_gb + ' GB\n📅 ' + (st.days > 0 ? st.days + ' روز' : 'نامحدود') + '\n💰 هزینه: ' + formatNum(st.cost) + ' تومان\n💳 موجودی باقی: ' + formatNum(reseller.balance - st.cost) + ' تومان\n\n🔗 ساب:\n' + PANEL_BASE + '/anastia.html?t=' + uuid + '\n\n🌐 صفحه:\n' + PANEL_BASE + '/view/' + uuid,
         resellerMenu()
       );
     } catch(err) {
@@ -1506,7 +1510,7 @@ bot.on('callback_query', async function(query) {
     const c = db.prepare('SELECT * FROM clients WHERE id = ? AND reseller_id = ?').get(cId, reseller.id);
     if (!c) return;
     const subId = c.xui_uuid.replace(/-/g, '').substring(0, 16);
-    bot.sendMessage(chatId, '🔗 لینک‌های ' + c.username + ':\n\nساب:\n' + 'https://panelsub.irsna.top/anastia.html?t=' + c.xui_uuid + '\n\nصفحه:\nhttp://panelsub.irsna.top/view/' + c.xui_uuid);
+    bot.sendMessage(chatId, '🔗 لینک‌های ' + c.username + ':\n\nساب:\n' + PANEL_BASE + '/anastia.html?t=' + c.xui_uuid + '\n\nصفحه:\n' + PANEL_BASE + '/view/' + c.xui_uuid);
     return;
   }
 

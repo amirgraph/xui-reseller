@@ -126,7 +126,8 @@ function voiceEnabled() {
 // وضعیتِ ویس برای صفحهٔ ساب (مخفی‌کردنِ کارت وقتی خاموش است)
 router.get('/voice-status', (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.json({ enabled: voiceEnabled() });
+  // ws_url فقط از env؛ اگر تنظیم نشده باشد، ویس در صفحه مخفی می‌شود (نشتِ سرورِ ویس نداریم)
+  res.json({ enabled: voiceEnabled(), ws_url: process.env.LIVEKIT_WS_URL || '' });
 });
 
 router.get('/voice-token', async (req, res) => {
