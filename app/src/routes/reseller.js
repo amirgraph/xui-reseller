@@ -118,14 +118,22 @@ router.post('/clients', resellerAuth, async (req, res) => {
   // قبلاً ۱۸۰٬۰۰۰ هاردکد بود و مقدارِ واقعیِ settings را نادیده می‌گرفت.
   const isUnlimited = Number(traffic_limit_gb) === 0;
   const UNLIMITED_MONTHLY = require('../models/plans').unlimitedMonthly();
+  // نمایندهٔ با پنلِ نامحدود (traffic_limit_gb=0 روی خودِ نماینده) دیگر برای
+  // ساختِ کانفیگ چیزی از کیف‌پول کم نمی‌شود — قبلاً «نامحدود» فقط سقفِ حجم
+  // را برمی‌داشت، سقفِ کیف‌پول سرِ جایش بود و نماینده باز هم ته می‌کشید.
+  // تنها هزینه‌اش برای این‌جور نماینده‌ها تمدیدِ دوره‌ایِ خودِ پنل است —
+  // رجوع به checkResellerExpiry در syncService که پنلِ منقضی را غیرفعال می‌کند.
+  const resellerUnlimited = Number(reseller.traffic_limit_gb) === 0;
   let cost = 0;
   if (isUnlimited) {
     if (!expires_at) {
       return res.status(400).json({ success: false, message: 'برای کاربر نامحدود باید تاریخ انقضا (تعداد ماه) انتخاب کنید.' });
     }
-    const days = Math.max(1, Math.round((new Date(expires_at).getTime() - Date.now()) / 86400000));
-    const months = Math.max(1, Math.round(days / 30));
-    cost = months * UNLIMITED_MONTHLY;
+    if (!resellerUnlimited) {
+      const days = Math.max(1, Math.round((new Date(expires_at).getTime() - Date.now()) / 86400000));
+      const months = Math.max(1, Math.round(days / 30));
+      cost = months * UNLIMITED_MONTHLY;
+    }
   } else {
     // traffic_limit_gb=0 روی نماینده یعنی سهمیهٔ نامحدود؛ آن‌وقت چیزی که او را
     // محدود می‌کند موجودیِ کیف پول است (مدلِ balance). وگرنه سهمیه چک می‌شود.
@@ -143,7 +151,7 @@ router.post('/clients', resellerAuth, async (req, res) => {
           `حجم کافی نیست. باقی‌مانده: ${trafficAvailable.toFixed(2)} GB از ${reseller.traffic_limit_gb} GB` });
       }
     }
-    if (reseller.price_per_gb > 0) cost = Number(traffic_limit_gb) * reseller.price_per_gb;
+    if (!resellerUnlimited && reseller.price_per_gb > 0) cost = Number(traffic_limit_gb) * reseller.price_per_gb;
   }
   if (cost > 0 && reseller.balance < cost) {
     return res.status(400).json({ success: false, message: `موجودی کافی نیست. موجودی: ${reseller.balance.toLocaleString()} ت — هزینه: ${cost.toLocaleString()} ت` });
@@ -292,7 +300,9 @@ router.put('/clients/:id', resellerAuth, async (req, res) => {
 
     const newGb = traffic_limit_gb || client.traffic_limit_gb;
     const diff = newGb - client.traffic_limit_gb;
-    if(diff !== 0 && reseller.price_per_gb > 0) {
+    // نمایندهٔ نامحدود (بالا توضیح داده شد) این‌جا هم چیزی کم/زیاد نمی‌شود —
+    // اصلاً از اول چیزی کسر نشده بود که حالا بابتِ تغییرش تسویه کنیم.
+    if (Number(reseller.traffic_limit_gb) !== 0 && diff !== 0 && reseller.price_per_gb > 0) {
       const costDiff = diff * reseller.price_per_gb;
       db.prepare('UPDATE resellers SET balance = balance - ? WHERE id = ?').run(costDiff, reseller.id);
       db.prepare("INSERT INTO transactions (reseller_id, type, amount, description) VALUES (?, ?, ?, ?)").run(reseller.id, diff > 0 ? 'debit' : 'credit', Math.abs(costDiff), 'Edit client: ' + client.username + ' (' + (diff > 0 ? '+' : '') + diff + 'GB)');

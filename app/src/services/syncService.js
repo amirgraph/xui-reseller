@@ -1,5 +1,6 @@
 const { getDB } = require('../models/database');
 const xui = require('./xuiService');
+const { notifyChat, notifyAdmin } = require('../lib/notify');
 
 async function syncUsersJob() {
   const db = getDB();
@@ -88,6 +89,52 @@ async function checkExpiredAccounts() {
   }
 }
 
+// ⚠️ resellers.expires_at قبلاً هیچ‌جا اعمال نمی‌شد — یعنی هر پنلِ نماینده
+// (خصوصاً پنلِ نامحدود که حالا برایِ ساختِ کانفیگ رایگان است) عملاً هیچ‌وقت
+// منقضی نمی‌شد. این تابع دو کار می‌کند:
+//  ۱) نماینده‌ای که تاریخِ انقضایش گذشته را غیرفعال می‌کند (resellerAuth
+//     خودش already چکِ is_active دارد، پس همین کافی‌ست تا لاگین/API قفل شود).
+//  ۲) ۳ روز قبل از انقضا یک یادآوری به خودِ نماینده (و اگر زیرِ نمایندهٔ
+//     دیگری‌ست، به او هم) می‌فرستد — یک‌بار برای هر دوره، نه هر ساعت.
+const RENEWAL_REMINDER_DAYS = 3;
+async function checkResellerExpiry() {
+  const db = getDB();
+  try {
+    const expired = db.prepare(`
+      SELECT * FROM resellers WHERE is_active=1
+      AND expires_at IS NOT NULL AND expires_at < CURRENT_TIMESTAMP
+    `).all();
+    for (const r of expired) {
+      db.prepare('UPDATE resellers SET is_active=0 WHERE id=?').run(r.id);
+      if (r.telegram_id) notifyChat(r.telegram_id, '⛔ پنلِ «' + r.name + '» منقضی شد و غیرفعال گردید. برای تمدید با پشتیبانی تماس بگیر.');
+      if (r.parent_id) {
+        const parent = db.prepare('SELECT telegram_id FROM resellers WHERE id=?').get(r.parent_id);
+        if (parent && parent.telegram_id) notifyChat(parent.telegram_id, '⛔ پنلِ زیرمجموعهٔ «' + r.name + '» منقضی و غیرفعال شد.');
+      }
+      notifyAdmin('⛔ پنلِ نماینده «' + r.name + '» (' + r.username + ') منقضی و غیرفعال شد.');
+    }
+
+    const soon = db.prepare(`
+      SELECT * FROM resellers WHERE is_active=1
+      AND expires_at IS NOT NULL AND expires_at >= CURRENT_TIMESTAMP
+      AND expires_at <= datetime('now', '+' || ? || ' days')
+      AND (renewal_reminded_for IS NULL OR renewal_reminded_for != expires_at)
+    `).all(RENEWAL_REMINDER_DAYS);
+    for (const r of soon) {
+      const daysLeft = Math.max(1, Math.ceil((new Date(r.expires_at).getTime() - Date.now()) / 86400000));
+      const msg = '⏳ پنلِ «' + r.name + '» تا ' + daysLeft + ' روزِ دیگر منقضی می‌شود. برای تمدید با پشتیبانی تماس بگیر.';
+      if (r.telegram_id) notifyChat(r.telegram_id, msg);
+      if (r.parent_id) {
+        const parent = db.prepare('SELECT telegram_id FROM resellers WHERE id=?').get(r.parent_id);
+        if (parent && parent.telegram_id) notifyChat(parent.telegram_id, '⏳ پنلِ زیرمجموعهٔ «' + r.name + '» تا ' + daysLeft + ' روزِ دیگر منقضی می‌شود.');
+      }
+      db.prepare('UPDATE resellers SET renewal_reminded_for=? WHERE id=?').run(r.expires_at, r.id);
+    }
+  } catch (err) {
+    console.error('Reseller expiry check error:', err.message);
+  }
+}
+
 function returnTrafficToReseller(resellerId, trafficUsedGb, trafficLimitGb) {
   const db = getDB();
   const remaining = Math.max(0, trafficLimitGb - trafficUsedGb);
@@ -95,4 +142,4 @@ function returnTrafficToReseller(resellerId, trafficUsedGb, trafficLimitGb) {
   return remaining;
 }
 
-module.exports = { syncUsersJob, checkExpiredAccounts, returnTrafficToReseller };
+module.exports = { syncUsersJob, checkExpiredAccounts, checkResellerExpiry, returnTrafficToReseller };

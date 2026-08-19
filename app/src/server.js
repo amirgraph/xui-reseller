@@ -82,7 +82,8 @@ initDB().then(() => {
 
   // Check expired accounts every hour
   cron.schedule('0 * * * *', () => {
-    const { checkExpiredAccounts } = require('./services/syncService');
+    const { checkExpiredAccounts, checkResellerExpiry } = require('./services/syncService');
     checkExpiredAccounts();
+    checkResellerExpiry();
   });
 });

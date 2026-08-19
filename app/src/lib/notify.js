@@ -1,9 +1,9 @@
 require("dotenv").config({ path: "/opt/xui-reseller/.env" });
 const https = require("https");
 
-function notifyAdmin(text) {
+// پیام به یک چتِ دلخواه (نه فقط ادمین) — برای یادآوریِ تمدید به خودِ نماینده
+function notifyChat(chatId, text) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.ADMIN_TELEGRAM_ID;
   if (!token || !chatId) return;
   const body = JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML" });
   const req = https.request({
@@ -17,4 +17,13 @@ function notifyAdmin(text) {
   req.end();
 }
 
-module.exports = { notifyAdmin };
+// ADMIN_TELEGRAM_ID می‌تواند چندتایی (کاما-جدا، مالتی-ادمین) باشد؛ تلگرام
+// chat_id تکی می‌خواهد، پس باید جدا-جدا برای هرکدام بفرستیم وگرنه با
+// «۱۲۳,۴۵۶» به‌عنوانِ chat_id واحد، سکوت‌شده رد می‌شود.
+function notifyAdmin(text) {
+  String(process.env.ADMIN_TELEGRAM_ID || '')
+    .split(',').map((s) => s.trim()).filter(Boolean)
+    .forEach((id) => notifyChat(id, text));
+}
+
+module.exports = { notifyAdmin, notifyChat };

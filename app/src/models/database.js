@@ -358,6 +358,12 @@ async function initDB() {
   // نوعِ transport هر سرور: xhttp (Cloudflare) یا ws (آروان/CDN داخلی) — بعد از CREATE servers
   ensureColumn('servers', 'network', "TEXT DEFAULT 'xhttp'");
 
+  // یادآوریِ تمدیدِ پنل: مقدارِ expires_at ای که آخرین یادآوری برایش فرستاده
+  // شده. اگر نماینده تمدید کند (expires_at عوض شود) این با مقدارِ جدید
+  // یکی نیست، پس دوباره یک یادآوری برای دورهٔ جدید مجاز می‌شود — بدونِ
+  // این، یا باید هر ساعت اسپم می‌شد یا دیگر هیچ‌وقت یادآوریِ دوم نمی‌رفت.
+  ensureColumn('resellers', 'renewal_reminded_for', "TEXT");
+
   console.log('✅ Database initialized');
 }
 
