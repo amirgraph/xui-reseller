@@ -171,7 +171,22 @@ const bot = new TelegramBot(TOKEN, { polling: true });
 // برای ساختِ لینکِ رفرال (t.me/<username>?start=ref_<id>) لازمه — یک‌بار موقعِ
 // بالا اومدن گرفته می‌شه و کش می‌مونه
 let BOT_USERNAME = '';
-bot.getMe().then(function(me) { BOT_USERNAME = me.username; }).catch(function() {});
+// وضعیتِ ربات را در bot_settings می‌نویسیم تا پنلِ ادمین بتواند «وصل/قطع» و
+// نام کاربری را نشان دهد (پنل خودش به تلگرام دسترسی ندارد).
+function writeBotStatus(status, extra) {
+  try {
+    setSetting('bot_status', status);
+    setSetting('bot_status_at', String(Date.now()));
+    if (extra && extra.username) setSetting('bot_username', extra.username);
+    if (extra && extra.id) setSetting('bot_id', String(extra.id));
+  } catch (e) {}
+}
+bot.getMe().then(function(me) {
+  BOT_USERNAME = me.username;
+  writeBotStatus('ok', me);
+}).catch(function() { writeBotStatus('error'); });
+// ضربانِ سلامت هر ۶۰ ثانیه — تا پنل بفهمد ربات هنوز زنده است
+setInterval(function() { writeBotStatus(BOT_USERNAME ? 'ok' : 'error', BOT_USERNAME ? { username: BOT_USERNAME } : null); }, 60000);
 
 const REFERRAL_BONUS = 8000;
 function referralLink(chatId) {

@@ -515,6 +515,103 @@ router.post('/backup/channel', adminAuth, (req, res) => {
   } catch (e) { res.status(500).json({ success: false, message: 'خطا در ذخیره: ' + e.message }); }
 });
 
+// ─── تنظیماتِ ربات (توکن، ادمین‌ها، وضعیتِ اتصال) ──────────────
+// همه‌چیزِ ربات (به‌جز متن‌های آزادش که در جدولِ settings هستند) اینجا
+// متمرکز است — قبلاً فقط در .env بود و از داخلِ پنل نه دیده می‌شد نه قابلِ
+// تغییر، و ادمین نمی‌فهمید این نصب دقیقاً به کدام ربات/توکن وصل است.
+const ENV_PATH = path.join(__dirname, '..', '..', '.env');
+function envReadAll() {
+  try { return fs.readFileSync(ENV_PATH, 'utf8'); } catch (e) { return ''; }
+}
+function envGet(key) {
+  const m = envReadAll().match(new RegExp('^' + key + '=(.*)$', 'm'));
+  return m ? m[1].trim() : '';
+}
+function envSet(key, value) {
+  let cur = envReadAll();
+  const line = key + '=' + value;
+  if (new RegExp('^' + key + '=.*$', 'm').test(cur)) cur = cur.replace(new RegExp('^' + key + '=.*$', 'm'), line);
+  else cur += (!cur || cur.endsWith('\n') ? '' : '\n') + line + '\n';
+  fs.writeFileSync(ENV_PATH, cur);
+}
+function maskToken(t) {
+  if (!t) return '';
+  const parts = t.split(':');
+  if (parts.length !== 2) return '••••••••';
+  return parts[0] + ':' + parts[1].slice(0, 4) + '••••' + parts[1].slice(-4);
+}
+
+// وضعیتِ کامل: توکن (ماسک‌شده)، ادمین‌ها، و آخرین heartbeat که خودِ ربات در
+// bot_settings می‌نویسد (پنل مستقیم به تلگرام دسترسی ندارد).
+router.get('/bot/status', adminAuth, (req, res) => {
+  const db = getDB();
+  const g = (k) => { try { return db.prepare('SELECT value FROM bot_settings WHERE key=?').get(k)?.value || ''; } catch { return ''; } };
+  const token = envGet('TELEGRAM_BOT_TOKEN');
+  const statusAt = Number(g('bot_status_at') || 0);
+  res.json({
+    success: true,
+    data: {
+      token_set: !!token,
+      token_masked: maskToken(token),
+      admin_ids: envGet('ADMIN_TELEGRAM_ID'),
+      referral_bot_username: envGet('REFERRAL_BOT_USERNAME'),
+      panel_base_url: envGet('PANEL_BASE_URL') || envGet('SUB_BASE_URL').replace(/\/sub.*$/, ''),
+      sub_base_url: envGet('SUB_BASE_URL'),
+      bot_username: g('bot_username'),
+      bot_status: g('bot_status') || 'unknown',
+      // اگر بیش از ۳ دقیقه از آخرین heartbeat گذشته، یعنی پروسه پایین است
+      // (حتی اگر آخرین وضعیتِ ثبت‌شده 'ok' بوده باشد)
+      online: !!statusAt && (Date.now() - statusAt) < 3 * 60 * 1000,
+      status_at: statusAt || null,
+    },
+  });
+});
+
+// اعتبارسنجیِ توکن پیش از ذخیره (تماسِ مستقیم با تلگرام) — تا خطای تایپی
+// همان لحظه معلوم شود، نه بعد از ری‌استارتِ ربات با شکست
+router.post('/bot/token/verify', adminAuth, async (req, res) => {
+  const token = String((req.body && req.body.token) || '').trim();
+  if (!token) return res.status(400).json({ success: false, message: 'توکن خالی است' });
+  try {
+    const axios = require('axios');
+    const r = await axios.get('https://api.telegram.org/bot' + token + '/getMe', { timeout: 8000 });
+    if (r.data && r.data.ok) return res.json({ success: true, username: r.data.result.username });
+    return res.status(400).json({ success: false, message: 'تلگرام توکن را رد کرد' });
+  } catch (e) {
+    return res.status(400).json({ success: false, message: 'توکن نامعتبر است یا تلگرام در دسترس نیست' });
+  }
+});
+
+// ذخیرهٔ توکن در .env و ری‌استارتِ خودکارِ پروسهٔ ربات (pm2)
+router.put('/bot/token', adminAuth, (req, res) => {
+  const token = String((req.body && req.body.token) || '').trim();
+  if (!token || !/^\d+:[A-Za-z0-9_-]+$/.test(token)) {
+    return res.status(400).json({ success: false, message: 'فرمتِ توکن نامعتبر است (باید مثلِ 123456:ABC-DEF... باشد)' });
+  }
+  try {
+    envSet('TELEGRAM_BOT_TOKEN', token);
+    exec('pm2 restart xui-bot', { timeout: 20000 }, (err) => {
+      if (err) return res.status(500).json({ success: false, message: 'توکن ذخیره شد ولی ری‌استارتِ ربات ناموفق بود — دستی از سرور: pm2 restart xui-bot' });
+      res.json({ success: true, message: 'توکن ذخیره و ربات ری‌استارت شد' });
+    });
+  } catch (e) { res.status(500).json({ success: false, message: 'خطا در ذخیره: ' + e.message }); }
+});
+
+// آیدیِ عددیِ ادمین(ها) — چندتایی با کاما (multi-admin)
+router.put('/bot/admin-ids', adminAuth, (req, res) => {
+  const ids = String((req.body && req.body.admin_ids) || '').trim();
+  if (ids && !/^-?\d+(,\s*-?\d+)*$/.test(ids)) {
+    return res.status(400).json({ success: false, message: 'فقط آیدیِ عددیِ تلگرام، با کاما جدا (مثل 123456,789012)' });
+  }
+  try {
+    envSet('ADMIN_TELEGRAM_ID', ids);
+    exec('pm2 restart xui-bot', { timeout: 20000 }, (err) => {
+      if (err) return res.status(500).json({ success: false, message: 'ذخیره شد ولی ری‌استارتِ ربات ناموفق بود — دستی از سرور: pm2 restart xui-bot' });
+      res.json({ success: true, message: 'ادمین(ها) ذخیره و ربات ری‌استارت شد' });
+    });
+  } catch (e) { res.status(500).json({ success: false, message: 'خطا در ذخیره: ' + e.message }); }
+});
+
 // ─── سرورها (چند-کشوره) ───────────────────────────────────────
 const crypto = require('crypto');
 

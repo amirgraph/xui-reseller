@@ -432,6 +432,10 @@
       <div class="nav-item" onclick="showPage('servers')">
         <span class="icon"><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z"/></svg></span> سرورها
       </div>
+      <div class="nav-item" onclick="showPage('bot')">
+        <span class="icon"><svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 16v0M16 16v0"/></svg></span> ربات
+        <span id="bot-nav-dot" class="dot off" style="margin-right:auto;margin-left:2px"></span>
+      </div>
       <div class="nav-item" onclick="showPage('backup')">
         <span class="icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7M21 3v5h-5"/></svg></span> بک‌آپ
       </div>
@@ -540,27 +544,6 @@
         <button class="btn btn-primary" onclick="saveSettings(['test_traffic_gb','test_days','test_max_clients','test_enabled'])">ذخیره</button>
       </div>
 
-      <div class="table-wrap" style="padding:20px;margin-bottom:18px">
-        <h3 style="font-size:1rem;margin-bottom:4px"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H6l-3 3 .8-4A8 8 0 1 1 21 12Z"/></svg> متن‌های ربات</h3>
-        <p style="color:var(--text-dim);font-size:.78rem;margin-bottom:16px">
-          خالی بگذاری، متنِ پیش‌فرض استفاده می‌شود.
-          <b>{name}</b> = نام کاربر، <b>{rate}</b> = نرخ هر گیگ — این‌ها خودکار جایگزین می‌شوند.
-        </p>
-        <div class="form-group">
-          <label>پیام خوش‌آمد (بعد از /start)</label>
-          <textarea id="s-bot_welcome" rows="8" style="resize:vertical;line-height:1.7"></textarea>
-        </div>
-        <div class="form-group">
-          <label>متن راهنما</label>
-          <textarea id="s-bot_help" rows="5" style="resize:vertical;line-height:1.7"></textarea>
-        </div>
-        <div class="form-group">
-          <label>متن پشتیبانی (آیدی تلگرام خودت را این‌جا بگذار)</label>
-          <textarea id="s-bot_support" rows="3" style="resize:vertical;line-height:1.7"></textarea>
-        </div>
-        <button class="btn btn-primary" onclick="saveSettings(['bot_welcome','bot_help','bot_support'])">ذخیره</button>
-      </div>
-
       <div class="table-wrap" style="padding:20px">
         <h3 style="font-size:1rem;margin-bottom:16px"><svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="16.5" cy="14.2" r="1.1" fill="currentColor" stroke="none"/></svg> قیمت‌ها و پرداخت</h3>
         <div class="form-row">
@@ -663,6 +646,75 @@
         <button class="btn" onclick="document.getElementById('server-form').style.display='none'">انصراف</button>
       </div>
       <p style="color:var(--text-dim);font-size:.8rem;margin-top:10px">روی هر سرور دکمهٔ «دانلودِ اسکنر» هست — اسکریپت را از دستگاهِ ایرانیِ خودت اجرا کن تا IP‌های تمیزِ همان سرور خودکار به‌روز شوند.</p>
+    </div>
+
+    <!-- Bot -->
+    <div class="page" id="page-bot">
+      <div class="page-header"><h2>ربات</h2></div>
+
+      <div class="table-wrap" style="padding:20px;margin-bottom:18px">
+        <h3 style="font-size:1rem;margin-bottom:16px"><svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 16v0M16 16v0"/></svg> وضعیتِ اتصال</h3>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <span id="bot-status-dot" class="dot off"></span>
+          <span id="bot-status-text" style="font-size:.9rem">در حال بررسی…</span>
+        </div>
+        <div id="bot-status-details" style="color:var(--text-dim);font-size:.8rem;line-height:2"></div>
+        <a id="bot-open-link" href="#" target="_blank" rel="noopener" style="display:none;margin-top:10px" class="btn btn-sm">باز کردنِ ربات در تلگرام</a>
+      </div>
+
+      <div class="table-wrap" style="padding:20px;margin-bottom:18px">
+        <h3 style="font-size:1rem;margin-bottom:4px"><svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> توکنِ ربات</h3>
+        <p style="color:var(--text-dim);font-size:.78rem;margin-bottom:16px">
+          توکن را از <a href="https://t.me/BotFather" target="_blank" rel="noopener" style="color:var(--accent)">BotFather@</a> بگیر.
+          با ذخیره، ربات خودکار ری‌استارت می‌شود (چند ثانیه قطعیِ کوتاه).
+        </p>
+        <div class="form-group">
+          <label>توکنِ فعلی</label>
+          <input id="bot-token-current" dir="ltr" disabled style="opacity:.7">
+        </div>
+        <div class="form-group">
+          <label>توکنِ جدید (برای تغییر وارد کن)</label>
+          <input id="bot-token-new" dir="ltr" placeholder="123456789:AAExxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+        </div>
+        <button class="btn btn-primary" onclick="saveBotToken()">ذخیره و ری‌استارتِ ربات</button>
+      </div>
+
+      <div class="table-wrap" style="padding:20px;margin-bottom:18px">
+        <h3 style="font-size:1rem;margin-bottom:4px"><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9" r="2.5"/><path d="M15.5 14a5 5 0 0 1 5.5 5"/></svg> ادمین(های) ربات</h3>
+        <p style="color:var(--text-dim);font-size:.78rem;margin-bottom:16px">
+          آیدیِ عددیِ تلگرام (نه یوزرنیم) — چندتایی با کاما جدا کن. این‌ها به منوی مدیریتِ ربات دسترسی دارند.
+        </p>
+        <div class="form-group">
+          <label>آیدیِ عددی</label>
+          <input id="bot-admin-ids" dir="ltr" placeholder="123456789,987654321">
+        </div>
+        <button class="btn btn-primary" onclick="saveBotAdminIds()">ذخیره و ری‌استارتِ ربات</button>
+      </div>
+
+      <div class="table-wrap" style="padding:20px;margin-bottom:18px">
+        <h3 style="font-size:1rem;margin-bottom:4px"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H6l-3 3 .8-4A8 8 0 1 1 21 12Z"/></svg> متن‌های ربات</h3>
+        <p style="color:var(--text-dim);font-size:.78rem;margin-bottom:16px">
+          خالی بگذاری، متنِ پیش‌فرض استفاده می‌شود.
+          <b>{name}</b> = نام کاربر، <b>{rate}</b> = نرخ هر گیگ — این‌ها خودکار جایگزین می‌شوند.
+        </p>
+        <div class="form-group">
+          <label>پیام خوش‌آمد (بعد از /start)</label>
+          <textarea id="s-bot_welcome" rows="8" style="resize:vertical;line-height:1.7"></textarea>
+        </div>
+        <div class="form-group">
+          <label>متن راهنما</label>
+          <textarea id="s-bot_help" rows="5" style="resize:vertical;line-height:1.7"></textarea>
+        </div>
+        <div class="form-group">
+          <label>متن پشتیبانی (آیدی تلگرام خودت را این‌جا بگذار)</label>
+          <textarea id="s-bot_support" rows="3" style="resize:vertical;line-height:1.7"></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="saveSettings(['bot_welcome','bot_help','bot_support'])">ذخیره</button>
+      </div>
+
+      <p style="color:var(--text-dim);font-size:.78rem">
+        توگل‌های «تست رایگان»، «نامحدود»، «ضدفیلتر» و «ضریبِ مصرف» چون هم روی پنل و هم روی ربات اثر دارند، در صفحهٔ «تنظیمات» ماندند.
+      </p>
     </div>
 
     <!-- Backup -->
@@ -1084,7 +1136,7 @@ function showPage(name) {
   if (name === 'charge-requests') loadChargeRequests();
   if (name === 'panel-orders') loadPanelOrders();
   event.currentTarget.classList.add('active');
-  const loaders = { dashboard: loadDashboard, resellers: loadResellers, clients: loadClients, inbounds: loadInbounds, transactions: loadTransactions, plans: loadPlans, settings: loadSettings, servers: loadServers, voice: loadSettings, backup: loadBackupChannel };
+  const loaders = { dashboard: loadDashboard, resellers: loadResellers, clients: loadClients, inbounds: loadInbounds, transactions: loadTransactions, plans: loadPlans, settings: loadSettings, servers: loadServers, voice: loadSettings, backup: loadBackupChannel, bot: function () { loadBotStatus(); loadSettings(); } };
   if (loaders[name]) loaders[name]();
   toggleSidebar(false); // موبایل: بعد از انتخاب صفحه، منو بسته شود
 }
@@ -1163,6 +1215,7 @@ async function checkVersion() {
 
 async function loadDashboard() {
   checkVersion();
+  loadBotStatus(); // فقط برای بروزکردنِ نقطهٔ وضعیتِ کنارِ «ربات» در سایدبار
   const r = await get('/admin/stats');
   if (!r.success) return;
   const d = r.data;
@@ -1258,6 +1311,53 @@ async function downloadScanner(id, os) {
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click(); a.remove();
   if (os === 'win') alert('دانلود شد: ' + fname + '\n\nروی ویندوز — نتِ ایران، VPN خاموش:\nراست‌کلیک روی فایل → Run with PowerShell\nیا در PowerShell:\n  powershell -ExecutionPolicy Bypass -File "' + fname + '"');
   else alert('دانلود شد: ' + fname + '\n\nروی مک/لینوکس — نتِ ایران، VPN خاموش — در ترمینال بزن:\n  bash ~/Downloads/' + fname);
+}
+
+async function loadBotStatus() {
+  const r = await get('/admin/bot/status');
+  const dotSide = document.getElementById('bot-nav-dot');
+  const dot = document.getElementById('bot-status-dot');
+  const text = document.getElementById('bot-status-text');
+  const details = document.getElementById('bot-status-details');
+  const openLink = document.getElementById('bot-open-link');
+  if (!r || !r.success) { if (text) text.textContent = 'خطا در خواندنِ وضعیت'; return; }
+  const d = r.data;
+  const cls = d.online ? 'on' : 'off';
+  if (dot) dot.className = 'dot ' + cls;
+  if (dotSide) dotSide.className = 'dot ' + cls;
+  if (text) text.textContent = !d.token_set ? 'توکن تنظیم نشده' : (d.online ? 'متصل — @' + (d.bot_username || '؟') : 'قطع / پایین');
+  if (details) {
+    const ago = d.status_at ? Math.round((Date.now() - d.status_at) / 1000) : null;
+    details.innerHTML =
+      'ادمین(ها): <span dir="ltr">' + (d.admin_ids || '—') + '</span><br>' +
+      'آدرسِ پنل که ربات به آن وصل است: <span dir="ltr">' + (d.panel_base_url || '—') + '</span><br>' +
+      (ago != null ? 'آخرین پینگِ ربات: ' + (ago < 60 ? ago + ' ثانیه پیش' : Math.round(ago / 60) + ' دقیقه پیش') : 'ربات هنوز هیچ پینگی نفرستاده');
+  }
+  const tokenEl = document.getElementById('bot-token-current');
+  if (tokenEl) tokenEl.value = d.token_masked || 'تنظیم نشده';
+  const adminEl = document.getElementById('bot-admin-ids');
+  if (adminEl && !adminEl.matches(':focus')) adminEl.value = d.admin_ids || '';
+  if (openLink) {
+    if (d.bot_username) { openLink.href = 'https://t.me/' + d.bot_username; openLink.style.display = 'inline-flex'; }
+    else openLink.style.display = 'none';
+  }
+}
+async function saveBotToken() {
+  const val = (document.getElementById('bot-token-new').value || '').trim();
+  if (!val) return toast('توکنِ جدید را وارد کن', 'error');
+  if (!confirm('توکن ذخیره و ربات ری‌استارت می‌شود (چند ثانیه قطعی). ادامه؟')) return;
+  toast('در حال بررسیِ توکن با تلگرام…');
+  const v = await post('/admin/bot/token/verify', { token: val });
+  if (!v || !v.success) return toast((v && v.message) || 'توکن نامعتبر است', 'error');
+  const r = await put('/admin/bot/token', { token: val });
+  toast(r && r.success ? 'ذخیره شد — @' + v.username : ((r && r.message) || 'خطا'), r && r.success ? 'success' : 'error');
+  if (r && r.success) { document.getElementById('bot-token-new').value = ''; setTimeout(loadBotStatus, 3000); }
+}
+async function saveBotAdminIds() {
+  const val = (document.getElementById('bot-admin-ids').value || '').trim();
+  const r = await put('/admin/bot/admin-ids', { admin_ids: val });
+  toast(r && r.success ? r.message : ((r && r.message) || 'خطا'), r && r.success ? 'success' : 'error');
+  if (r && r.success) setTimeout(loadBotStatus, 3000);
 }
 
 async function loadBackupChannel() {
