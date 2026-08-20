@@ -316,6 +316,10 @@ function setting(key, dflt) {
   return r && r.value !== '' && r.value != null ? r.value : dflt;
 }
 function testEnabled() { return String(setting('test_enabled', '1')) === '1'; }
+// دکمهٔ «توقفِ اضطراریِ فروش» تویِ داشبوردِ ادمین همین کلید را عوض می‌کند —
+// فقط خریدِ پلنِ جدید توسط مهمان را می‌بندد؛ کیف‌پول شارژ کردن یا کاربرسازیِ
+// نمایندهٔ موجود (که از موجودیِ خودِ خودش خرج می‌کند، نه فروشِ تازه) گیر نمی‌کند.
+function salesPaused() { return String(setting('sales_paused', '0')) === '1'; }
 function testGb() { const v = parseFloat(setting('test_traffic_gb', '10')); return Number.isFinite(v) && v > 0 ? v : 10; }
 function testDays() { const v = parseInt(setting('test_days', '1')); return Number.isFinite(v) && v >= 0 ? v : 1; }
 function testMaxClients() { const v = parseInt(setting('test_max_clients', '5')); return Number.isFinite(v) && v >= 0 ? v : 5; }
@@ -1267,6 +1271,9 @@ bot.on('callback_query', async function(query) {
     // خریدِ پلن و شارژِ کیف پول دو چیزِ متفاوت‌اند: buy_ کلیدِ پلن می‌فرستد،
     // recharge_ خودِ مبلغ را (از settings.charge_amounts).
     const isRecharge = data.startsWith('recharge_');
+    if (!isRecharge && salesPaused()) {
+      return bot.sendMessage(chatId, '⏸ فروشِ پلنِ جدید موقتاً متوقف است. لطفاً کمی بعد دوباره امتحان کن.', guestMenu());
+    }
     let plan;
     if (isRecharge) {
       const amount = parseInt(data.replace('recharge_', ''), 10);

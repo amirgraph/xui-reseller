@@ -248,18 +248,24 @@ router.get('/stats', adminAuth, (req, res) => {
     SELECT COALESCE(SUM(amount),0) t FROM transactions
     WHERE type='credit' AND date(created_at)=date('now')
   `).get().t;
+  // ۱۴ روز می‌گیریم: ۷ تای اخیر برای نمودارِ روند + ۷ تای قبلش برای مقایسهٔ
+  // «این هفته / هفتهٔ قبل» تویِ کارتِ موجودیِ داشبورد.
   const revenueWeek = db.prepare(`
     SELECT date(created_at) d, COALESCE(SUM(amount),0) t FROM transactions
-    WHERE type='credit' AND created_at >= date('now','-6 days')
+    WHERE type='credit' AND created_at >= date('now','-13 days')
     GROUP BY date(created_at)
   `).all();
-  // ۷ روزِ اخیر را به‌ترتیب پر می‌کنیم — روزهایی که تراکنش نداشتند صفر بمانند
   const revenueByDay = {};
   revenueWeek.forEach((r) => { revenueByDay[r.d] = r.t; });
   const revenueTrend = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
     revenueTrend.push({ date: d, amount: revenueByDay[d] || 0 });
+  }
+  const revenueTrendPrevWeek = [];
+  for (let i = 13; i >= 7; i--) {
+    const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+    revenueTrendPrevWeek.push({ date: d, amount: revenueByDay[d] || 0 });
   }
 
   const resellerBalanceTotal = db.prepare('SELECT COALESCE(SUM(balance),0) t FROM resellers').get().t;
@@ -278,7 +284,7 @@ router.get('/stats', adminAuth, (req, res) => {
     success: true,
     data: {
       totalResellers, activeResellers, totalClients, activeClients, totalTraffic, recentActivity,
-      revenueToday, revenueTrend, resellerBalanceTotal, salesRateHour, activeServersCount, servers,
+      revenueToday, revenueTrend, revenueTrendPrevWeek, resellerBalanceTotal, salesRateHour, activeServersCount, servers,
     }
   });
 });
@@ -352,7 +358,7 @@ router.get('/settings', adminAuth, (req, res) => {
 // پر کند و کدی که با پیش‌فرض کار می‌کند را گیج کند.
 const NUMERIC_SETTINGS = ['panel_price','panel_traffic_gb','panel_price_per_gb','panel_max_clients',
                           'unlimited_price','test_traffic_gb','test_days','test_max_clients'];
-const BOOL_SETTINGS = ['unlimited_enabled','test_enabled','voice_enabled','antifilter_extra','multiplier_enabled'];
+const BOOL_SETTINGS = ['unlimited_enabled','test_enabled','voice_enabled','antifilter_extra','multiplier_enabled','sales_paused'];
 const TEXT_SETTINGS = ['charge_card_number','charge_card_owner','charge_amounts',
                        'bot_welcome','bot_help','bot_support'];
 // متنِ ربات می‌تواند چندخطی و خالی باشد (خالی = پیش‌فرضِ کد)

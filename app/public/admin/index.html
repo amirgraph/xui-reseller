@@ -203,7 +203,7 @@
   }
   .srv-dial-fillring { position: absolute; inset: 0; pointer-events: none; }
   .srv-dial-center { text-align: center; position: relative; z-index: 1; }
-  .srv-dial-name { font-size: .78rem; color: rgba(255,255,255,.78); margin-bottom: 5px; }
+  .srv-dial-name { font-size: .78rem; color: rgba(255,255,255,.78); margin-bottom: 5px; display: flex; align-items: center; justify-content: center; gap: 4px; }
   .srv-dial-pct { font-size: 1.8rem; font-weight: 800; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,.4); }
   .srv-dial-meta { font-size: .68rem; color: rgba(255,255,255,.6); margin-top: 5px; line-height: 1.7; }
 
@@ -211,8 +211,21 @@
   .srv-sat:hover .srv-ring { transform: scale(1.08); }
   .srv-sat.selected .srv-ring { outline: 2px solid var(--accent); outline-offset: 2px; }
   .srv-sat .srv-ring { width: 58px; height: 58px; transition: transform .15s ease; box-shadow: 0 6px 14px -8px rgba(0,0,0,.5); }
-  .srv-sat .srv-pct { font-size: .72rem; }
   .srv-sat .srv-name { white-space: nowrap; font-size: .68rem; }
+  /* هستهٔ دایره: پرچمِ برداری (سرورها) یا حرفِ اول (نماینده/کاربر)، ماسک‌شده تویِ دایره */
+  .srv-ring-inner {
+    position: absolute; inset: 5px; border-radius: 50%; overflow: hidden; z-index: 1;
+    display: flex; align-items: center; justify-content: center; background: var(--border);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.15), inset 0 -6px 12px -6px rgba(0,0,0,.35);
+  }
+  .srv-ring-inner .flag-svg { width: 100%; height: 100%; display: block; }
+  .flag-chip { width: 15px; height: 15px; border-radius: 50%; overflow: hidden; flex: none; display: inline-flex; box-shadow: inset 0 0 0 1px rgba(0,0,0,.18); }
+  .flag-chip .flag-svg { width: 100%; height: 100%; display: block; }
+  .srv-pct-badge {
+    position: absolute; z-index: 2; bottom: -3px; left: 50%; transform: translateX(-50%);
+    font-size: .6rem; font-weight: 800; font-variant-numeric: tabular-nums; color: #fff; background: var(--accent);
+    padding: 1px 6px; border-radius: 999px; border: 1.5px solid var(--surface); white-space: nowrap;
+  }
   .srv-dial { cursor: pointer; }
   .srv-dial:hover { filter: brightness(1.12); }
   #hub-pager .srv-fan-btn:hover { transform: none; }
@@ -248,6 +261,21 @@
   .dash-inline-stat { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--border); font-size: .8rem; }
   .dash-inline-stat .l { color: var(--text-muted); }
   .dash-inline-stat .v { font-weight: 800; font-variant-numeric: tabular-nums; }
+  .dash-donut-wrap { display: flex; justify-content: center; margin-bottom: 8px; }
+  .dash-waveform { display: flex; align-items: flex-end; gap: 3px; height: 26px; margin-top: 6px; }
+  .dash-wf-bar { flex: 1; background: var(--border); border-radius: 2px 2px 1px 1px; transition: height .4s cubic-bezier(.16,1,.3,1); }
+  .dash-wf-bar.hi { background: var(--accent); }
+  .dash-danger-btn {
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px; border-radius: 12px;
+    border: none; background: var(--danger); color: #fff; font-size: .8rem; font-weight: 700; cursor: pointer;
+    transition: filter .15s ease, transform .15s ease;
+  }
+  .dash-danger-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .dash-danger-btn.is-paused { background: var(--success); }
+  .dash-danger-btn svg { width: 14px; height: 14px; }
+  .dash-legend-mini { display: flex; gap: 14px; font-size: .68rem; color: var(--text-muted); margin-bottom: 4px; }
+  .dash-legend-mini .li { display: flex; align-items: center; gap: 5px; }
+  .dash-legend-mini .sw { width: 10px; height: 2.5px; border-radius: 2px; }
 
   /* ── Table ── */
   .table-wrap {
@@ -599,15 +627,19 @@
       <div class="dash-grid">
         <!-- کارتِ درآمد -->
         <div class="dash-card">
-          <div class="dash-card-title">درآمدِ امروز</div>
+          <div class="dash-card-title">درآمدِ کل امروز</div>
           <div class="dash-big-num"><span id="s-revenue-today">-</span><span class="u">تومان</span></div>
-          <span class="dash-growth" id="dl-growth" style="display:none"></span>
-          <svg id="revenue-chart" viewBox="0 0 600 140" preserveAspectRatio="none" style="width:100%;height:80px;display:block;margin-bottom:14px"></svg>
-          <div class="dash-card-title" style="margin-bottom:8px">نمایندگانِ اخیر</div>
-          <div class="dash-mini-list" id="dl-top-resellers"></div>
-          <button class="dash-cta" onclick="document.querySelector('.nav-item[onclick*=&quot;resellers&quot;]').click()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9" r="2.5"/><path d="M15 3.13a4 4 0 0 1 0 7.75"/></svg>
-            مشاهدهٔ همهٔ نمایندگان
+          <div class="dash-donut-wrap"><svg width="140" height="90" viewBox="0 0 140 90" id="dl-donut"></svg></div>
+          <div class="dash-card-title" style="margin-bottom:6px">بارِ سرورها</div>
+          <div class="dash-mini-list" id="dl-load-list"></div>
+          <div style="margin-bottom:14px">
+            <div class="dash-card-title" style="margin-bottom:2px">روندِ ۷ روزِ اخیر</div>
+            <span class="dash-growth" id="dl-growth" style="display:none"></span>
+            <div class="dash-waveform" id="dl-waveform"></div>
+          </div>
+          <button class="dash-danger-btn" id="dl-sales-toggle" onclick="toggleSalesPause()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            <span id="dl-sales-toggle-label">توقفِ اضطراریِ فروش</span>
           </button>
         </div>
 
@@ -656,19 +688,24 @@
           </p>
         </div>
 
-        <!-- کارتِ موجودی و سرورها -->
+        <!-- کارتِ موجودی -->
         <div class="dash-card">
-          <div class="dash-card-title">موجودی و سرورها</div>
+          <div class="dash-card-title">موجودی</div>
           <div class="dash-dual">
             <div><div class="n" id="s-balance-total">-</div><div class="l">موجودیِ کلِ نمایندگان (ت)</div></div>
             <div><div class="n" id="s-servers-active">-</div><div class="l">سرورهایِ فعال</div></div>
           </div>
-          <div class="dash-inline-stat"><span class="l">نرخِ فروش (کانفیگ/ساعتِ اخیر)</span><span class="v" id="s-sales-rate">-</span></div>
-          <div class="dash-inline-stat" style="margin-bottom:16px"><span class="l">آخرین نمایندهٔ ثبت‌شده</span><span class="v" id="dl-latest-reseller">-</span></div>
+          <div class="dash-legend-mini">
+            <div class="li"><span class="sw" style="background:var(--accent)"></span>این هفته</div>
+            <div class="li"><span class="sw" style="background:var(--text-muted);opacity:.5"></span>هفتهٔ قبل</div>
+          </div>
+          <svg id="dl-area-chart" viewBox="0 0 260 108" preserveAspectRatio="none" style="width:100%;height:100px;display:block;margin-bottom:14px"></svg>
           <button class="dash-cta" onclick="document.querySelector('.nav-item[onclick*=&quot;transactions&quot;]').click()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
             مشاهدهٔ تراکنش‌ها
           </button>
+          <div class="dash-inline-stat"><span class="l">نرخِ فروش (کانفیگ/ساعتِ اخیر)</span><span class="v" id="s-sales-rate">-</span></div>
+          <div class="dash-inline-stat"><span class="l">آخرین نمایندهٔ ثبت‌شده</span><span class="v" id="dl-latest-reseller">-</span></div>
         </div>
       </div>
     </div>
@@ -1436,7 +1473,7 @@ async function checkVersion() {
 async function loadDashboard() {
   checkVersion();
   loadBotStatus(); // فقط برای بروزکردنِ نقطهٔ وضعیتِ کنارِ «ربات» در سایدبار
-  const r = await get('/admin/stats');
+  const [r, sr] = await Promise.all([get('/admin/stats'), get('/admin/settings')]);
   if (!r.success) return;
   const d = r.data;
   document.getElementById('s-revenue-today').textContent = (d.revenueToday || 0).toLocaleString();
@@ -1446,9 +1483,8 @@ async function loadDashboard() {
 
   const recent = d.recentActivity || [];
   document.getElementById('dl-latest-reseller').textContent = recent[0] ? recent[0].name : '—';
-  document.getElementById('dl-top-resellers').innerHTML = recent.slice(0, 3).map(r =>
-    '<div class="dash-mini-row"><span class="name">' + r.name + '</span><span class="val">' + (r.balance || 0).toLocaleString() + ' ت</span></div>'
-  ).join('') || '<div class="dash-mini-row"><span class="name" style="color:var(--text-muted)">نماینده‌ای نیست</span></div>';
+
+  if (sr && sr.success) setSalesToggleUI(String(sr.data.sales_paused) === '1');
 
   const trend = d.revenueTrend || [];
   const growthEl = document.getElementById('dl-growth');
@@ -1463,10 +1499,102 @@ async function loadDashboard() {
     } else { growthEl.style.display = 'none'; }
   } else { growthEl.style.display = 'none'; }
 
+  renderDonut(trend);
+  renderWaveform(trend);
+  renderLoadList(d.servers || []);
+  renderCompareChart(d.revenueTrend || [], d.revenueTrendPrevWeek || []);
+
   _hubData.servers = d.servers || [];
   _hubLoaded.servers = true;
   if (_hubMode === 'servers') renderHub();
-  renderRevenueChart(d.revenueTrend || []);
+}
+
+// نیمه‌دایرهٔ درصدِ امروز نسبت به بهترین روزِ همین هفته — عددِ واقعی (نه هدفِ فرضی)
+function renderDonut(trend) {
+  const svg = document.getElementById('dl-donut');
+  if (!trend.length) { svg.innerHTML = ''; return; }
+  const today = trend[trend.length - 1].amount;
+  const best = Math.max.apply(null, trend.map(function (t) { return t.amount; })) || 1;
+  const pct = Math.max(0, Math.min(1, today / best));
+  function arcPath(cx, cy, r, startA, endA) {
+    const s = { x: cx + r * Math.cos(startA), y: cy + r * Math.sin(startA) };
+    const e = { x: cx + r * Math.cos(endA), y: cy + r * Math.sin(endA) };
+    const large = endA - startA > Math.PI ? 1 : 0;
+    return 'M' + s.x + ' ' + s.y + ' A' + r + ' ' + r + ' 0 ' + large + ' 1 ' + e.x + ' ' + e.y;
+  }
+  const cx = 70, cy = 80, r = 62;
+  const fullPath = arcPath(cx, cy, r, Math.PI, 2 * Math.PI);
+  const fillPath = arcPath(cx, cy, r, Math.PI, Math.PI + pct * Math.PI);
+  svg.innerHTML =
+    '<path d="' + fullPath + '" fill="none" stroke="var(--border)" stroke-width="16" stroke-linecap="round"/>' +
+    '<path d="' + fillPath + '" fill="none" stroke="var(--accent)" stroke-width="16" stroke-linecap="round"/>' +
+    '<text x="' + cx + '" y="' + (cy - 8) + '" text-anchor="middle" font-size="18" font-weight="800" fill="var(--text)" font-family="Vazirmatn">' + Math.round(pct * 100) + '٪</text>' +
+    '<text x="' + cx + '" y="' + (cy + 8) + '" text-anchor="middle" font-size="9" fill="var(--text-muted)" font-family="Vazirmatn">از بهترین روزِ هفته</text>';
+}
+
+function renderWaveform(trend) {
+  const el = document.getElementById('dl-waveform');
+  if (!trend.length) { el.innerHTML = ''; return; }
+  const max = Math.max.apply(null, trend.map(function (t) { return t.amount; })) || 1;
+  el.innerHTML = trend.map(function (t, i) {
+    const h = Math.max(6, Math.round((t.amount / max) * 100));
+    return '<div class="dash-wf-bar' + (i === trend.length - 1 ? ' hi' : '') + '" style="height:' + h + '%" title="' + t.amount.toLocaleString() + ' ت"></div>';
+  }).join('');
+}
+
+// چهار سرورِ پرمصرف‌تر بر اساسِ CPU٪ واقعی — از همان دیتایِ مانیتورینگی که هاب می‌بیند
+function renderLoadList(servers) {
+  const list = document.getElementById('dl-load-list');
+  const withStatus = servers.map(function (s) { return { s: s, st: hubItemStatus('servers', s) }; })
+    .filter(function (x) { return !x.st.stale; })
+    .sort(function (a, b) { return b.st.pct - a.st.pct; })
+    .slice(0, 4);
+  if (!withStatus.length) { list.innerHTML = '<div class="dash-mini-row"><span class="name" style="color:var(--text-muted)">دادهٔ مانیتورینگی نیست</span></div>'; return; }
+  list.innerHTML = withStatus.map(function (x) {
+    return '<div class="dash-mini-row"><span class="name">' + flagChip(x.s.flag) + '<span class="srv-dot ' + x.st.dotClass + '" style="margin-left:5px"></span>' + x.s.name + '</span><span class="val">' + x.st.pct + '٪</span></div>';
+  }).join('');
+}
+
+// مقایسهٔ درآمدِ این هفته با هفتهٔ قبل — همون svg area-chart با دو لایه
+function renderCompareChart(trend, prevWeek) {
+  const svg = document.getElementById('dl-area-chart');
+  if (!trend.length) { svg.innerHTML = ''; return; }
+  const W = 260, H = 108, pad = 6;
+  const max = Math.max.apply(null, trend.concat(prevWeek).map(function (t) { return t.amount; })) || 1;
+  function toPath(arr, close) {
+    const stepX = (W - pad * 2) / (arr.length - 1 || 1);
+    const pts = arr.map(function (t, i) { return [pad + i * stepX, H - pad - (t.amount / max) * (H - pad * 2)]; });
+    let path = pts.map(function (p, i) { return (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
+    if (close) path += ' L' + pts[pts.length - 1][0].toFixed(1) + ',' + (H - pad) + ' L' + pts[0][0].toFixed(1) + ',' + (H - pad) + ' Z';
+    return path;
+  }
+  svg.innerHTML =
+    '<defs><linearGradient id="dlAreaFade" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0" stop-color="var(--accent)" stop-opacity="0.28"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>' +
+    '<line x1="' + pad + '" y1="' + (H - pad) + '" x2="' + (W - pad) + '" y2="' + (H - pad) + '" stroke="var(--border)" stroke-width="1"/>' +
+    (prevWeek.length ? '<path d="' + toPath(prevWeek, false) + '" fill="none" stroke="var(--text-muted)" stroke-opacity=".5" stroke-width="2" stroke-dasharray="4 3"/>' : '') +
+    '<path d="' + toPath(trend, true) + '" fill="url(#dlAreaFade)"/>' +
+    '<path d="' + toPath(trend, false) + '" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+}
+
+function setSalesToggleUI(paused) {
+  const btn = document.getElementById('dl-sales-toggle');
+  const label = document.getElementById('dl-sales-toggle-label');
+  btn.classList.toggle('is-paused', paused);
+  label.textContent = paused ? 'فعال‌سازیِ دوبارهٔ فروش' : 'توقفِ اضطراریِ فروش';
+}
+
+async function toggleSalesPause() {
+  const btn = document.getElementById('dl-sales-toggle');
+  const currentlyPaused = btn.classList.contains('is-paused');
+  const next = !currentlyPaused;
+  const msg = next
+    ? 'با این کار فروشِ پلنِ جدید برایِ همهٔ مشتری‌های تازه از طریقِ ربات بسته می‌شود (شارژِ کیف‌پول و کاربرسازیِ نماینده‌ها تحت‌تأثیر نیست). ادامه بدم؟'
+    : 'فروشِ پلنِ جدید دوباره برایِ مشتری‌ها باز می‌شود. ادامه بدم؟';
+  if (!confirm(msg)) return;
+  const r = await put('/admin/settings', { key: 'sales_paused', value: next ? '1' : '0' });
+  if (r && r.success) { setSalesToggleUI(next); toast(next ? '⏸ فروش متوقف شد' : '▶ فروش فعال شد'); }
+  else toast('خطا در تغییرِ وضعیت', 'error');
 }
 
 // هابِ چندحالته: همان دایره/گیج‌هایِ اقماری، فقط دیتایِ زیرش بسته به حالت
@@ -1511,6 +1639,46 @@ async function hubEnsureLoaded(mode) {
   _hubLoaded[mode] = true;
 }
 
+// پرچمِ برداریِ واقعی، بدونِ هیچ ستونِ جدید در دیتابیس: هر ایموجیِ پرچم دقیقاً
+// دو حرفِ Regional Indicator است که خودش کدِ ISO را کدگذاری می‌کند، پس کدِ
+// کشور مستقیماً از همان servers.flag که ادمین قبلاً ایموجی ذخیره کرده استخراج
+// می‌شود — اگر کدش تویِ این لیست نبود، خودِ ایموجی به‌عنوانِ fallback نشان داده می‌شود.
+var FLAGS = {
+  tr: '<rect width="60" height="40" fill="#E30A17"/><circle cx="22" cy="20" r="9" fill="#fff"/><circle cx="25.5" cy="20" r="7.2" fill="#E30A17"/><path fill="#fff" d="m35.6 20 4.7-1.5-2.9 4 0-5 2.9 4z"/>',
+  de: '<rect width="60" height="13.34" fill="#000"/><rect y="13.34" width="60" height="13.33" fill="#D00"/><rect y="26.67" width="60" height="13.33" fill="#FFCE00"/>',
+  fi: '<rect width="60" height="40" fill="#fff"/><rect y="16" width="60" height="8" fill="#003580"/><rect x="17" width="8" height="40" fill="#003580"/>',
+  nl: '<rect width="60" height="13.34" fill="#AE1C28"/><rect y="13.34" width="60" height="13.33" fill="#fff"/><rect y="26.67" width="60" height="13.33" fill="#21468B"/>',
+  fr: '<rect width="20" height="40" fill="#002395"/><rect x="20" width="20" height="40" fill="#fff"/><rect x="40" width="20" height="40" fill="#ED2939"/>',
+  ca: '<rect width="60" height="40" fill="#fff"/><rect width="15" height="40" fill="#D80621"/><rect x="45" width="15" height="40" fill="#D80621"/><path fill="#D80621" d="m30 9 2 5 4-2-1.5 5.5 5-1-1.5 3.5 5.5 4-1.5 2 2 4-6-1 .5 5-4-3.5-1 1-1-1L28 31l.5-5-6 1 2-4-1.5-2 5.5-4L27 13.5l5 1L30.5 9z"/>',
+  gb: '<rect width="60" height="40" fill="#012169"/><path d="M0 0 60 40M60 0 0 40" stroke="#fff" stroke-width="8"/><path d="M0 0 60 40M60 0 0 40" stroke="#C8102E" stroke-width="4.5"/><path d="M30 0v40M0 20h60" stroke="#fff" stroke-width="13"/><path d="M30 0v40M0 20h60" stroke="#C8102E" stroke-width="8"/>',
+  us: '<rect width="60" height="40" fill="#B22234"/><g fill="#fff"><rect y="3.08" width="60" height="3.08"/><rect y="9.23" width="60" height="3.08"/><rect y="15.38" width="60" height="3.08"/><rect y="21.54" width="60" height="3.08"/><rect y="27.69" width="60" height="3.08"/><rect y="33.85" width="60" height="3.08"/></g><rect width="24" height="21.54" fill="#3C3B6E"/>',
+  ae: '<rect width="60" height="40" fill="#00732F"/><rect y="13.33" width="60" height="13.34" fill="#fff"/><rect y="26.67" width="60" height="13.33" fill="#000"/><rect width="15" height="40" fill="#FF0000"/>',
+  se: '<rect width="60" height="40" fill="#006AA7"/><rect x="20" width="8" height="40" fill="#FECC00"/><rect y="16" width="60" height="8" fill="#FECC00"/>',
+  no: '<rect width="60" height="40" fill="#EF2B2D"/><rect x="18" width="8" height="40" fill="#fff"/><rect y="16" width="60" height="8" fill="#fff"/><rect x="20" width="4" height="40" fill="#002868"/><rect y="18" width="60" height="4" fill="#002868"/>',
+};
+function emojiFlagToCC(flagStr) {
+  if (!flagStr) return '';
+  const cps = Array.from(flagStr).filter(function (ch) { const c = ch.codePointAt(0); return c >= 0x1F1E6 && c <= 0x1F1FF; });
+  if (cps.length < 2) return '';
+  return cps.slice(0, 2).map(function (ch) { return String.fromCharCode(ch.codePointAt(0) - 0x1F1E6 + 65); }).join('').toLowerCase();
+}
+function flagSvg(cc) {
+  if (!FLAGS[cc]) return '';
+  return '<svg class="flag-svg" viewBox="0 0 60 40" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' + FLAGS[cc] + '</svg>';
+}
+function flagChip(flagRaw) {
+  const svg = flagSvg(emojiFlagToCC(flagRaw));
+  return svg ? '<span class="flag-chip">' + svg + '</span>' : (flagRaw ? '<span style="margin-left:3px">' + flagRaw + '</span>' : '');
+}
+function hubItemAvatar(mode, item) {
+  if (mode === 'servers') {
+    const svg = flagSvg(emojiFlagToCC(item.flag));
+    return svg || '<span style="font-size:22px">' + (item.flag || '🌐') + '</span>';
+  }
+  const label = ((mode === 'resellers' ? item.name : item.username) || '?').trim();
+  return '<span style="font-size:1rem;font-weight:800;color:var(--text)">' + label.charAt(0).toUpperCase() + '</span>';
+}
+
 // اگر گزارشِ سرور بیش از ۵ دقیقه قدیمی باشد (یا اصلاً گزارش نداده) خاکستری/
 // «نصب‌نشده» نشان می‌دهیم؛ برایِ نماینده/کاربر «٪» یعنی نسبتِ مصرف به سقف.
 function hubItemStatus(mode, item) {
@@ -1530,9 +1698,9 @@ function hubItemStatus(mode, item) {
   return { stale: false, pct: pct, dotClass: item.is_active ? 'on' : 'off', label: label };
 }
 function hubItemName(mode, item) {
-  if (mode === 'servers') return (item.flag || '') + ' ' + item.name;
   if (mode === 'resellers') return item.name;
-  return item.username;
+  if (mode === 'clients') return item.username;
+  return item.name;
 }
 function hubCurrentPageItems() {
   const all = _hubData[_hubMode] || [];
@@ -1570,8 +1738,11 @@ function renderHub() {
     el.style.left = cx + '%'; el.style.top = cy + '%';
     el.dataset.i = i;
     el.innerHTML =
-      '<div class="srv-ring' + (st.stale ? ' stale' : '') + '" style="--pct:' + st.pct + '"><span class="srv-pct">' + st.label + '</span></div>' +
-      '<div class="srv-name"><span class="srv-dot ' + st.dotClass + '"></span>' + hubItemName(_hubMode, item) + '</div>';
+      '<div class="srv-ring' + (st.stale ? ' stale' : '') + '" style="--pct:' + st.pct + '">' +
+        '<div class="srv-ring-inner">' + hubItemAvatar(_hubMode, item) + '</div>' +
+        '<span class="srv-pct-badge">' + st.label + '</span>' +
+      '</div>' +
+      '<div class="srv-name"><span class="srv-dot ' + st.dotClass + '"></span>' + (_hubMode === 'servers' ? flagChip(item.flag) : '') + hubItemName(_hubMode, item) + '</div>';
     el.addEventListener('click', function () { selectHubItem(i); });
     orbit.appendChild(el);
   });
@@ -1584,7 +1755,7 @@ function selectHubItem(i) {
   const item = hubCurrentPageItems()[i];
   if (!item) return;
   const st = hubItemStatus(_hubMode, item);
-  document.getElementById('srv-dial-name').textContent = hubItemName(_hubMode, item);
+  document.getElementById('srv-dial-name').innerHTML = (_hubMode === 'servers' ? flagChip(item.flag) : '') + hubItemName(_hubMode, item);
   document.getElementById('srv-dial-pct').textContent = st.label;
   document.getElementById('srv-dial-arc').setAttribute('stroke-dasharray', (st.stale ? 0 : st.pct) + ' 100');
   const metaEl = document.getElementById('srv-dial-meta');
@@ -1626,33 +1797,6 @@ function hubDialClick() {
   }
 }
 
-// نمودارِ SVGِ ساده — یک خطِ توپُر رویِ ۷ نقطه، بدونِ کتابخانه‌ی خارجی
-function renderRevenueChart(trend) {
-  const svg = document.getElementById('revenue-chart');
-  if (!trend.length) { svg.innerHTML = ''; return; }
-  const W = 600, H = 140, pad = 10;
-  const max = Math.max.apply(null, trend.map(function (t) { return t.amount; })) || 1;
-  const stepX = (W - pad * 2) / (trend.length - 1 || 1);
-  const pts = trend.map(function (t, i) {
-    const x = pad + i * stepX;
-    const y = H - pad - (t.amount / max) * (H - pad * 2);
-    return [x, y];
-  });
-  const linePath = pts.map(function (p, i) { return (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
-  const areaPath = linePath + ' L' + pts[pts.length - 1][0].toFixed(1) + ',' + (H - pad) + ' L' + pts[0][0].toFixed(1) + ',' + (H - pad) + ' Z';
-  const dayLabel = function (d) { return new Date(d).toLocaleDateString('fa-IR', { weekday: 'short' }); };
-  svg.innerHTML =
-    '<defs><linearGradient id="revFade" x1="0" y1="0" x2="0" y2="1">' +
-    '<stop offset="0" stop-color="var(--accent)" stop-opacity="0.3"/>' +
-    '<stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>' +
-    '<line x1="' + pad + '" y1="' + (H - pad) + '" x2="' + (W - pad) + '" y2="' + (H - pad) + '" stroke="var(--border)" stroke-width="1"/>' +
-    '<path d="' + areaPath + '" fill="url(#revFade)"/>' +
-    '<path d="' + linePath + '" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
-    pts.map(function (p, i) {
-      return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3" fill="var(--accent)">' +
-        '<title>' + dayLabel(trend[i].date) + ': ' + trend[i].amount.toLocaleString() + ' ت</title></circle>';
-    }).join('');
-}
 
 // ── Resellers ─────────────────────────────────
 // ── تنظیمات ───────────────────────────────────
