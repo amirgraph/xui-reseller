@@ -165,6 +165,40 @@
   .srv-dot.off { background: var(--danger); }
   .srv-dot.stale { background: var(--text-muted); }
 
+  /* ── هابِ سرورها: فنِ سه‌دکمه‌ایِ واقعی + دایرهٔ مرکزی + گیج‌هایِ اقماری ── */
+  .srv-hub { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+  .srv-fan { display: flex; gap: 10px; }
+  .srv-fan-btn {
+    width: 46px; height: 46px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface);
+    backdrop-filter: var(--glass); color: var(--text); display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: transform .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .srv-fan-btn:hover { transform: translateY(-2px); border-color: var(--accent); color: var(--accent); }
+  .srv-fan-btn.primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border-color: transparent;
+    box-shadow: 0 8px 18px -8px rgba(239,111,104,.55);
+  }
+  .srv-fan-btn.primary:hover { color: #fff; filter: brightness(1.08); }
+
+  .srv-orbit { position: relative; width: 100%; max-width: 300px; aspect-ratio: 1; margin: 0 auto; }
+  .srv-dial-ring-outer { position: absolute; inset: 0; border-radius: 50%; border: 1.5px dashed var(--border); }
+  .srv-dial {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 56%; height: 56%; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--surface-hover), var(--bg) 78%);
+    box-shadow: inset 0 2px 16px rgba(0,0,0,.3); display: flex; align-items: center; justify-content: center;
+  }
+  .srv-dial-center { text-align: center; }
+  .srv-dial-name { font-size: .78rem; color: var(--text-muted); margin-bottom: 5px; }
+  .srv-dial-pct { font-size: 1.8rem; font-weight: 800; }
+  .srv-dial-meta { font-size: .68rem; color: var(--text-muted); margin-top: 5px; line-height: 1.7; }
+
+  .srv-sat { position: absolute; transform: translate(-50%,-50%); display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; }
+  .srv-sat:hover .srv-ring { transform: scale(1.08); }
+  .srv-sat.selected .srv-ring { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .srv-sat .srv-ring { width: 52px; height: 52px; transition: transform .15s ease; }
+  .srv-sat .srv-pct { font-size: .72rem; }
+  .srv-sat .srv-name { white-space: nowrap; font-size: .68rem; }
+
   /* ── Table ── */
   .table-wrap {
     background: var(--surface);
@@ -509,9 +543,31 @@
 
       <div class="table-wrap" style="padding:20px;margin-bottom:20px">
         <div class="table-header" style="margin-bottom:14px"><h3>وضعیتِ زندهٔ سرورها</h3></div>
-        <div id="server-gauges" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:16px"></div>
-        <p style="color:var(--text-dim);font-size:.75rem;margin-top:14px">
-          سروری که دایره‌اش خاکستری است هنوز اسکریپتِ مانیتورینگ ندارد — از «سرورها» دانلود و رویِ خودِ آن سرور با SSH اجرا کن.
+        <div class="srv-hub">
+          <div class="srv-fan">
+            <button class="srv-fan-btn" onclick="newServer()" title="افزودنِ سرورِ جدید">
+              <svg viewBox="0 0 24 24" style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+            <button class="srv-fan-btn primary" onclick="hubDownloadStatusInstaller()" title="نصبِ مانیتورینگِ سرورِ انتخاب‌شده">
+              <svg viewBox="0 0 24 24" style="width:19px;height:19px" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 19h16M4 15h10M4 11h16M4 7h10"/></svg>
+            </button>
+            <button class="srv-fan-btn" onclick="hubDownloadScanner()" title="دانلودِ اسکنرِ IPِ سرورِ انتخاب‌شده">
+              <svg viewBox="0 0 24 24" style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+            </button>
+          </div>
+          <div class="srv-orbit" id="srv-orbit">
+            <div class="srv-dial-ring-outer"></div>
+            <div class="srv-dial">
+              <div class="srv-dial-center">
+                <div class="srv-dial-name" id="srv-dial-name">—</div>
+                <div class="srv-dial-pct" id="srv-dial-pct">—</div>
+                <div class="srv-dial-meta" id="srv-dial-meta"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p style="color:var(--text-dim);font-size:.75rem;margin-top:10px;text-align:center">
+          رویِ هرکدام از سرورها کلیک کن تا انتخاب شود، بعد از دکمه‌هایِ بالا برایش اسکنر/مانیتورینگ بگیر. دایرهٔ خاکستری = هنوز اسکریپتِ مانیتورینگ ندارد.
         </p>
       </div>
 
@@ -1265,27 +1321,85 @@ async function loadDashboard() {
     </tr>
   `).join('');
 
-  renderServerGauges(d.servers || []);
+  renderServerHub(d.servers || []);
   renderRevenueChart(d.revenueTrend || []);
 }
 
-// گیج‌هایِ سرور — CPU٪ واقعی از status_cpu_pct؛ اگر گزارشِ سرور بیش از ۵
-// دقیقه قدیمی باشد (یا اصلاً گزارش نداده) خاکستری/«نصب‌نشده» نشان می‌دهیم،
-// عددِ نادرست بهتر از هیچ‌عددی نیست.
-function renderServerGauges(servers) {
-  const wrap = document.getElementById('server-gauges');
-  if (!servers.length) { wrap.innerHTML = '<p style="color:var(--text-dim);font-size:.82rem">سروری فعال نیست.</p>'; return; }
-  wrap.innerHTML = servers.map(function (s) {
-    const ageMin = s.status_updated_at ? (Date.now() - new Date(s.status_updated_at + 'Z').getTime()) / 60000 : Infinity;
-    const stale = !s.status_updated_at || ageMin > 5;
-    const pct = stale ? 0 : Math.round(s.status_cpu_pct || 0);
-    const dotClass = stale ? 'stale' : (s.status_xray_active ? 'on' : 'off');
-    const label = stale ? (s.status_updated_at ? 'قطع' : 'نصب‌نشده') : pct + '٪';
-    return '<div class="srv-gauge">' +
-      '<div class="srv-ring' + (stale ? ' stale' : '') + '" style="--pct:' + pct + '"><span class="srv-pct">' + label + '</span></div>' +
-      '<div class="srv-name"><span class="srv-dot ' + dotClass + '"></span>' + (s.flag || '') + ' ' + s.name + '</div>' +
-      '</div>';
-  }).join('');
+// هابِ سرورها: دایرهٔ مرکزی جزئیاتِ سرورِ انتخاب‌شده را نشان می‌دهد، گیج‌هایِ
+// اقماری واقعی‌اند (CPU٪ از status_cpu_pct) و کلیک‌پذیرند، و سه‌دکمهٔ بالا
+// (افزودن/مانیتورینگ/اسکنر) رویِ همان سرورِ انتخاب‌شده عمل می‌کنند — برخلافِ
+// موکاپِ اولیه، اینجا هیچ‌کدام تزئینیِ صرف نیستند.
+var _hubServers = [];
+var _hubSelected = 0;
+
+function renderServerHub(servers) {
+  _hubServers = servers;
+  const orbit = document.getElementById('srv-orbit');
+  // ساتلایت‌های قبلی را پاک کن (فقط .srv-sat، نه دایره/رینگِ مرکزی)
+  orbit.querySelectorAll('.srv-sat').forEach(function (el) { el.remove(); });
+  if (!servers.length) {
+    document.getElementById('srv-dial-name').textContent = 'سروری نیست';
+    document.getElementById('srv-dial-pct').textContent = '—';
+    document.getElementById('srv-dial-meta').textContent = '';
+    return;
+  }
+  if (_hubSelected >= servers.length) _hubSelected = 0;
+  const N = servers.length;
+  servers.forEach(function (s, i) {
+    const angle = (i / N) * 360 - 90; // شروع از بالا، در جهتِ ساعت
+    const rad = angle * Math.PI / 180;
+    const R = 42; // درصدِ شعاعِ orbit
+    const cx = 50 + R * Math.cos(rad);
+    const cy = 50 + R * Math.sin(rad);
+    const st = hubServerStatus(s);
+    const el = document.createElement('div');
+    el.className = 'srv-sat' + (i === _hubSelected ? ' selected' : '');
+    el.style.left = cx + '%'; el.style.top = cy + '%';
+    el.dataset.i = i;
+    el.innerHTML =
+      '<div class="srv-ring' + (st.stale ? ' stale' : '') + '" style="--pct:' + st.pct + '"><span class="srv-pct">' + st.label + '</span></div>' +
+      '<div class="srv-name"><span class="srv-dot ' + st.dotClass + '"></span>' + (s.flag || '') + ' ' + s.name + '</div>';
+    el.addEventListener('click', function () { selectHubServer(i); });
+    orbit.appendChild(el);
+  });
+  selectHubServer(_hubSelected);
+}
+
+// اگر گزارشِ سرور بیش از ۵ دقیقه قدیمی باشد (یا اصلاً گزارش نداده)
+// خاکستری/«نصب‌نشده» نشان می‌دهیم، عددِ نادرست بهتر از هیچ‌عددی نیست.
+function hubServerStatus(s) {
+  const ageMin = s.status_updated_at ? (Date.now() - new Date(s.status_updated_at + 'Z').getTime()) / 60000 : Infinity;
+  const stale = !s.status_updated_at || ageMin > 5;
+  const pct = stale ? 0 : Math.round(s.status_cpu_pct || 0);
+  const dotClass = stale ? 'stale' : (s.status_xray_active ? 'on' : 'off');
+  const label = stale ? (s.status_updated_at ? 'قطع' : 'نصب‌نشده') : pct + '٪';
+  return { stale: stale, pct: pct, dotClass: dotClass, label: label };
+}
+
+function selectHubServer(i) {
+  _hubSelected = i;
+  document.querySelectorAll('.srv-sat').forEach(function (el) { el.classList.toggle('selected', +el.dataset.i === i); });
+  const s = _hubServers[i];
+  if (!s) return;
+  const st = hubServerStatus(s);
+  document.getElementById('srv-dial-name').textContent = (s.flag || '') + ' ' + s.name;
+  document.getElementById('srv-dial-pct').textContent = st.stale ? st.label : st.pct + '٪';
+  const memPct = (!st.stale && s.status_mem_total_mb) ? Math.round((s.status_mem_used_mb / s.status_mem_total_mb) * 100) : null;
+  const upH = (!st.stale && s.status_uptime_sec) ? Math.floor(s.status_uptime_sec / 3600) : null;
+  document.getElementById('srv-dial-meta').textContent = st.stale
+    ? (s.status_updated_at ? 'گزارشِ قدیمی' : 'مانیتورینگ نصب نشده')
+    : 'RAM ' + memPct + '٪ · آپ‌تایم ' + upH + 'h';
+}
+
+function hubDownloadScanner() {
+  const s = _hubServers[_hubSelected];
+  if (!s) return toast('سروری انتخاب نشده', 'error');
+  downloadScanner(s.id, 'unix');
+}
+function hubDownloadStatusInstaller() {
+  const s = _hubServers[_hubSelected];
+  if (!s) return toast('سروری انتخاب نشده', 'error');
+  downloadStatusInstaller(s.id);
 }
 
 // نمودارِ SVGِ ساده — یک خطِ توپُر رویِ ۷ نقطه، بدونِ کتابخانه‌ی خارجی
