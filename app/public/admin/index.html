@@ -233,6 +233,9 @@
   .srv-sat .srv-ring { width: 52px; height: 52px; transition: transform .15s ease; }
   .srv-sat .srv-pct { font-size: .72rem; }
   .srv-sat .srv-name { white-space: nowrap; font-size: .68rem; }
+  .srv-dial { cursor: pointer; }
+  .srv-dial:hover { filter: brightness(1.12); }
+  #hub-pager .srv-fan-btn:hover { transform: none; }
 
   /* ── Table ── */
   .table-wrap {
@@ -590,22 +593,23 @@
       </div>
 
       <div class="table-wrap" style="padding:20px;margin-bottom:20px">
-        <div class="table-header" style="margin-bottom:14px"><h3>وضعیتِ زندهٔ سرورها</h3></div>
+        <div class="table-header" style="margin-bottom:14px"><h3 id="hub-title">وضعیتِ زندهٔ سرورها</h3></div>
         <div class="srv-hub">
+          <!-- فن = سوییچِ حالتِ هاب، نه عملیاتِ ثابت -->
           <div class="srv-fan">
-            <button class="srv-fan-btn" onclick="newServer()" title="افزودنِ سرورِ جدید">
-              <svg viewBox="0 0 24 24" style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            <button class="srv-fan-btn" id="hub-mode-clients" onclick="switchHubMode('clients')" title="حالتِ کاربران">
+              <svg viewBox="0 0 24 24" style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9" r="2.5"/></svg>
             </button>
-            <button class="srv-fan-btn primary" onclick="hubDownloadStatusInstaller()" title="نصبِ مانیتورینگِ سرورِ انتخاب‌شده">
-              <svg viewBox="0 0 24 24" style="width:19px;height:19px" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 19h16M4 15h10M4 11h16M4 7h10"/></svg>
+            <button class="srv-fan-btn primary" id="hub-mode-servers" onclick="switchHubMode('servers')" title="حالتِ سرورها">
+              <svg viewBox="0 0 24 24" style="width:19px;height:19px" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z"/></svg>
             </button>
-            <button class="srv-fan-btn" onclick="hubDownloadScanner()" title="دانلودِ اسکنرِ IPِ سرورِ انتخاب‌شده">
-              <svg viewBox="0 0 24 24" style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+            <button class="srv-fan-btn" id="hub-mode-resellers" onclick="switchHubMode('resellers')" title="حالتِ نمایندگان">
+              <svg viewBox="0 0 24 24" style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
             </button>
           </div>
           <div class="srv-orbit" id="srv-orbit">
             <div class="srv-dial-ring-outer"></div>
-            <div class="srv-dial">
+            <div class="srv-dial" id="srv-dial" onclick="hubDialClick()">
               <div class="srv-dial-center">
                 <div class="srv-dial-name" id="srv-dial-name">—</div>
                 <div class="srv-dial-pct" id="srv-dial-pct">—</div>
@@ -613,9 +617,18 @@
               </div>
             </div>
           </div>
+          <div id="hub-pager" style="display:none;align-items:center;gap:14px">
+            <button class="srv-fan-btn" style="width:36px;height:36px;border-radius:10px" onclick="hubPage(-1)">
+              <svg viewBox="0 0 24 24" style="width:15px;height:15px" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+            </button>
+            <span id="hub-pager-label" style="font-size:.76rem;color:var(--text-muted)"></span>
+            <button class="srv-fan-btn" style="width:36px;height:36px;border-radius:10px" onclick="hubPage(1)">
+              <svg viewBox="0 0 24 24" style="width:15px;height:15px" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            </button>
+          </div>
         </div>
-        <p style="color:var(--text-dim);font-size:.75rem;margin-top:10px;text-align:center">
-          رویِ هرکدام از سرورها کلیک کن تا انتخاب شود، بعد از دکمه‌هایِ بالا برایش اسکنر/مانیتورینگ بگیر. دایرهٔ خاکستری = هنوز اسکریپتِ مانیتورینگ ندارد.
+        <p style="color:var(--text-dim);font-size:.75rem;margin-top:10px;text-align:center" id="hub-hint">
+          رویِ هرکدام کلیک کن تا انتخاب شود، رویِ دایرهٔ وسط کلیک کن تا بازش کنی. دایرهٔ خاکستری = هنوز اسکریپتِ مانیتورینگ ندارد.
         </p>
       </div>
 
@@ -1414,85 +1427,166 @@ async function loadDashboard() {
     </tr>
   `).join('');
 
-  renderServerHub(d.servers || []);
+  _hubData.servers = d.servers || [];
+  _hubLoaded.servers = true;
+  if (_hubMode === 'servers') renderHub();
   renderRevenueChart(d.revenueTrend || []);
 }
 
-// هابِ سرورها: دایرهٔ مرکزی جزئیاتِ سرورِ انتخاب‌شده را نشان می‌دهد، گیج‌هایِ
-// اقماری واقعی‌اند (CPU٪ از status_cpu_pct) و کلیک‌پذیرند، و سه‌دکمهٔ بالا
-// (افزودن/مانیتورینگ/اسکنر) رویِ همان سرورِ انتخاب‌شده عمل می‌کنند — برخلافِ
-// موکاپِ اولیه، اینجا هیچ‌کدام تزئینیِ صرف نیستند.
-var _hubServers = [];
+// هابِ چندحالته: همان دایره/گیج‌هایِ اقماری، فقط دیتایِ زیرش بسته به حالت
+// عوض می‌شود (سرورها/نمایندگان/کاربران). فن دیگر عملیاتِ ثابت نیست، سوییچِ
+// حالت است؛ کلیک‌رویِ‌دایره (hubDialClick) بسته به حالت کارِ متفاوتی می‌کند.
+var _hubMode = 'servers';
+var _hubData = { servers: [], resellers: [], clients: [] };
+var _hubLoaded = { servers: false, resellers: false, clients: false };
 var _hubSelected = 0;
+var _hubPageIdx = 0;
+var HUB_PAGE_SIZE = 8;
+var HUB_TITLES = { servers: 'وضعیتِ زندهٔ سرورها', resellers: 'نمایندگان', clients: 'کاربران' };
+var HUB_HINTS = {
+  servers: 'رویِ هرکدام کلیک کن تا انتخاب شود، رویِ دایرهٔ وسط کلیک کن تا اسکنر/مانیتورینگش را بگیری.',
+  resellers: 'رویِ هرکدام کلیک کن، رویِ دایرهٔ وسط کلیک کن تا ویرایشش کنی.',
+  clients: 'رویِ هرکدام کلیک کن، رویِ دایرهٔ وسط کلیک کن تا به «همه کاربران» بروی.',
+};
 
-function renderServerHub(servers) {
-  _hubServers = servers;
+async function switchHubMode(mode) {
+  _hubMode = mode; _hubSelected = 0; _hubPageIdx = 0;
+  ['clients', 'servers', 'resellers'].forEach(function (m) {
+    document.getElementById('hub-mode-' + m).classList.toggle('primary', m === mode);
+  });
+  document.getElementById('hub-title').textContent = HUB_TITLES[mode];
+  document.getElementById('hub-hint').textContent = HUB_HINTS[mode];
+  await hubEnsureLoaded(mode);
+  renderHub();
+}
+
+async function hubEnsureLoaded(mode) {
+  if (_hubLoaded[mode]) return;
+  if (mode === 'servers') {
+    const r = await get('/admin/stats');
+    if (r && r.success) _hubData.servers = r.data.servers || [];
+  } else if (mode === 'resellers') {
+    const r = await get('/admin/resellers');
+    if (r && r.success) _hubData.resellers = r.data || [];
+  } else if (mode === 'clients') {
+    const r = await get('/admin/clients');
+    if (r && r.success) _hubData.clients = (r.data || []).slice(0, 60); // سقفِ منطقی برایِ نمایشِ چرخشی
+  }
+  _hubLoaded[mode] = true;
+}
+
+// اگر گزارشِ سرور بیش از ۵ دقیقه قدیمی باشد (یا اصلاً گزارش نداده) خاکستری/
+// «نصب‌نشده» نشان می‌دهیم؛ برایِ نماینده/کاربر «٪» یعنی نسبتِ مصرف به سقف.
+function hubItemStatus(mode, item) {
+  if (mode === 'servers') {
+    const ageMin = item.status_updated_at ? (Date.now() - new Date(item.status_updated_at + 'Z').getTime()) / 60000 : Infinity;
+    const stale = !item.status_updated_at || ageMin > 5;
+    const pct = stale ? 0 : Math.round(item.status_cpu_pct || 0);
+    const dotClass = stale ? 'stale' : (item.status_xray_active ? 'on' : 'off');
+    const label = stale ? (item.status_updated_at ? 'قطع' : 'نصب‌نشده') : pct + '٪';
+    return { stale: stale, pct: pct, dotClass: dotClass, label: label };
+  }
+  // resellers/clients: هردو traffic_limit_gb/traffic_used_gb و is_active دارند
+  const limit = Number(item.traffic_limit_gb) || 0;
+  const used = Number(item.traffic_used_gb) || 0;
+  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+  const label = limit > 0 ? pct + '٪' : '∞';
+  return { stale: false, pct: pct, dotClass: item.is_active ? 'on' : 'off', label: label };
+}
+function hubItemName(mode, item) {
+  if (mode === 'servers') return (item.flag || '') + ' ' + item.name;
+  if (mode === 'resellers') return item.name;
+  return item.username;
+}
+function hubCurrentPageItems() {
+  const all = _hubData[_hubMode] || [];
+  return all.slice(_hubPageIdx * HUB_PAGE_SIZE, _hubPageIdx * HUB_PAGE_SIZE + HUB_PAGE_SIZE);
+}
+
+function renderHub() {
+  const all = _hubData[_hubMode] || [];
   const orbit = document.getElementById('srv-orbit');
-  // ساتلایت‌های قبلی را پاک کن (فقط .srv-sat، نه دایره/رینگِ مرکزی)
   orbit.querySelectorAll('.srv-sat').forEach(function (el) { el.remove(); });
-  if (!servers.length) {
-    document.getElementById('srv-dial-name').textContent = 'سروری نیست';
+  const pager = document.getElementById('hub-pager');
+  if (all.length > HUB_PAGE_SIZE) {
+    pager.style.display = 'flex';
+    const totalPages = Math.ceil(all.length / HUB_PAGE_SIZE);
+    document.getElementById('hub-pager-label').textContent = (_hubPageIdx + 1) + ' / ' + totalPages;
+  } else { pager.style.display = 'none'; }
+  const pageItems = hubCurrentPageItems();
+  if (!pageItems.length) {
+    document.getElementById('srv-dial-name').textContent = 'موردی نیست';
     document.getElementById('srv-dial-pct').textContent = '—';
     document.getElementById('srv-dial-meta').textContent = '';
     return;
   }
-  if (_hubSelected >= servers.length) _hubSelected = 0;
-  const N = servers.length;
-  servers.forEach(function (s, i) {
+  if (_hubSelected >= pageItems.length) _hubSelected = 0;
+  const N = pageItems.length;
+  pageItems.forEach(function (item, i) {
     const angle = (i / N) * 360 - 90; // شروع از بالا، در جهتِ ساعت
     const rad = angle * Math.PI / 180;
     const R = 42; // درصدِ شعاعِ orbit
     const cx = 50 + R * Math.cos(rad);
     const cy = 50 + R * Math.sin(rad);
-    const st = hubServerStatus(s);
+    const st = hubItemStatus(_hubMode, item);
     const el = document.createElement('div');
     el.className = 'srv-sat' + (i === _hubSelected ? ' selected' : '');
     el.style.left = cx + '%'; el.style.top = cy + '%';
     el.dataset.i = i;
     el.innerHTML =
       '<div class="srv-ring' + (st.stale ? ' stale' : '') + '" style="--pct:' + st.pct + '"><span class="srv-pct">' + st.label + '</span></div>' +
-      '<div class="srv-name"><span class="srv-dot ' + st.dotClass + '"></span>' + (s.flag || '') + ' ' + s.name + '</div>';
-    el.addEventListener('click', function () { selectHubServer(i); });
+      '<div class="srv-name"><span class="srv-dot ' + st.dotClass + '"></span>' + hubItemName(_hubMode, item) + '</div>';
+    el.addEventListener('click', function () { selectHubItem(i); });
     orbit.appendChild(el);
   });
-  selectHubServer(_hubSelected);
+  selectHubItem(_hubSelected);
 }
 
-// اگر گزارشِ سرور بیش از ۵ دقیقه قدیمی باشد (یا اصلاً گزارش نداده)
-// خاکستری/«نصب‌نشده» نشان می‌دهیم، عددِ نادرست بهتر از هیچ‌عددی نیست.
-function hubServerStatus(s) {
-  const ageMin = s.status_updated_at ? (Date.now() - new Date(s.status_updated_at + 'Z').getTime()) / 60000 : Infinity;
-  const stale = !s.status_updated_at || ageMin > 5;
-  const pct = stale ? 0 : Math.round(s.status_cpu_pct || 0);
-  const dotClass = stale ? 'stale' : (s.status_xray_active ? 'on' : 'off');
-  const label = stale ? (s.status_updated_at ? 'قطع' : 'نصب‌نشده') : pct + '٪';
-  return { stale: stale, pct: pct, dotClass: dotClass, label: label };
-}
-
-function selectHubServer(i) {
+function selectHubItem(i) {
   _hubSelected = i;
   document.querySelectorAll('.srv-sat').forEach(function (el) { el.classList.toggle('selected', +el.dataset.i === i); });
-  const s = _hubServers[i];
-  if (!s) return;
-  const st = hubServerStatus(s);
-  document.getElementById('srv-dial-name').textContent = (s.flag || '') + ' ' + s.name;
-  document.getElementById('srv-dial-pct').textContent = st.stale ? st.label : st.pct + '٪';
-  const memPct = (!st.stale && s.status_mem_total_mb) ? Math.round((s.status_mem_used_mb / s.status_mem_total_mb) * 100) : null;
-  const upH = (!st.stale && s.status_uptime_sec) ? Math.floor(s.status_uptime_sec / 3600) : null;
-  document.getElementById('srv-dial-meta').textContent = st.stale
-    ? (s.status_updated_at ? 'گزارشِ قدیمی' : 'مانیتورینگ نصب نشده')
-    : 'RAM ' + memPct + '٪ · آپ‌تایم ' + upH + 'h';
+  const item = hubCurrentPageItems()[i];
+  if (!item) return;
+  const st = hubItemStatus(_hubMode, item);
+  document.getElementById('srv-dial-name').textContent = hubItemName(_hubMode, item);
+  document.getElementById('srv-dial-pct').textContent = st.label;
+  const metaEl = document.getElementById('srv-dial-meta');
+  if (_hubMode === 'servers') {
+    const memPct = (!st.stale && item.status_mem_total_mb) ? Math.round((item.status_mem_used_mb / item.status_mem_total_mb) * 100) : null;
+    const upH = (!st.stale && item.status_uptime_sec) ? Math.floor(item.status_uptime_sec / 3600) : null;
+    metaEl.textContent = st.stale ? (item.status_updated_at ? 'گزارشِ قدیمی' : 'مانیتورینگ نصب نشده') : 'RAM ' + memPct + '٪ · آپ‌تایم ' + upH + 'h';
+  } else if (_hubMode === 'resellers') {
+    metaEl.textContent = (item.current_clients || 0) + ' کاربر · ' + Math.round(item.balance || 0).toLocaleString() + ' ت';
+  } else {
+    metaEl.textContent = item.reseller_name || item.reseller_username || '—';
+  }
 }
 
-function hubDownloadScanner() {
-  const s = _hubServers[_hubSelected];
-  if (!s) return toast('سروری انتخاب نشده', 'error');
-  downloadScanner(s.id, 'unix');
+function hubPage(dir) {
+  const all = _hubData[_hubMode] || [];
+  const totalPages = Math.max(1, Math.ceil(all.length / HUB_PAGE_SIZE));
+  _hubPageIdx = (_hubPageIdx + dir + totalPages) % totalPages;
+  _hubSelected = 0;
+  renderHub();
 }
-function hubDownloadStatusInstaller() {
-  const s = _hubServers[_hubSelected];
-  if (!s) return toast('سروری انتخاب نشده', 'error');
-  downloadStatusInstaller(s.id);
+
+// کلیکِ دایرهٔ وسط بسته به حالت: سرور → پرسش برایِ اسکنر/مانیتورینگ،
+// نماینده → همان مودالِ ویرایشِ موجود، کاربر → صفحهٔ «همه کاربران»
+// (چون فرمِ ویرایشِ جداگانه برایِ تک‌کاربر در پنل وجود ندارد).
+function hubDialClick() {
+  const item = hubCurrentPageItems()[_hubSelected];
+  if (!item) return;
+  if (_hubMode === 'servers') {
+    if (confirm('برایِ «' + item.name + '»:\nOK = دانلودِ اسکریپتِ نصبِ مانیتورینگ\nCancel = دانلودِ اسکنرِ IP')) {
+      downloadStatusInstaller(item.id);
+    } else {
+      downloadScanner(item.id, 'unix');
+    }
+  } else if (_hubMode === 'resellers') {
+    editReseller(item);
+  } else {
+    document.querySelector('.nav-item[onclick*="clients"]')?.click();
+  }
 }
 
 // نمودارِ SVGِ ساده — یک خطِ توپُر رویِ ۷ نقطه، بدونِ کتابخانه‌ی خارجی
