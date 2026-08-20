@@ -14,12 +14,31 @@
     --accent: #ef6f68;
     --accent2: #f0847c;
     --text: #f7ede9;
+    --text-dim: rgba(247,237,233,0.65);
     --text-muted: rgba(247,237,233,0.45);
     --danger: #ff4d6d;
     --success: #2dd4bf;
     --warning: #fbbf24;
     --radius: 14px;
     --glass: blur(20px);
+    --nav-glass: rgba(13,10,11,0.72);
+  }
+  /* تمِ روشن — همان طلاییِ کاغذی‌ای که در اسناد برند مستند شده، با همون
+     ژست کورالِ بازطراحی‌شده به‌جایِ طلاییِ قدیمی (که منسوخ اعلام شد) */
+  :root[data-theme="light"] {
+    --bg: #efe7d6;
+    --surface: #fbf7ee;
+    --surface-hover: #f4ecd8;
+    --border: rgba(28,23,16,0.14);
+    --accent: #c9544c;
+    --accent2: #d97b73;
+    --text: #1c1710;
+    --text-dim: rgba(28,23,16,0.65);
+    --text-muted: rgba(28,23,16,0.5);
+    --danger: #d1435f;
+    --success: #0e9f6e;
+    --warning: #b45309;
+    --nav-glass: rgba(251,247,238,0.82);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -71,16 +90,13 @@
 
   /* ── Layout ── */
   #app { display: none; min-height: 100vh; position: relative; z-index: 1; }
-  .sidebar {
-    position: fixed; top: 0; right: 0;
-    width: 240px; height: 100vh;
-    background: rgba(255,255,255,0.03);
-    backdrop-filter: var(--glass);
-    border-left: 1px solid var(--border);
-    padding: 24px 16px;
-    display: flex; flex-direction: column;
-    z-index: 100;
-  }
+  /* سایدبار جایش را به نوارِ بالا + پیلِ ناوبریِ پایین داده — ولی خودِ
+     nav-itemها تویِ DOM می‌مانند چون هنوز موتورِ اصلیِ ناوبری‌اند
+     (showPage با event.currentTarget کار می‌کند و کدهای دیگر هم با
+     `.nav-item[onclick*="..."]).click()` بهشان ارجاع می‌دهند). */
+  .sidebar { display: none; }
+  .mobile-topbar { display: none !important; }
+  .sidebar-overlay { display: none !important; }
   .logo {
     display: flex; align-items: center; gap: 10px;
     padding: 8px 12px; margin-bottom: 28px;
@@ -111,11 +127,22 @@
   .nav-item.active { background: rgba(239,111,104,0.18); color: var(--accent); }
   .nav-item .icon { font-size: 1.1rem; width: 20px; text-align: center; }
 
+  /* ── لینک‌هایِ سریعِ صفحاتی که تویِ ناوبریِ اصلی جا نشدند (صفحهٔ تنظیمات) ── */
+  .settings-link-row {
+    display: flex; align-items: center; gap: 12px; padding: 13px 12px; border-radius: 10px;
+    cursor: pointer; font-size: .86rem; transition: background .15s ease;
+  }
+  .settings-link-row:hover { background: var(--surface-hover); }
+  .settings-link-row .icon { width: 20px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
+  .settings-link-row span:not(.icon) { flex: 1; }
+  .settings-link-chevron { width: 15px; height: 15px; fill: none; stroke: var(--text-muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
   .sidebar-bottom { margin-top: auto; }
 
   .main {
-    margin-right: 240px;
-    padding: 78px 28px 28px;
+    margin-right: 0;
+    padding: 88px 24px 100px;
+    max-width: 1220px; margin-left: auto; margin-right: auto;
     min-height: 100vh;
     position: relative;
   }
@@ -123,13 +150,36 @@
   .page { display: none; }
   .page.active { display: block; }
 
-  /* ── نوارِ ثابتِ بالا (رویِ همهٔ صفحه‌ها): زنگولهٔ اعلاناتِ واقعی + تنظیمات ── */
+  /* ── نوارِ ثابتِ بالا: برند + آمارهایِ خلاصه + زنگوله/تم/تنظیمات ── */
   .global-topbar {
-    position: fixed; top: 0; left: 0; right: 240px; height: 62px; z-index: 40;
-    display: flex; align-items: center; justify-content: flex-start; gap: 8px;
-    padding: 0 24px; background: rgba(13,10,11,0.72); backdrop-filter: blur(14px);
+    position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+    display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+    padding: 14px 24px; background: var(--nav-glass); backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--border);
   }
+  .top-brand { display: flex; align-items: center; gap: 10px; }
+  .top-brand .logo-icon { width: 34px; height: 34px; }
+  .top-brand .logo-text { font-size: .92rem; }
+  .top-stats { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+  .top-stat-label { font-size: .64rem; color: var(--text-muted); font-weight: 600; margin-bottom: 2px; }
+  .top-stat-value { font-size: .95rem; font-weight: 800; display: flex; align-items: baseline; gap: 4px; font-variant-numeric: tabular-nums; }
+  .top-stat-unit { font-size: .64rem; color: var(--text-muted); font-weight: 600; }
+  .top-actions { display: flex; align-items: center; gap: 8px; }
+  @media (max-width: 900px) { .top-stats { display: none; } }
+
+  /* ── ناوبریِ اصلی: پیلِ شناورِ پایین ── */
+  .bottom-nav { position: fixed; left: 0; right: 0; bottom: 18px; display: flex; justify-content: center; z-index: 50; pointer-events: none; }
+  .bottom-nav-pill {
+    display: flex; gap: 2px; padding: 6px; border-radius: 999px; pointer-events: auto;
+    background: var(--nav-glass); -webkit-backdrop-filter: blur(20px) saturate(140%); backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid var(--border); box-shadow: 0 12px 30px -12px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.08);
+    max-width: calc(100vw - 24px); overflow-x: auto; scrollbar-width: none;
+  }
+  .bottom-nav-pill::-webkit-scrollbar { display: none; }
+  .bn-btn { width: 42px; height: 42px; flex: none; border-radius: 999px; border: none; background: transparent; color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background .15s ease, color .15s ease; }
+  .bn-btn svg { width: 18px; height: 18px; }
+  .bn-btn.active { background: var(--accent); color: #fff; }
+  .bn-btn:not(.active):hover { background: var(--surface-hover); color: var(--accent); }
   .gt-btn {
     width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface);
     color: var(--text-dim); display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative;
@@ -155,7 +205,6 @@
   .gt-dropdown-item:hover { background: var(--surface-hover); }
   .gt-dropdown-item .t { color: var(--text-muted); font-size: .7rem; margin-top: 3px; }
   .gt-dropdown-empty { padding: 24px; text-align: center; color: var(--text-dim); font-size: .82rem; }
-  @media (max-width: 900px) { .global-topbar { right: 0; } }
 
   /* ── Header ── */
   .page-header {
@@ -178,25 +227,40 @@
   .srv-dot.off { background: var(--danger); }
   .srv-dot.stale { background: var(--text-muted); }
 
-  /* ── هابِ سرورها: فنِ سه‌دکمه‌ایِ واقعی + دایرهٔ مرکزی + گیج‌هایِ اقماری ── */
+  /* ── هابِ سرورها: کمانِ شیشه‌ایِ سوییچِ حالت + دایرهٔ مرکزی + گیج‌هایِ اقماری ── */
   .srv-hub { position: relative; display: flex; flex-direction: column; align-items: center; gap: 14px; }
-  .srv-fan { position: absolute; top: -2px; left: 50%; transform: translateX(-50%); z-index: 5; display: flex; gap: 8px; }
   .srv-fan-btn {
     width: 46px; height: 46px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface);
     backdrop-filter: var(--glass); color: var(--text); display: flex; align-items: center; justify-content: center;
     cursor: pointer; transition: transform .15s ease, border-color .15s ease, color .15s ease;
   }
   .srv-fan-btn:hover { transform: translateY(-2px); border-color: var(--accent); color: var(--accent); }
-  .srv-fan-btn.primary {
-    background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border-color: transparent;
-    box-shadow: 0 8px 18px -8px rgba(239,111,104,.55);
-  }
-  .srv-fan-btn.primary:hover { color: #fff; filter: brightness(1.08); }
 
-  .srv-orbit { position: relative; width: 100%; max-width: 300px; aspect-ratio: 1; margin: 46px auto 0; }
+  /* کمان داخلِ خودِ orbit است و همان مختصات (۰-۱۰۰) را دارد، پس همیشه هم‌مرکز
+     و هم‌مقیاسِ دایره می‌ماند و روی هر اندازهٔ صفحه‌ای با هم اسکیل می‌شوند. */
+  .fan-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 2; }
+  .fan-glass {
+    position: absolute; inset: 0; pointer-events: none; z-index: 1;
+    -webkit-backdrop-filter: blur(14px) saturate(150%); backdrop-filter: blur(14px) saturate(150%);
+  }
+  .fan-btn {
+    position: absolute; width: 9%; min-width: 44px; min-height: 44px; aspect-ratio: 1; transform: translate(-50%,-50%); border: none;
+    background: none; box-shadow: none; cursor: pointer; color: rgba(255,255,255,0.7); z-index: 3;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 180ms ease, filter 180ms ease;
+  }
+  .fan-btn svg { width: 55%; height: 55%; }
+  .fan-btn:hover, .fan-btn.primary { color: #fff; transform: translate(-50%,-56%); filter: brightness(1.15); }
+  .fan-btn.left  { left: 31.19%; top: 9.67%; }
+  .fan-btn.mid   { left: 50%;    top: 4.5%;  width: 10%; }
+  .fan-btn.right { left: 68.81%; top: 9.67%; }
+
+  .srv-orbit { position: relative; width: 100%; max-width: 300px; aspect-ratio: 1; margin: 6% auto 0; }
   .srv-dial-ring-outer { position: absolute; inset: 0; border-radius: 50%; border: 1.5px dashed var(--border); }
   .srv-dial {
-    position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 56%; height: 56%; border-radius: 50%;
+    /* اندازه‌اش دقیقاً هم‌مقیاسِ منحنیِ داخلیِ کمان (تویِ همون ۰-۱۰۰ ویوباکس) نگه داشته می‌شود —
+       اگر عوضش کنی، لبهٔ کمان دیگر با لبهٔ دایره یکی نمی‌شود و می‌رود توی دایره. */
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 68%; height: 68%; border-radius: 50%;
     background: radial-gradient(circle at 35% 28%, var(--accent2), #170a0c 76%);
     box-shadow: inset 0 2px 18px rgba(0,0,0,.35), 0 10px 30px -12px rgba(239,111,104,.45);
     display: flex; align-items: center; justify-content: center;
@@ -237,6 +301,8 @@
     background: var(--surface); backdrop-filter: var(--glass); border: 1px solid var(--border);
     border-radius: var(--radius); padding: 20px;
   }
+  /* هابِ مرکزی هیچ کارتی پشتش نیست — شناور رویِ پس‌زمینه، دقیقاً مثلِ سندِ طراحی */
+  .dash-card-hub { padding: 20px 0 0; }
   .dash-card-title { font-size: .85rem; font-weight: 700; margin-bottom: 14px; }
   .dash-big-num { font-size: 1.7rem; font-weight: 800; display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }
   .dash-big-num .u { font-size: .74rem; color: var(--text-muted); font-weight: 600; }
@@ -396,30 +462,6 @@
   #toast.success { border-color: var(--success); color: var(--success); }
   #toast.error { border-color: var(--danger); color: var(--danger); }
 
-  /* ── Mobile topbar (hidden on desktop) ── */
-  .mobile-topbar {
-    display: none;
-    position: sticky; top: 0; z-index: 90;
-    align-items: center; gap: 12px;
-    padding: 12px 16px;
-    background: rgba(8,8,16,0.85);
-    backdrop-filter: var(--glass);
-    border-bottom: 1px solid var(--border);
-  }
-  .hamburger-btn {
-    width: 38px; height: 38px; flex: none;
-    display: flex; align-items: center; justify-content: center;
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px; color: var(--text); font-size: 1.1rem; cursor: pointer;
-  }
-  .mobile-topbar .logo-text { font-size: 0.95rem; font-weight: 700; }
-  .sidebar-overlay {
-    display: none;
-    position: fixed; inset: 0; background: rgba(0,0,0,0.55);
-    z-index: 99;
-  }
-  .sidebar-overlay.open { display: block; }
-
   /* ── Modal: sticky header/footer so action buttons never get lost ── */
   .modal { display: flex; flex-direction: column; }
   .modal-body { overflow-y: auto; }
@@ -434,17 +476,8 @@
 
   /* ── Responsive ── */
   @media (max-width: 768px) {
-    .mobile-topbar { display: flex; }
-    .sidebar {
-      display: flex;
-      transform: translateX(100%);
-      transition: transform .25s ease;
-      width: 78%; max-width: 300px;
-      z-index: 100;
-    }
-    .sidebar.open { transform: translateX(0); box-shadow: -8px 0 30px rgba(0,0,0,0.5); }
-    .main { margin-right: 0; padding: 16px; }
-    .global-topbar { display: none; } /* .mobile-topbar موجود همین نقش را روی موبایل بازی می‌کند */
+    .main { padding: 78px 16px 100px; }
+    .global-topbar { padding: 10px 14px; }
     .form-row { grid-template-columns: 1fr; }
 
     /* مودال‌ها روی موبایل تقریباً تمام‌صفحه‌اند تا اسکرول‌شدنِ محتوا هیچ‌وقت
@@ -522,29 +555,11 @@
 
 <!-- App -->
 <div id="app">
-  <div class="mobile-topbar">
-    <button class="hamburger-btn" onclick="toggleSidebar()"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-    <div class="logo-icon" style="width:30px;height:30px;"><img src="/assets/logo.png" alt="امیر پنل"></div>
-    <div class="logo-text">امیر پنل</div>
-  </div>
-  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
+  <!-- سایدبارِ قدیمی مخفی است (CSS: display:none) اما تویِ DOM می‌ماند —
+       nav-itemهایش هنوز موتورِ ناوبری‌اند: هم نوارِ بالا/پایین رویشان کلیک
+       می‌کنند (نگه‌داشتنِ active-state خودِ showPage) هم لینکِ سریعِ صفحاتِ
+       دیگر تویِ «تنظیمات» به همینجا اشاره می‌کند. -->
   <div class="sidebar">
-    <div class="logo">
-      <div class="logo-icon"><img src="/assets/logo.png" alt="امیر پنل"></div>
-      <div>
-        <div class="logo-text">امیر پنل</div>
-        <div class="logo-sub">VPN Reseller Panel</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:8px;padding:0 12px 12px">
-      <a href="https://t.me/Vsevolod_i" target="_blank" rel="noopener" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;border-radius:10px;background:var(--accent);color:#fff;text-decoration:none;font-size:.82rem;font-weight:600">
-        <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> پشتیبانی
-      </a>
-      <a href="https://t.me/+-vl2O_LRnS85YWJk" target="_blank" rel="noopener" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;border-radius:10px;border:1px solid var(--border);color:var(--text);text-decoration:none;font-size:.82rem;font-weight:600">
-        <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="m3 11 18-8-8 18-2-7-8-3Z"/></svg> کانال
-      </a>
-    </div>
-
     <nav>
       <div class="nav-item active" onclick="showPage('dashboard')">
         <span class="icon"><svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></span> داشبورد
@@ -597,16 +612,35 @@
 
   <main class="main">
     <div class="global-topbar">
-      <div style="position:relative">
-        <button class="gt-btn" onclick="toggleNotifDropdown()" title="اعلان‌ها" aria-label="اعلان‌ها">
-          <svg viewBox="0 0 24 24" style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <span class="gt-badge" id="notif-badge" style="display:none">0</span>
-        </button>
-        <div class="gt-dropdown" id="notif-dropdown"></div>
+      <div class="top-brand">
+        <div class="logo-icon"><img src="/assets/logo.png" alt="امیر پنل"></div>
+        <div>
+          <div class="logo-text">امیر پنل</div>
+          <div class="logo-sub">VPN Reseller Panel</div>
+        </div>
       </div>
-      <button class="gt-btn" onclick="document.querySelector('.nav-item[onclick*=settings]')?.click()" title="تنظیمات" aria-label="تنظیمات">
-        <svg viewBox="0 0 24 24" style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a1.7 1.7 0 0 0 .3 1.9 2 2 0 1 1-2.8 2.8 1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6 2 2 0 1 1-4 0 1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.3 2 2 0 1 1-2.8-2.8 1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1 2 2 0 1 1 0-4A1.7 1.7 0 0 0 6.7 6a1.7 1.7 0 0 0-.3-1.9 2 2 0 1 1 2.8-2.8 1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 12.2 0a2 2 0 0 1 3.9 0 1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3 2 2 0 1 1 2.8 2.8 1.7 1.7 0 0 0-.3 1.9c.3.7.9 1.1 1.6 1.1a2 2 0 1 1 0 4c-.7 0-1.3.4-1.7 1Z"/></svg>
-      </button>
+      <div class="top-stats" id="top-stats">
+        <div><div class="top-stat-label">نرخِ فروش</div><div class="top-stat-value"><span id="ts-sales-rate">-</span><span class="top-stat-unit">کانفیگ/ساعت</span></div></div>
+        <div><div class="top-stat-label">کاربرانِ فعال</div><div class="top-stat-value"><span id="ts-clients-active">-</span><span class="top-stat-unit" id="ts-clients-total"></span></div></div>
+        <div><div class="top-stat-label">سرورها</div><div class="top-stat-value"><span id="ts-servers-active">-</span><span class="top-stat-unit">فعال</span></div></div>
+        <div><div class="top-stat-label">نمایندگانِ فعال</div><div class="top-stat-value"><span id="ts-resellers-active">-</span></div></div>
+      </div>
+      <div class="top-actions">
+        <button class="gt-btn" id="theme-btn" onclick="toggleTheme()" title="تغییرِ تم" aria-label="تغییرِ تمِ روشن/تاریک">
+          <svg id="theme-icon-dark" viewBox="0 0 256 256" fill="currentColor" style="width:17px;height:17px"><rect width="256" height="256" fill="none"/><path d="M235.54,150.21a104.84,104.84,0,0,1-37,52.91A104,104,0,0,1,32,120,103.09,103.09,0,0,1,52.88,57.48a104.84,104.84,0,0,1,52.91-37,8,8,0,0,1,10,10,88.08,88.08,0,0,0,109.8,109.8,8,8,0,0,1,10,10Z"/></svg>
+          <svg id="theme-icon-light" viewBox="0 0 256 256" fill="currentColor" style="width:17px;height:17px;display:none"><rect width="256" height="256" fill="none"/><path d="M120,40V16a8,8,0,0,1,16,0V40a8,8,0,0,1-16,0Zm8,24a64,64,0,1,0,64,64A64.07,64.07,0,0,0,128,64ZM58.34,69.66A8,8,0,0,0,69.66,58.34l-16-16A8,8,0,0,0,42.34,53.66Zm0,116.68-16,16a8,8,0,0,0,11.32,11.32l16-16a8,8,0,0,0-11.32-11.32ZM192,72a8,8,0,0,0,5.66-2.34l16-16a8,8,0,0,0-11.32-11.32l-16,16A8,8,0,0,0,192,72Zm5.66,114.34a8,8,0,0,0-11.32,11.32l16,16a8,8,0,0,0,11.32-11.32ZM48,128a8,8,0,0,0-8-8H16a8,8,0,0,0,0,16H40A8,8,0,0,0,48,128Zm80,80a8,8,0,0,0-8,8v24a8,8,0,0,0,16,0V216A8,8,0,0,0,128,208Zm112-88H216a8,8,0,0,0,0,16h24a8,8,0,0,0,0-16Z"/></svg>
+        </button>
+        <div style="position:relative">
+          <button class="gt-btn" onclick="toggleNotifDropdown()" title="اعلان‌ها" aria-label="اعلان‌ها">
+            <svg viewBox="0 0 256 256" fill="currentColor" style="width:17px;height:17px"><rect width="256" height="256" fill="none"/><path d="M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216Z"/></svg>
+            <span class="gt-badge" id="notif-badge" style="display:none">0</span>
+          </button>
+          <div class="gt-dropdown" id="notif-dropdown"></div>
+        </div>
+        <button class="gt-btn" onclick="document.querySelector('.nav-item[onclick*=settings]')?.click()" title="تنظیمات" aria-label="تنظیمات">
+          <svg viewBox="0 0 256 256" fill="currentColor" style="width:17px;height:17px"><rect width="256" height="256" fill="none"/><path d="M216,130.16q.06-2.16,0-4.32l14.92-18.64a8,8,0,0,0,1.48-7.06,107.6,107.6,0,0,0-10.88-26.25,8,8,0,0,0-6-3.93l-23.72-2.64q-1.48-1.56-3-3L186,40.54a8,8,0,0,0-3.94-6,107.29,107.29,0,0,0-26.25-10.86,8,8,0,0,0-7.06,1.48L130.16,40Q128,40,125.84,40L107.2,25.11a8,8,0,0,0-7.06-1.48A107.6,107.6,0,0,0,73.89,34.51a8,8,0,0,0-3.93,6L67.32,64.27q-1.56,1.49-3,3L40.54,70a8,8,0,0,0-6,3.94,107.71,107.71,0,0,0-10.87,26.25,8,8,0,0,0,1.49,7.06L40,125.84Q40,128,40,130.16L25.11,148.8a8,8,0,0,0-1.48,7.06,107.6,107.6,0,0,0,10.88,26.25,8,8,0,0,0,6,3.93l23.72,2.64q1.49,1.56,3,3L70,215.46a8,8,0,0,0,3.94,6,107.71,107.71,0,0,0,26.25,10.87,8,8,0,0,0,7.06-1.49L125.84,216q2.16.06,4.32,0l18.64,14.92a8,8,0,0,0,7.06,1.48,107.21,107.21,0,0,0,26.25-10.88,8,8,0,0,0,3.93-6l2.64-23.72q1.56-1.48,3-3L215.46,186a8,8,0,0,0,6-3.94,107.71,107.71,0,0,0,10.87-26.25,8,8,0,0,0-1.49-7.06ZM128,168a40,40,0,1,1,40-40A40,40,0,0,1,128,168Z"/></svg>
+        </button>
+      </div>
     </div>
     <!-- Dashboard -->
     <div class="page active" id="page-dashboard">
@@ -643,24 +677,59 @@
           </button>
         </div>
 
-        <!-- هابِ چندحالته -->
-        <div class="dash-card" style="text-align:center">
+        <!-- هابِ چندحالته: بدونِ کارت — مثلِ سندِ طراحی شناور رویِ پس‌زمینه است -->
+        <div class="dash-card-hub" style="text-align:center">
           <h3 id="hub-title" style="font-size:.95rem;margin-bottom:6px">وضعیتِ زندهٔ سرورها</h3>
           <div class="srv-hub">
-            <!-- فن = سوییچِ حالتِ هاب، نه عملیاتِ ثابت -->
-            <div class="srv-fan">
-              <button class="srv-fan-btn" id="hub-mode-clients" onclick="switchHubMode('clients')" title="حالتِ کاربران">
-                <svg viewBox="0 0 24 24" style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9" r="2.5"/></svg>
-              </button>
-              <button class="srv-fan-btn primary" id="hub-mode-servers" onclick="switchHubMode('servers')" title="حالتِ سرورها">
-                <svg viewBox="0 0 24 24" style="width:19px;height:19px" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z"/></svg>
-              </button>
-              <button class="srv-fan-btn" id="hub-mode-resellers" onclick="switchHubMode('resellers')" title="حالتِ نمایندگان">
-                <svg viewBox="0 0 24 24" style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
-              </button>
-            </div>
             <div class="srv-orbit" id="srv-orbit">
               <div class="srv-dial-ring-outer"></div>
+              <!-- کمانِ کنترل: هم‌مرکز با خودِ دایره (همان pivot و مقیاسِ ۰-۱۰۰)، پس
+                   انحنایِ داخلی‌اش دقیقاً امتدادِ لبهٔ دایره است — نه یک شکلِ جدا.
+                   فن = سوییچِ حالتِ هاب، نه عملیاتِ ثابت. -->
+              <svg width="0" height="0" aria-hidden="true" style="position:absolute">
+                <defs>
+                  <clipPath id="fanClipL" clipPathUnits="objectBoundingBox"><path d="M0.1891,0.1021 A0.505,0.505 0 0 1 0.3898,0.0072 L0.416,0.1243 A0.385,0.385 0 0 0 0.263,0.1966 Z"/></clipPath>
+                  <clipPath id="fanClipM" clipPathUnits="objectBoundingBox"><path d="M0.3962,-0.0146 A0.525,0.525 0 0 1 0.6038,-0.0146 L0.5761,0.1226 A0.385,0.385 0 0 0 0.4239,0.1226 Z"/></clipPath>
+                  <clipPath id="fanClipR" clipPathUnits="objectBoundingBox"><path d="M0.6102,0.0072 A0.505,0.505 0 0 1 0.8109,0.1021 L0.737,0.1966 A0.385,0.385 0 0 0 0.584,0.1243 Z"/></clipPath>
+                </defs>
+              </svg>
+              <div class="fan-glass" style="clip-path:url(#fanClipL);-webkit-clip-path:url(#fanClipL)"></div>
+              <div class="fan-glass" style="clip-path:url(#fanClipM);-webkit-clip-path:url(#fanClipM)"></div>
+              <div class="fan-glass" style="clip-path:url(#fanClipR);-webkit-clip-path:url(#fanClipR)"></div>
+              <svg class="fan-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                <defs>
+                  <linearGradient id="fanFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="var(--accent2)" stop-opacity="0.72"/>
+                    <stop offset="1" stop-color="var(--accent)" stop-opacity="0.55"/>
+                  </linearGradient>
+                  <linearGradient id="fanSheen" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#fff" stop-opacity="0.4"/>
+                    <stop offset="0.6" stop-color="#fff" stop-opacity="0"/>
+                  </linearGradient>
+                  <filter id="fanShadow" x="-40%" y="-40%" width="180%" height="200%">
+                    <feDropShadow dx="0" dy="2.4" stdDeviation="2.2" flood-color="#000" flood-opacity="0.5"/>
+                  </filter>
+                </defs>
+                <g filter="url(#fanShadow)">
+                  <path d="M18.909,10.205 A50.5,50.5 0 0 1 38.984,0.716 L41.601,12.427 A38.5,38.5 0 0 0 26.297,19.662 Z" fill="url(#fanFill)"/>
+                  <path d="M39.623,-1.464 A52.5,52.5 0 0 1 60.377,-1.464 L57.61,12.26 A38.5,38.5 0 0 0 42.39,12.26 Z" fill="url(#fanFill)"/>
+                  <path d="M61.016,0.716 A50.5,50.5 0 0 1 81.091,10.205 L73.703,19.662 A38.5,38.5 0 0 0 58.399,12.427 Z" fill="url(#fanFill)"/>
+                </g>
+                <g>
+                  <path d="M18.909,10.205 A50.5,50.5 0 0 1 38.984,0.716 L41.601,12.427 A38.5,38.5 0 0 0 26.297,19.662 Z" fill="url(#fanSheen)"/>
+                  <path d="M39.623,-1.464 A52.5,52.5 0 0 1 60.377,-1.464 L57.61,12.26 A38.5,38.5 0 0 0 42.39,12.26 Z" fill="url(#fanSheen)"/>
+                  <path d="M61.016,0.716 A50.5,50.5 0 0 1 81.091,10.205 L73.703,19.662 A38.5,38.5 0 0 0 58.399,12.427 Z" fill="url(#fanSheen)"/>
+                </g>
+              </svg>
+              <button class="fan-btn left" id="hub-mode-clients" onclick="switchHubMode('clients')" title="حالتِ کاربران" aria-label="حالتِ کاربران">
+                <svg viewBox="0 0 256 256" fill="currentColor"><rect width="256" height="256" fill="none"/><path d="M172,120a44,44,0,1,1-44-44A44.05,44.05,0,0,1,172,120Zm60,8A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88.09,88.09,0,0,0-91.47-87.93C77.43,41.89,39.87,81.12,40,128.25a87.65,87.65,0,0,0,22.24,58.16A79.71,79.71,0,0,1,84,165.1a4,4,0,0,1,4.83.32,59.83,59.83,0,0,0,78.28,0,4,4,0,0,1,4.83-.32,79.71,79.71,0,0,1,21.79,21.31A87.62,87.62,0,0,0,216,128Z"/></svg>
+              </button>
+              <button class="fan-btn mid primary" id="hub-mode-servers" onclick="switchHubMode('servers')" title="حالتِ سرورها" aria-label="حالتِ سرورها">
+                <svg viewBox="0 0 256 256" fill="currentColor"><rect width="256" height="256" fill="none"/><path d="M128,24h0A104,104,0,1,0,232,128,104.12,104.12,0,0,0,128,24Zm78.36,64H170.71a135.28,135.28,0,0,0-22.3-45.6A88.29,88.29,0,0,1,206.37,88ZM216,128a87.61,87.61,0,0,1-3.33,24H174.16a157.44,157.44,0,0,0,0-48h38.51A87.61,87.61,0,0,1,216,128ZM128,43a115.27,115.27,0,0,1,26,45H102A115.11,115.11,0,0,1,128,43ZM102,168H154a115.11,115.11,0,0,1-26,45A115.27,115.27,0,0,1,102,168Zm-3.9-16a140.84,140.84,0,0,1,0-48h59.88a140.84,140.84,0,0,1,0,48Zm50.35,61.6a135.28,135.28,0,0,0,22.3-45.6h35.66A88.29,88.29,0,0,1,148.41,213.6Z"/></svg>
+              </button>
+              <button class="fan-btn right" id="hub-mode-resellers" onclick="switchHubMode('resellers')" title="حالتِ نمایندگان" aria-label="حالتِ نمایندگان">
+                <svg viewBox="0 0 256 256" fill="currentColor"><rect width="256" height="256" fill="none"/><path d="M64.12,147.8a4,4,0,0,1-4,4.2H16a8,8,0,0,1-7.8-6.17,8.35,8.35,0,0,1,1.62-6.93A67.79,67.79,0,0,1,37,117.51a40,40,0,1,1,66.46-35.8,3.94,3.94,0,0,1-2.27,4.18A64.08,64.08,0,0,0,64,144C64,145.28,64,146.54,64.12,147.8Zm182-8.91A67.76,67.76,0,0,0,219,117.51a40,40,0,1,0-66.46-35.8,3.94,3.94,0,0,0,2.27,4.18A64.08,64.08,0,0,1,192,144c0,1.28,0,2.54-.12,3.8a4,4,0,0,0,4,4.2H240a8,8,0,0,0,7.8-6.17A8.33,8.33,0,0,0,246.17,138.89Zm-89,43.18a48,48,0,1,0-58.37,0A72.13,72.13,0,0,0,65.07,212,8,8,0,0,0,72,224H184a8,8,0,0,0,6.93-12A72.15,72.15,0,0,0,157.19,182.07Z"/></svg>
+              </button>
               <div class="srv-dial" id="srv-dial" onclick="hubDialClick()">
                 <svg class="srv-dial-fillring" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="3" stroke-linecap="round" pathLength="100"/>
@@ -727,6 +796,24 @@
     <!-- Settings -->
     <div class="page" id="page-settings">
       <div class="page-header"><h2>تنظیمات</h2></div>
+
+      <!-- پشتیبانی/کانال/خروج بخشِ خودشون رو ندارن (page-ی نیستن)، پس تویِ
+           ناوبریِ اصلی جا نمی‌گیرن — همینجا لینک‌شدن. بقیهٔ ۱۳ بخش الان
+           مستقیم تویِ پیلِ ناوبریِ پایینِ صفحه‌ان. -->
+      <div class="table-wrap" style="padding:12px;margin-bottom:18px">
+        <a class="settings-link-row" href="https://t.me/Vsevolod_i" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
+          <span class="icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+          <span>پشتیبانی</span><svg class="settings-link-chevron" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg>
+        </a>
+        <a class="settings-link-row" href="https://t.me/+-vl2O_LRnS85YWJk" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
+          <span class="icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="m3 11 18-8-8 18-2-7-8-3Z"/></svg></span>
+          <span>کانال</span><svg class="settings-link-chevron" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg>
+        </a>
+        <div class="settings-link-row" style="color:var(--danger)" onclick="document.querySelector('.nav-item[onclick*=&quot;logout&quot;]').click()">
+          <span class="icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></span>
+          <span>خروج</span><svg class="settings-link-chevron" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg>
+        </div>
+      </div>
 
       <div class="table-wrap" style="padding:20px;margin-bottom:18px">
         <h3 style="font-size:1rem;margin-bottom:4px"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M9 2v6.5L4.2 18a2 2 0 0 0 1.8 3h12a2 2 0 0 0 1.8-3L15 8.5V2"/><path d="M8 2h8M7.5 14h9"/></svg> تست رایگان</h3>
@@ -1056,6 +1143,55 @@
   </div>
 
   </main>
+
+  <!-- ناوبریِ اصلی: پیلِ شناورِ پایین جایِ سایدبار را گرفته. «آنالیتیکس» هم
+       داشبورد را باز می‌کند چون خودِ داشبورد الان جای تحلیل‌هاست. -->
+  <!-- پیلِ ناوبری: دقیقاً همهٔ ۱۳ بخشی که سایدبار داشت، به همون ترتیب و با
+       همون آیکون‌ها — چیزی حذف/پنهان نشده، فقط جای نمایشش عوض شده. اگر جا
+       نشد رویِ صفحه‌هایِ خیلی باریک، خودِ پیل با اسکرولِ افقی جمع می‌شود. -->
+  <div class="bottom-nav">
+    <div class="bottom-nav-pill">
+      <button class="bn-btn active" data-page="dashboard" title="داشبورد" aria-label="داشبورد" aria-current="page" onclick="document.querySelector('.nav-item[onclick*=&quot;dashboard&quot;]').click()">
+        <svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      </button>
+      <button class="bn-btn" data-page="resellers" title="نمایندگان" aria-label="نمایندگان" onclick="document.querySelector('.nav-item[onclick*=&quot;resellers&quot;]').click()">
+        <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9" r="2.5"/><path d="M15.5 14a5 5 0 0 1 5.5 5"/></svg>
+      </button>
+      <button class="bn-btn" data-page="clients" title="همه کاربران" aria-label="همه کاربران" onclick="document.querySelector('.nav-item[onclick*=&quot;clients&quot;]').click()">
+        <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z"/></svg>
+      </button>
+      <button class="bn-btn" data-page="inbounds" title="اینباندها" aria-label="اینباندها" onclick="document.querySelector('.nav-item[onclick*=&quot;inbounds&quot;]').click()">
+        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M9 3v5M15 3v5M6 8h12l-1 5a5 5 0 0 1-5 4 5 5 0 0 1-5-4L6 8Z"/><path d="M10 17v4M14 17v4"/></svg>
+      </button>
+      <button class="bn-btn" data-page="servers" title="سرورها" aria-label="سرورها" onclick="document.querySelector('.nav-item[onclick*=&quot;servers&quot;]').click()">
+        <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z"/></svg>
+      </button>
+      <button class="bn-btn" data-page="bot" title="ربات" aria-label="ربات" onclick="document.querySelector('.nav-item[onclick*=&quot;bot&quot;]').click()">
+        <svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 16v0M16 16v0"/></svg>
+      </button>
+      <button class="bn-btn" data-page="backup" title="بک‌آپ" aria-label="بک‌آپ" onclick="document.querySelector('.nav-item[onclick*=&quot;backup&quot;]').click()">
+        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7M21 3v5h-5"/></svg>
+      </button>
+      <button class="bn-btn" data-page="voice" title="ویس‌چت" aria-label="ویس‌چت" onclick="document.querySelector('.nav-item[onclick*=&quot;voice&quot;]').click()">
+        <svg class="icon-svg" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+      </button>
+      <button class="bn-btn" data-page="charge-requests" title="شارژ نمایندها" aria-label="شارژ نمایندها" onclick="document.querySelector('.nav-item[onclick*=&quot;charge-requests&quot;]').click()">
+        <svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="16.5" cy="14.2" r="1.1" fill="currentColor" stroke="none"/></svg>
+      </button>
+      <button class="bn-btn" data-page="plans" title="پلن‌ها" aria-label="پلن‌ها" onclick="document.querySelector('.nav-item[onclick*=&quot;plans&quot;]').click()">
+        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M20 12.5 12.5 20a1.5 1.5 0 0 1-2.1 0L4 13.6a1.5 1.5 0 0 1 0-2.1L11.5 4H18a2 2 0 0 1 2 2v6.5Z"/><circle cx="14.7" cy="9.3" r="1.3" fill="currentColor" stroke="none"/></svg>
+      </button>
+      <button class="bn-btn" data-page="settings" title="تنظیمات" aria-label="تنظیمات" onclick="document.querySelector('.nav-item[onclick*=&quot;settings&quot;]').click()">
+        <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a1.7 1.7 0 0 0 .3 1.9 2 2 0 1 1-2.8 2.8 1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6 2 2 0 1 1-4 0 1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.3 2 2 0 1 1-2.8-2.8 1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1 2 2 0 1 1 0-4A1.7 1.7 0 0 0 6.7 6a1.7 1.7 0 0 0-.3-1.9 2 2 0 1 1 2.8-2.8 1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 12.2 0a2 2 0 0 1 3.9 0 1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3 2 2 0 1 1 2.8 2.8 1.7 1.7 0 0 0-.3 1.9c.3.7.9 1.1 1.6 1.1a2 2 0 1 1 0 4c-.7 0-1.3.4-1.7 1Z"/></svg>
+      </button>
+      <button class="bn-btn" data-page="panel-orders" title="درخواست پنل" aria-label="درخواست پنل" onclick="document.querySelector('.nav-item[onclick*=&quot;panel-orders&quot;]').click()">
+        <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.3" fill="currentColor" stroke="none"/><circle cx="18" cy="20" r="1.3" fill="currentColor" stroke="none"/><path d="M2 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.5a2 2 0 0 0 2-1.6L21 7H6"/></svg>
+      </button>
+      <button class="bn-btn" data-page="transactions" title="تراکنش‌ها" aria-label="تراکنش‌ها" onclick="document.querySelector('.nav-item[onclick*=&quot;transactions&quot;]').click()">
+        <svg class="icon-svg" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19"/></svg>
+      </button>
+    </div>
+  </div>
 </div>
 
 <!-- Add/Edit Reseller Modal -->
@@ -1286,6 +1422,26 @@
 const API = '/api';
 let token = localStorage.getItem('admin_token');
 
+// ── تم: پیش‌فرض دارک، انتخابِ کاربر در localStorage می‌ماند ──────────
+(function () {
+  const saved = localStorage.getItem('theme');
+  if (saved === 'light') document.documentElement.dataset.theme = 'light';
+})();
+document.addEventListener('DOMContentLoaded', syncThemeIcon);
+function toggleTheme() {
+  const isLight = document.documentElement.dataset.theme === 'light';
+  if (isLight) { delete document.documentElement.dataset.theme; localStorage.setItem('theme', 'dark'); }
+  else { document.documentElement.dataset.theme = 'light'; localStorage.setItem('theme', 'light'); }
+  syncThemeIcon();
+}
+function syncThemeIcon() {
+  const isLight = document.documentElement.dataset.theme === 'light';
+  const d = document.getElementById('theme-icon-dark'), l = document.getElementById('theme-icon-light');
+  if (!d || !l) return;
+  d.style.display = isLight ? 'none' : 'block';
+  l.style.display = isLight ? 'block' : 'none';
+}
+
 // ── Auth ──────────────────────────────────────
 if (token) initApp();
 
@@ -1350,6 +1506,7 @@ function showPage(name) {
   if (name === 'charge-requests') loadChargeRequests();
   if (name === 'panel-orders') loadPanelOrders();
   event.currentTarget.classList.add('active');
+  document.querySelectorAll('.bn-btn').forEach(b => b.classList.toggle('active', b.dataset.page === name));
   const loaders = { dashboard: loadDashboard, resellers: loadResellers, clients: loadClients, inbounds: loadInbounds, transactions: loadTransactions, plans: loadPlans, settings: loadSettings, servers: loadServers, voice: loadSettings, backup: loadBackupChannel, bot: function () { loadBotStatus(); loadSettings(); } };
   if (loaders[name]) loaders[name]();
   toggleSidebar(false); // موبایل: بعد از انتخاب صفحه، منو بسته شود
@@ -1480,6 +1637,12 @@ async function loadDashboard() {
   document.getElementById('s-balance-total').textContent = Math.round(d.resellerBalanceTotal || 0).toLocaleString();
   document.getElementById('s-servers-active').textContent = d.activeServersCount;
   document.getElementById('s-sales-rate').textContent = d.salesRateHour;
+
+  document.getElementById('ts-sales-rate').textContent = d.salesRateHour;
+  document.getElementById('ts-clients-active').textContent = d.activeClients;
+  document.getElementById('ts-clients-total').textContent = 'از ' + d.totalClients;
+  document.getElementById('ts-servers-active').textContent = d.activeServersCount;
+  document.getElementById('ts-resellers-active').textContent = d.activeResellers;
 
   const recent = d.recentActivity || [];
   document.getElementById('dl-latest-reseller').textContent = recent[0] ? recent[0].name : '—';
