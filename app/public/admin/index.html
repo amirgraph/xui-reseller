@@ -164,28 +164,6 @@
   }
   .page-header h2 { font-size: 1.4rem; font-weight: 700; }
 
-  /* ── Cards ── */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px; margin-bottom: 28px;
-  }
-  .stat-card {
-    background: var(--surface);
-    backdrop-filter: var(--glass);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-    transition: border-color .2s;
-  }
-  .stat-card:hover { border-color: rgba(239,111,104,0.3); }
-  .stat-label { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 8px; }
-  .stat-value { font-size: 2rem; font-weight: 700; }
-  .stat-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
-  .stat-card.accent .stat-value { color: var(--accent); }
-  .stat-card.success .stat-value { color: var(--success); }
-  .stat-card.warning .stat-value { color: var(--warning); }
-
   /* ── گیجِ دایره‌ایِ وضعیتِ سرور (CPU٪ واقعی) ── */
   .srv-gauge { display: flex; flex-direction: column; align-items: center; gap: 8px; }
   .srv-ring { --pct: 0; width: 68px; height: 68px; border-radius: 50%; position: relative;
@@ -201,8 +179,8 @@
   .srv-dot.stale { background: var(--text-muted); }
 
   /* ── هابِ سرورها: فنِ سه‌دکمه‌ایِ واقعی + دایرهٔ مرکزی + گیج‌هایِ اقماری ── */
-  .srv-hub { display: flex; flex-direction: column; align-items: center; gap: 18px; }
-  .srv-fan { display: flex; gap: 10px; }
+  .srv-hub { position: relative; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .srv-fan { position: absolute; top: -2px; left: 50%; transform: translateX(-50%); z-index: 5; display: flex; gap: 8px; }
   .srv-fan-btn {
     width: 46px; height: 46px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface);
     backdrop-filter: var(--glass); color: var(--text); display: flex; align-items: center; justify-content: center;
@@ -215,27 +193,61 @@
   }
   .srv-fan-btn.primary:hover { color: #fff; filter: brightness(1.08); }
 
-  .srv-orbit { position: relative; width: 100%; max-width: 300px; aspect-ratio: 1; margin: 0 auto; }
+  .srv-orbit { position: relative; width: 100%; max-width: 300px; aspect-ratio: 1; margin: 46px auto 0; }
   .srv-dial-ring-outer { position: absolute; inset: 0; border-radius: 50%; border: 1.5px dashed var(--border); }
   .srv-dial {
     position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 56%; height: 56%; border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, var(--surface-hover), var(--bg) 78%);
-    box-shadow: inset 0 2px 16px rgba(0,0,0,.3); display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle at 35% 28%, var(--accent2), #170a0c 76%);
+    box-shadow: inset 0 2px 18px rgba(0,0,0,.35), 0 10px 30px -12px rgba(239,111,104,.45);
+    display: flex; align-items: center; justify-content: center;
   }
-  .srv-dial-center { text-align: center; }
-  .srv-dial-name { font-size: .78rem; color: var(--text-muted); margin-bottom: 5px; }
-  .srv-dial-pct { font-size: 1.8rem; font-weight: 800; }
-  .srv-dial-meta { font-size: .68rem; color: var(--text-muted); margin-top: 5px; line-height: 1.7; }
+  .srv-dial-fillring { position: absolute; inset: 0; pointer-events: none; }
+  .srv-dial-center { text-align: center; position: relative; z-index: 1; }
+  .srv-dial-name { font-size: .78rem; color: rgba(255,255,255,.78); margin-bottom: 5px; }
+  .srv-dial-pct { font-size: 1.8rem; font-weight: 800; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,.4); }
+  .srv-dial-meta { font-size: .68rem; color: rgba(255,255,255,.6); margin-top: 5px; line-height: 1.7; }
 
   .srv-sat { position: absolute; transform: translate(-50%,-50%); display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; }
   .srv-sat:hover .srv-ring { transform: scale(1.08); }
   .srv-sat.selected .srv-ring { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .srv-sat .srv-ring { width: 52px; height: 52px; transition: transform .15s ease; }
+  .srv-sat .srv-ring { width: 58px; height: 58px; transition: transform .15s ease; box-shadow: 0 6px 14px -8px rgba(0,0,0,.5); }
   .srv-sat .srv-pct { font-size: .72rem; }
   .srv-sat .srv-name { white-space: nowrap; font-size: .68rem; }
   .srv-dial { cursor: pointer; }
   .srv-dial:hover { filter: brightness(1.12); }
   #hub-pager .srv-fan-btn:hover { transform: none; }
+
+  /* ── چیدمانِ سه‌ستونیِ داشبورد: کارتِ درآمد + هابِ مرکزی + کارتِ موجودی ── */
+  .dash-grid { display: grid; grid-template-columns: 280px 1fr 280px; gap: 18px; align-items: start; margin-bottom: 28px; }
+  @media (max-width: 1100px) { .dash-grid { grid-template-columns: 1fr; } }
+  .dash-card {
+    background: var(--surface); backdrop-filter: var(--glass); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+  }
+  .dash-card-title { font-size: .85rem; font-weight: 700; margin-bottom: 14px; }
+  .dash-big-num { font-size: 1.7rem; font-weight: 800; display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }
+  .dash-big-num .u { font-size: .74rem; color: var(--text-muted); font-weight: 600; }
+  .dash-growth { display: inline-flex; align-items: center; gap: 4px; font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-bottom: 14px; }
+  .dash-growth.up { color: var(--success); background: rgba(45,212,191,.12); }
+  .dash-growth.down { color: var(--danger); background: rgba(255,77,109,.12); }
+  .dash-mini-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 14px; }
+  .dash-mini-row { display: flex; align-items: center; gap: 8px; padding: 7px 4px; border-radius: 10px; font-size: .76rem; }
+  .dash-mini-row:hover { background: var(--surface-hover); }
+  .dash-mini-row .name { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dash-mini-row .val { color: var(--text-muted); font-variant-numeric: tabular-nums; font-size: .72rem; }
+  .dash-cta {
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px; border-radius: 12px;
+    border: 1px solid var(--border); background: var(--surface-hover); color: var(--text); font-size: .8rem; font-weight: 700;
+    cursor: pointer; transition: border-color .15s ease, transform .15s ease;
+  }
+  .dash-cta:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+  .dash-cta svg { width: 14px; height: 14px; }
+  .dash-dual { display: flex; gap: 24px; margin-bottom: 16px; }
+  .dash-dual .n { font-size: 1.35rem; font-weight: 800; }
+  .dash-dual .l { font-size: .68rem; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+  .dash-inline-stat { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--border); font-size: .8rem; }
+  .dash-inline-stat .l { color: var(--text-muted); }
+  .dash-inline-stat .v { font-weight: 800; font-variant-numeric: tabular-nums; }
 
   /* ── Table ── */
   .table-wrap {
@@ -406,7 +418,6 @@
     .main { margin-right: 0; padding: 16px; }
     .global-topbar { display: none; } /* .mobile-topbar موجود همین نقش را روی موبایل بازی می‌کند */
     .form-row { grid-template-columns: 1fr; }
-    .stats-grid { grid-template-columns: 1fr 1fr; }
 
     /* مودال‌ها روی موبایل تقریباً تمام‌صفحه‌اند تا اسکرول‌شدنِ محتوا هیچ‌وقت
        دکمه‌های پایین (ذخیره/انصراف) را از دید خارج نکند */
@@ -585,64 +596,80 @@
         <h2>داشبورد</h2>
         <button class="btn btn-secondary btn-sm" onclick="loadDashboard()"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg> بروزرسانی</button>
       </div>
-      <div class="stats-grid" id="stats-grid">
-        <div class="stat-card accent"><div class="stat-label">درآمدِ امروز</div><div class="stat-value" id="s-revenue-today">-</div><div class="stat-sub">تومان</div></div>
-        <div class="stat-card success"><div class="stat-label">موجودیِ کلِ نمایندگان</div><div class="stat-value" id="s-balance-total">-</div><div class="stat-sub">تومان</div></div>
-        <div class="stat-card"><div class="stat-label">سرورهایِ فعال</div><div class="stat-value" id="s-servers-active">-</div></div>
-        <div class="stat-card warning"><div class="stat-label">نرخِ فروش</div><div class="stat-value" id="s-sales-rate">-</div><div class="stat-sub">کانفیگ/ساعتِ اخیر</div></div>
-      </div>
+      <div class="dash-grid">
+        <!-- کارتِ درآمد -->
+        <div class="dash-card">
+          <div class="dash-card-title">درآمدِ امروز</div>
+          <div class="dash-big-num"><span id="s-revenue-today">-</span><span class="u">تومان</span></div>
+          <span class="dash-growth" id="dl-growth" style="display:none"></span>
+          <svg id="revenue-chart" viewBox="0 0 600 140" preserveAspectRatio="none" style="width:100%;height:80px;display:block;margin-bottom:14px"></svg>
+          <div class="dash-card-title" style="margin-bottom:8px">نمایندگانِ اخیر</div>
+          <div class="dash-mini-list" id="dl-top-resellers"></div>
+          <button class="dash-cta" onclick="document.querySelector('.nav-item[onclick*=&quot;resellers&quot;]').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9" r="2.5"/><path d="M15 3.13a4 4 0 0 1 0 7.75"/></svg>
+            مشاهدهٔ همهٔ نمایندگان
+          </button>
+        </div>
 
-      <div class="table-wrap" style="padding:20px;margin-bottom:20px">
-        <div class="table-header" style="margin-bottom:14px"><h3 id="hub-title">وضعیتِ زندهٔ سرورها</h3></div>
-        <div class="srv-hub">
-          <!-- فن = سوییچِ حالتِ هاب، نه عملیاتِ ثابت -->
-          <div class="srv-fan">
-            <button class="srv-fan-btn" id="hub-mode-clients" onclick="switchHubMode('clients')" title="حالتِ کاربران">
-              <svg viewBox="0 0 24 24" style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9" r="2.5"/></svg>
-            </button>
-            <button class="srv-fan-btn primary" id="hub-mode-servers" onclick="switchHubMode('servers')" title="حالتِ سرورها">
-              <svg viewBox="0 0 24 24" style="width:19px;height:19px" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z"/></svg>
-            </button>
-            <button class="srv-fan-btn" id="hub-mode-resellers" onclick="switchHubMode('resellers')" title="حالتِ نمایندگان">
-              <svg viewBox="0 0 24 24" style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
-            </button>
-          </div>
-          <div class="srv-orbit" id="srv-orbit">
-            <div class="srv-dial-ring-outer"></div>
-            <div class="srv-dial" id="srv-dial" onclick="hubDialClick()">
-              <div class="srv-dial-center">
-                <div class="srv-dial-name" id="srv-dial-name">—</div>
-                <div class="srv-dial-pct" id="srv-dial-pct">—</div>
-                <div class="srv-dial-meta" id="srv-dial-meta"></div>
+        <!-- هابِ چندحالته -->
+        <div class="dash-card" style="text-align:center">
+          <h3 id="hub-title" style="font-size:.95rem;margin-bottom:6px">وضعیتِ زندهٔ سرورها</h3>
+          <div class="srv-hub">
+            <!-- فن = سوییچِ حالتِ هاب، نه عملیاتِ ثابت -->
+            <div class="srv-fan">
+              <button class="srv-fan-btn" id="hub-mode-clients" onclick="switchHubMode('clients')" title="حالتِ کاربران">
+                <svg viewBox="0 0 24 24" style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9" r="2.5"/></svg>
+              </button>
+              <button class="srv-fan-btn primary" id="hub-mode-servers" onclick="switchHubMode('servers')" title="حالتِ سرورها">
+                <svg viewBox="0 0 24 24" style="width:19px;height:19px" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z"/></svg>
+              </button>
+              <button class="srv-fan-btn" id="hub-mode-resellers" onclick="switchHubMode('resellers')" title="حالتِ نمایندگان">
+                <svg viewBox="0 0 24 24" style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+              </button>
+            </div>
+            <div class="srv-orbit" id="srv-orbit">
+              <div class="srv-dial-ring-outer"></div>
+              <div class="srv-dial" id="srv-dial" onclick="hubDialClick()">
+                <svg class="srv-dial-fillring" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="3" stroke-linecap="round" pathLength="100"/>
+                  <circle id="srv-dial-arc" cx="50" cy="50" r="46" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dasharray .4s ease"/>
+                </svg>
+                <div class="srv-dial-center">
+                  <div class="srv-dial-name" id="srv-dial-name">—</div>
+                  <div class="srv-dial-pct" id="srv-dial-pct">—</div>
+                  <div class="srv-dial-meta" id="srv-dial-meta"></div>
+                </div>
               </div>
             </div>
+            <div id="hub-pager" style="display:none;align-items:center;gap:14px">
+              <button class="srv-fan-btn" style="width:36px;height:36px;border-radius:10px" onclick="hubPage(-1)">
+                <svg viewBox="0 0 24 24" style="width:15px;height:15px" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+              </button>
+              <span id="hub-pager-label" style="font-size:.76rem;color:var(--text-muted)"></span>
+              <button class="srv-fan-btn" style="width:36px;height:36px;border-radius:10px" onclick="hubPage(1)">
+                <svg viewBox="0 0 24 24" style="width:15px;height:15px" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+              </button>
+            </div>
           </div>
-          <div id="hub-pager" style="display:none;align-items:center;gap:14px">
-            <button class="srv-fan-btn" style="width:36px;height:36px;border-radius:10px" onclick="hubPage(-1)">
-              <svg viewBox="0 0 24 24" style="width:15px;height:15px" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-            </button>
-            <span id="hub-pager-label" style="font-size:.76rem;color:var(--text-muted)"></span>
-            <button class="srv-fan-btn" style="width:36px;height:36px;border-radius:10px" onclick="hubPage(1)">
-              <svg viewBox="0 0 24 24" style="width:15px;height:15px" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-            </button>
-          </div>
+          <p style="color:var(--text-dim);font-size:.75rem;margin-top:10px" id="hub-hint">
+            رویِ هرکدام کلیک کن تا انتخاب شود، رویِ دایرهٔ وسط کلیک کن تا بازش کنی. دایرهٔ خاکستری = هنوز اسکریپتِ مانیتورینگ ندارد.
+          </p>
         </div>
-        <p style="color:var(--text-dim);font-size:.75rem;margin-top:10px;text-align:center" id="hub-hint">
-          رویِ هرکدام کلیک کن تا انتخاب شود، رویِ دایرهٔ وسط کلیک کن تا بازش کنی. دایرهٔ خاکستری = هنوز اسکریپتِ مانیتورینگ ندارد.
-        </p>
-      </div>
 
-      <div class="table-wrap" style="padding:20px;margin-bottom:20px">
-        <div class="table-header" style="margin-bottom:6px"><h3>روندِ درآمد (۷ روزِ اخیر)</h3></div>
-        <svg id="revenue-chart" viewBox="0 0 600 140" preserveAspectRatio="none" style="width:100%;height:140px;display:block"></svg>
-      </div>
-
-      <div class="table-wrap">
-        <div class="table-header"><h3>آخرین نمایندگان</h3></div>
-        <table>
-          <thead><tr><th>نماینده</th><th>کاربران</th><th>مصرف</th><th>موجودی</th></tr></thead>
-          <tbody id="recent-resellers"></tbody>
-        </table>
+        <!-- کارتِ موجودی و سرورها -->
+        <div class="dash-card">
+          <div class="dash-card-title">موجودی و سرورها</div>
+          <div class="dash-dual">
+            <div><div class="n" id="s-balance-total">-</div><div class="l">موجودیِ کلِ نمایندگان (ت)</div></div>
+            <div><div class="n" id="s-servers-active">-</div><div class="l">سرورهایِ فعال</div></div>
+          </div>
+          <div class="dash-inline-stat"><span class="l">نرخِ فروش (کانفیگ/ساعتِ اخیر)</span><span class="v" id="s-sales-rate">-</span></div>
+          <div class="dash-inline-stat" style="margin-bottom:16px"><span class="l">آخرین نمایندهٔ ثبت‌شده</span><span class="v" id="dl-latest-reseller">-</span></div>
+          <button class="dash-cta" onclick="document.querySelector('.nav-item[onclick*=&quot;transactions&quot;]').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+            مشاهدهٔ تراکنش‌ها
+          </button>
+        </div>
       </div>
     </div>
 
@@ -1417,15 +1444,24 @@ async function loadDashboard() {
   document.getElementById('s-servers-active').textContent = d.activeServersCount;
   document.getElementById('s-sales-rate').textContent = d.salesRateHour;
 
-  const tbody = document.getElementById('recent-resellers');
-  tbody.innerHTML = (d.recentActivity || []).map(r => `
-    <tr>
-      <td><strong>${r.name}</strong><br><small style="color:var(--text-muted)">${r.username}</small></td>
-      <td>${r.current_clients}</td>
-      <td>${fmt(r.traffic_used_gb)}</td>
-      <td>${(r.balance || 0).toLocaleString()} تومان</td>
-    </tr>
-  `).join('');
+  const recent = d.recentActivity || [];
+  document.getElementById('dl-latest-reseller').textContent = recent[0] ? recent[0].name : '—';
+  document.getElementById('dl-top-resellers').innerHTML = recent.slice(0, 3).map(r =>
+    '<div class="dash-mini-row"><span class="name">' + r.name + '</span><span class="val">' + (r.balance || 0).toLocaleString() + ' ت</span></div>'
+  ).join('') || '<div class="dash-mini-row"><span class="name" style="color:var(--text-muted)">نماینده‌ای نیست</span></div>';
+
+  const trend = d.revenueTrend || [];
+  const growthEl = document.getElementById('dl-growth');
+  if (trend.length > 1) {
+    const todayAmt = trend[trend.length - 1].amount;
+    const prevAvg = trend.slice(0, -1).reduce((s, t) => s + t.amount, 0) / (trend.length - 1);
+    if (prevAvg > 0) {
+      const pct = Math.round(((todayAmt - prevAvg) / prevAvg) * 100);
+      growthEl.style.display = 'inline-flex';
+      growthEl.className = 'dash-growth ' + (pct >= 0 ? 'up' : 'down');
+      growthEl.textContent = (pct >= 0 ? '+' : '') + pct + '٪ نسبتِ امروز به میانگینِ هفته';
+    } else { growthEl.style.display = 'none'; }
+  } else { growthEl.style.display = 'none'; }
 
   _hubData.servers = d.servers || [];
   _hubLoaded.servers = true;
@@ -1550,6 +1586,7 @@ function selectHubItem(i) {
   const st = hubItemStatus(_hubMode, item);
   document.getElementById('srv-dial-name').textContent = hubItemName(_hubMode, item);
   document.getElementById('srv-dial-pct').textContent = st.label;
+  document.getElementById('srv-dial-arc').setAttribute('stroke-dasharray', (st.stale ? 0 : st.pct) + ' 100');
   const metaEl = document.getElementById('srv-dial-meta');
   if (_hubMode === 'servers') {
     const memPct = (!st.stale && item.status_mem_total_mb) ? Math.round((item.status_mem_used_mb / item.status_mem_total_mb) * 100) : null;
