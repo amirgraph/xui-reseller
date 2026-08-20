@@ -749,6 +749,68 @@ read -rp "برای بستن Enter بزن…" _
   res.send(script);
 });
 
+// خودنصبِ مانیتورینگِ سرور: این اسکریپت رویِ خودِ سرور (با SSH) اجرا می‌شود
+// نه رویِ کامپیوترِ ادمین — بر خلافِ اسکنر. کارش: نوشتنِ خودش در
+// /usr/local/bin، گذاشتنِ کرانِ هر ۱ دقیقه، و اجرای فوری. به APIِ داخلیِ
+// x-ui (که کوکی/CSRF می‌خواهد و مستندنشده است) وابسته نیست — CPU/RAM/آپ‌تایم
+// را مستقیم از خودِ لینوکس (/proc) می‌خواند.
+router.get('/servers/:id/status-installer', adminAuth, (req, res) => {
+  const row = getDB().prepare('SELECT * FROM servers WHERE id=?').get(req.params.id);
+  if (!row) return res.status(404).send('not found');
+  const panelBase = (process.env.SUB_BASE_URL || 'http://localhost:3000/sub').replace(/\/sub.*$/, '');
+  const applyUrl = panelBase + '/sub/apply-status';
+
+  // مقادیرِ واقعی (server_id/token/url) همین‌جا در Node جایگزین می‌شوند —
+  // نه با sed بعدی — تا کاراکترهای خاصِ احتمالی در توکن مسئله‌ساز نشوند.
+  const script = `#!/usr/bin/env bash
+# AMIR PANEL - Server Status Reporter - ${row.name}
+# رویِ خودِ این سرور اجرا شود (با SSH)، نه کامپیوترِ ادمین.
+set -uo pipefail
+BIN=/usr/local/bin/amirpanel-status.sh
+
+cat > "$BIN" <<'REPORTER'
+#!/usr/bin/env bash
+set -uo pipefail
+SERVER_ID=${row.id}
+TOKEN='${row.scan_token}'
+APPLY_URL='${applyUrl}'
+
+# CPU٪: دو نمونه‌ی /proc/stat با فاصله‌ی ۱ ثانیه
+read -r _ u1 n1 s1 i1 w1 _ < /proc/stat
+sleep 1
+read -r _ u2 n2 s2 i2 w2 _ < /proc/stat
+IDLE1=$((i1+w1)); IDLE2=$((i2+w2))
+TOTAL1=$((u1+n1+s1+i1+w1)); TOTAL2=$((u2+n2+s2+i2+w2))
+DT=$((TOTAL2-TOTAL1)); DI=$((IDLE2-IDLE1))
+CPU=0
+[ "$DT" -gt 0 ] && CPU=$(awk -v dt="$DT" -v di="$DI" 'BEGIN{printf "%.1f", (dt-di)*100/dt}')
+
+# RAM از /proc/meminfo (مگابایت)
+MEMTOTAL_KB=$(awk '/^MemTotal:/{print $2}' /proc/meminfo)
+MEMAVAIL_KB=$(awk '/^MemAvailable:/{print $2}' /proc/meminfo)
+MEMTOTAL_MB=$(( MEMTOTAL_KB/1024 ))
+MEMUSED_MB=$(( (MEMTOTAL_KB-MEMAVAIL_KB)/1024 ))
+
+# آپ‌تایمِ سیستم (ثانیه)
+UPTIME_SEC=$(awk '{print int($1)}' /proc/uptime)
+
+# آیا x-ui/xray بالاست؟
+XRAY_UP=false
+systemctl is-active --quiet x-ui 2>/dev/null && XRAY_UP=true
+
+curl -s --max-time 10 -X POST "$APPLY_URL" -H 'Content-Type: application/json' \\
+  -d "{\\"server_id\\":$SERVER_ID,\\"token\\":\\"$TOKEN\\",\\"cpu_pct\\":$CPU,\\"mem_used_mb\\":$MEMUSED_MB,\\"mem_total_mb\\":$MEMTOTAL_MB,\\"xray_active\\":$XRAY_UP,\\"uptime_sec\\":$UPTIME_SEC}" >/dev/null 2>&1
+REPORTER
+chmod +x "$BIN"
+( crontab -l 2>/dev/null | grep -v amirpanel-status.sh; echo "* * * * * $BIN" ) | crontab -
+"$BIN"
+echo "✅ مانیتورینگِ سرور نصب و کرانِ هر ۱ دقیقه فعال شد."
+`;
+  res.setHeader('Content-Type', 'application/x-sh');
+  res.setHeader('Content-Disposition', `attachment; filename="AmirPanel-Status-${row.id}.sh"`);
+  res.send(script);
+});
+
 // ─── بررسیِ نسخه و آپدیت ───────────────────────────────────────
 // پنل نسخهٔ محلی (package.json) را با آخرین نسخهٔ ریپو مقایسه می‌کند و اگر
 // جدیدتری بود، فرانت بنرِ «آپدیت موجود است» نشان می‌دهد. آپدیتِ واقعی با

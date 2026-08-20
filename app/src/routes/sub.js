@@ -156,6 +156,25 @@ router.post('/apply-cleanip', (req, res) => {
   res.json({ success: true, applied: clean });
 });
 
+// اسکریپتِ مانیتورینگِ روی خودِ سرور (نصب‌شده با دکمهٔ «نصبِ مانیتورینگ» در
+// پنلِ سرورها) هر دقیقه CPU/RAM/آپ‌تایم را این‌جا push می‌کند — همان الگویِ
+// توکن‌محورِ apply-cleanip، بدونِ نیاز به APIِ داخلیِ x-ui.
+router.post('/apply-status', (req, res) => {
+  const { server_id, token, cpu_pct, mem_used_mb, mem_total_mb, xray_active, uptime_sec } = req.body || {};
+  if (!server_id || !token) return res.status(400).json({ success: false, message: 'params' });
+  const row = getDB().prepare('SELECT * FROM servers WHERE id=?').get(server_id);
+  if (!row || row.scan_token !== token) return res.status(403).json({ success: false, message: 'invalid token' });
+  getDB().prepare(`
+    UPDATE servers SET status_cpu_pct=?, status_mem_used_mb=?, status_mem_total_mb=?,
+      status_xray_active=?, status_uptime_sec=?, status_updated_at=CURRENT_TIMESTAMP
+    WHERE id=?
+  `).run(
+    Number(cpu_pct) || 0, Number(mem_used_mb) || 0, Number(mem_total_mb) || 0,
+    xray_active ? 1 : 0, Number(uptime_sec) || 0, server_id
+  );
+  res.json({ success: true });
+});
+
 // اپ‌های VPN وقتی ساب رو fetch می‌کنن معمولاً UA کوتاه و مشخص خودشون رو می‌فرستن
 // (v2rayNG/…، Hiddify/…، Shadowrocket/…، sing-box، Clash و…)، برخلاف مرورگر که
 // UA کامل Chrome/Safari/Firefox داره. اگه UA مرورگر بود، به‌جای متن خامِ

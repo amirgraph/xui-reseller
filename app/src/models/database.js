@@ -364,6 +364,16 @@ async function initDB() {
   // این، یا باید هر ساعت اسپم می‌شد یا دیگر هیچ‌وقت یادآوریِ دوم نمی‌رفت.
   ensureColumn('resellers', 'renewal_reminded_for', "TEXT");
 
+  // وضعیتِ زنده‌ی سرور (CPU/RAM/آپ‌تایم) — خودِ سرور (اسکریپتِ نصب‌شده با دکمهٔ
+  // «نصبِ مانیتورینگ» در پنلِ سرورها) هر دقیقه با POST /sub/apply-status پر
+  // می‌کند؛ ما به APIِ داخلیِ x-ui (کوکی/CSRF‌محور) وابسته نیستیم.
+  ensureColumn('servers', 'status_cpu_pct', "REAL");
+  ensureColumn('servers', 'status_mem_used_mb', "REAL");
+  ensureColumn('servers', 'status_mem_total_mb', "REAL");
+  ensureColumn('servers', 'status_xray_active', "INTEGER");
+  ensureColumn('servers', 'status_uptime_sec', "INTEGER");
+  ensureColumn('servers', 'status_updated_at', "DATETIME");
+
   console.log('✅ Database initialized');
 }
 

@@ -619,7 +619,7 @@
 
       <div class="table-wrap">
         <table>
-          <thead><tr><th>#</th><th>کشور</th><th>دامنه‌ها</th><th>IP‌های تمیز</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+          <thead><tr><th>#</th><th>کشور</th><th>دامنه‌ها</th><th>IP‌های تمیز</th><th>منابعِ سرور</th><th>وضعیت</th><th>عملیات</th></tr></thead>
           <tbody id="servers-tbody"></tbody>
         </table>
       </div>
@@ -1279,12 +1279,26 @@ async function loadServers() {
   const r = await get('/admin/servers'); if (!r || !r.success) return;
   _servers = r.data;
   const tb = document.getElementById('servers-tbody');
-  if (!r.data.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:24px">سروری نیست — «افزودن سرور» را بزن</td></tr>'; return; }
+  if (!r.data.length) { tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-dim);padding:24px">سروری نیست — «افزودن سرور» را بزن</td></tr>'; return; }
   tb.innerHTML = r.data.map(function (s) {
     var doms = (s.domains || '').split(',').filter(Boolean).length;
     var ips = s.clean_ips ? '<span style="direction:ltr;font-size:.7rem">' + s.clean_ips + '</span>' : '<span style="color:var(--text-dim)">—</span>';
-    return '<tr><td>' + s.id + '</td><td>' + (s.flag || '') + ' ' + s.name + '</td><td>' + doms + ' دامنه</td><td>' + ips + '</td><td><span class="dot ' + (s.active ? 'on' : 'off') + '"></span></td>' +
+    var res;
+    var ageMin = s.status_updated_at ? (Date.now() - new Date(s.status_updated_at + 'Z').getTime()) / 60000 : Infinity;
+    if (!s.status_updated_at || ageMin > 5) {
+      res = '<span style="color:var(--text-dim);font-size:.72rem">' + (s.status_updated_at ? 'قطعِ گزارش' : 'نصب‌نشده') + '</span>';
+    } else {
+      var cpu = Number(s.status_cpu_pct || 0).toFixed(0);
+      var memPct = s.status_mem_total_mb ? Math.round((s.status_mem_used_mb / s.status_mem_total_mb) * 100) : 0;
+      var upH = Math.floor((s.status_uptime_sec || 0) / 3600);
+      res = '<div style="font-size:.72rem;line-height:1.8;direction:ltr;text-align:right">' +
+        'CPU ' + cpu + '٪ · RAM ' + memPct + '٪ · ' + upH + 'h' +
+        (s.status_xray_active ? ' · <span style="color:var(--success)">xray</span>' : ' · <span style="color:var(--danger)">xray✗</span>') +
+        '</div>';
+    }
+    return '<tr><td>' + s.id + '</td><td>' + (s.flag || '') + ' ' + s.name + '</td><td>' + doms + ' دامنه</td><td>' + ips + '</td><td>' + res + '</td><td><span class="dot ' + (s.active ? 'on' : 'off') + '"></span></td>' +
       '<td><div style="display:flex;gap:6px">' +
+      '<button class="icon-btn" title="نصبِ مانیتورینگِ سرور (روی خودِ سرور با SSH اجرا شود)" onclick="downloadStatusInstaller(' + s.id + ')"><svg viewBox="0 0 24 24"><path d="M4 19h16M4 15h10M4 11h16M4 7h10"/></svg></button>' +
       '<button class="icon-btn" title="اسکنرِ مک/لینوکس" onclick="downloadScanner(' + s.id + ',&quot;unix&quot;)"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></button>' +
       '<button class="icon-btn" title="اسکنرِ ویندوز" onclick="downloadScanner(' + s.id + ',&quot;win&quot;)"><svg viewBox="0 0 24 24"><path d="M3 5.5 10 4.5v7H3zM12 4.2 21 3v8h-9zM3 12.5h7v7L3 18.5zM12 12.5h9v8l-9-1.2z"/></svg></button>' +
       '<button class="icon-btn" title="ویرایش" onclick="editServer(' + s.id + ')"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>' +
@@ -1314,6 +1328,18 @@ async function downloadScanner(id, os) {
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click(); a.remove();
   if (os === 'win') alert('دانلود شد: ' + fname + '\n\nروی ویندوز — نتِ ایران، VPN خاموش:\nراست‌کلیک روی فایل → Run with PowerShell\nیا در PowerShell:\n  powershell -ExecutionPolicy Bypass -File "' + fname + '"');
   else alert('دانلود شد: ' + fname + '\n\nروی مک/لینوکس — نتِ ایران، VPN خاموش — در ترمینال بزن:\n  bash ~/Downloads/' + fname);
+}
+
+// بر خلافِ اسکنر (که روی کامپیوترِ ادمین در ایران اجرا می‌شود)، این اسکریپت
+// باید رویِ خودِ سرور (با SSH) اجرا شود — چون CPU/RAM را از خودِ آن سرور می‌خواند.
+async function downloadStatusInstaller(id) {
+  var r = await fetch(API + '/admin/servers/' + id + '/status-installer', { headers: { Authorization: 'Bearer ' + token } });
+  if (!r.ok) { toast('خطا در دانلود', 'error'); return; }
+  var txt = await r.text();
+  var fname = 'AmirPanel-Status-' + id + '.sh';
+  var blob = new Blob([txt], { type: 'text/plain' });
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click(); a.remove();
+  alert('دانلود شد: ' + fname + '\n\nاین یکی رویِ خودِ سرور اجرا می‌شود (نه کامپیوترِ خودت):\n  scp ' + fname + ' root@<IP-سرور>:/root/\n  ssh root@<IP-سرور> "bash /root/' + fname + '"\n\nیک‌بار کافی‌ست — خودش کرانِ هر ۱ دقیقه را می‌سازد.');
 }
 
 async function loadBotStatus() {
