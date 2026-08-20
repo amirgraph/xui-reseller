@@ -260,7 +260,9 @@
      تا حدودی بیرون می‌زنند (شعاع + گپ + متن) — مارجینِ پایین همین را جبران
      می‌کند تا با متنِ راهنمای زیرِ هاب تصادم نکند. */
   .srv-orbit { position: relative; width: 100%; max-width: 300px; aspect-ratio: 1; margin: 15% auto 44px; }
-  .srv-dial-ring-outer { position: absolute; inset: 0; border-radius: 50%; border: 1.5px dashed var(--border); }
+  .srv-dial-ring-outer { position: absolute; inset: 0; border-radius: 50%; border: 1.5px dashed var(--border); animation: srv-orbit-spin 60s linear infinite; }
+  @keyframes srv-orbit-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .srv-dial-ring-outer { animation: none; } }
   .srv-dial {
     /* اندازه‌اش دقیقاً هم‌مقیاسِ منحنیِ داخلیِ کمان (تویِ همون ۰-۱۰۰ ویوباکس) نگه داشته می‌شود —
        اگر عوضش کنی، لبهٔ کمان دیگر با لبهٔ دایره یکی نمی‌شود و می‌رود توی دایره. */
