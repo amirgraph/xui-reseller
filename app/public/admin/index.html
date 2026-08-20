@@ -151,6 +151,20 @@
   .stat-card.success .stat-value { color: var(--success); }
   .stat-card.warning .stat-value { color: var(--warning); }
 
+  /* ── گیجِ دایره‌ایِ وضعیتِ سرور (CPU٪ واقعی) ── */
+  .srv-gauge { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .srv-ring { --pct: 0; width: 68px; height: 68px; border-radius: 50%; position: relative;
+    background: conic-gradient(var(--accent) calc(var(--pct)*1%), var(--border) 0); }
+  .srv-ring::before { content: ''; position: absolute; inset: 6px; border-radius: 50%; background: var(--bg); }
+  .srv-ring.stale { background: var(--border); }
+  .srv-pct { position: relative; z-index: 1; font-size: .8rem; font-weight: 700; display: flex; align-items: center;
+    justify-content: center; width: 100%; height: 100%; }
+  .srv-name { font-size: .72rem; color: var(--text-muted); text-align: center; display: flex; align-items: center; gap: 4px; }
+  .srv-dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+  .srv-dot.on { background: var(--success); }
+  .srv-dot.off { background: var(--danger); }
+  .srv-dot.stale { background: var(--text-muted); }
+
   /* ── Table ── */
   .table-wrap {
     background: var(--surface);
@@ -487,11 +501,25 @@
         <button class="btn btn-secondary btn-sm" onclick="loadDashboard()"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg> بروزرسانی</button>
       </div>
       <div class="stats-grid" id="stats-grid">
-        <div class="stat-card accent"><div class="stat-label">نمایندگان کل</div><div class="stat-value" id="s-resellers">-</div></div>
-        <div class="stat-card success"><div class="stat-label">نمایندگان فعال</div><div class="stat-value" id="s-active-r">-</div></div>
-        <div class="stat-card"><div class="stat-label">کاربران کل</div><div class="stat-value" id="s-clients">-</div></div>
-        <div class="stat-card warning"><div class="stat-label">ترافیک مصرفی</div><div class="stat-value" id="s-traffic">-</div><div class="stat-sub">گیگابایت</div></div>
+        <div class="stat-card accent"><div class="stat-label">درآمدِ امروز</div><div class="stat-value" id="s-revenue-today">-</div><div class="stat-sub">تومان</div></div>
+        <div class="stat-card success"><div class="stat-label">موجودیِ کلِ نمایندگان</div><div class="stat-value" id="s-balance-total">-</div><div class="stat-sub">تومان</div></div>
+        <div class="stat-card"><div class="stat-label">سرورهایِ فعال</div><div class="stat-value" id="s-servers-active">-</div></div>
+        <div class="stat-card warning"><div class="stat-label">نرخِ فروش</div><div class="stat-value" id="s-sales-rate">-</div><div class="stat-sub">کانفیگ/ساعتِ اخیر</div></div>
       </div>
+
+      <div class="table-wrap" style="padding:20px;margin-bottom:20px">
+        <div class="table-header" style="margin-bottom:14px"><h3>وضعیتِ زندهٔ سرورها</h3></div>
+        <div id="server-gauges" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:16px"></div>
+        <p style="color:var(--text-dim);font-size:.75rem;margin-top:14px">
+          سروری که دایره‌اش خاکستری است هنوز اسکریپتِ مانیتورینگ ندارد — از «سرورها» دانلود و رویِ خودِ آن سرور با SSH اجرا کن.
+        </p>
+      </div>
+
+      <div class="table-wrap" style="padding:20px;margin-bottom:20px">
+        <div class="table-header" style="margin-bottom:6px"><h3>روندِ درآمد (۷ روزِ اخیر)</h3></div>
+        <svg id="revenue-chart" viewBox="0 0 600 140" preserveAspectRatio="none" style="width:100%;height:140px;display:block"></svg>
+      </div>
+
       <div class="table-wrap">
         <div class="table-header"><h3>آخرین نمایندگان</h3></div>
         <table>
@@ -1222,10 +1250,11 @@ async function loadDashboard() {
   const r = await get('/admin/stats');
   if (!r.success) return;
   const d = r.data;
-  document.getElementById('s-resellers').textContent = d.totalResellers;
-  document.getElementById('s-active-r').textContent = d.activeResellers;
-  document.getElementById('s-clients').textContent = d.totalClients;
-  document.getElementById('s-traffic').textContent = d.totalTraffic?.toFixed(1) || '0';
+  document.getElementById('s-revenue-today').textContent = (d.revenueToday || 0).toLocaleString();
+  document.getElementById('s-balance-total').textContent = Math.round(d.resellerBalanceTotal || 0).toLocaleString();
+  document.getElementById('s-servers-active').textContent = d.activeServersCount;
+  document.getElementById('s-sales-rate').textContent = d.salesRateHour;
+
   const tbody = document.getElementById('recent-resellers');
   tbody.innerHTML = (d.recentActivity || []).map(r => `
     <tr>
@@ -1235,6 +1264,56 @@ async function loadDashboard() {
       <td>${(r.balance || 0).toLocaleString()} تومان</td>
     </tr>
   `).join('');
+
+  renderServerGauges(d.servers || []);
+  renderRevenueChart(d.revenueTrend || []);
+}
+
+// گیج‌هایِ سرور — CPU٪ واقعی از status_cpu_pct؛ اگر گزارشِ سرور بیش از ۵
+// دقیقه قدیمی باشد (یا اصلاً گزارش نداده) خاکستری/«نصب‌نشده» نشان می‌دهیم،
+// عددِ نادرست بهتر از هیچ‌عددی نیست.
+function renderServerGauges(servers) {
+  const wrap = document.getElementById('server-gauges');
+  if (!servers.length) { wrap.innerHTML = '<p style="color:var(--text-dim);font-size:.82rem">سروری فعال نیست.</p>'; return; }
+  wrap.innerHTML = servers.map(function (s) {
+    const ageMin = s.status_updated_at ? (Date.now() - new Date(s.status_updated_at + 'Z').getTime()) / 60000 : Infinity;
+    const stale = !s.status_updated_at || ageMin > 5;
+    const pct = stale ? 0 : Math.round(s.status_cpu_pct || 0);
+    const dotClass = stale ? 'stale' : (s.status_xray_active ? 'on' : 'off');
+    const label = stale ? (s.status_updated_at ? 'قطع' : 'نصب‌نشده') : pct + '٪';
+    return '<div class="srv-gauge">' +
+      '<div class="srv-ring' + (stale ? ' stale' : '') + '" style="--pct:' + pct + '"><span class="srv-pct">' + label + '</span></div>' +
+      '<div class="srv-name"><span class="srv-dot ' + dotClass + '"></span>' + (s.flag || '') + ' ' + s.name + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+// نمودارِ SVGِ ساده — یک خطِ توپُر رویِ ۷ نقطه، بدونِ کتابخانه‌ی خارجی
+function renderRevenueChart(trend) {
+  const svg = document.getElementById('revenue-chart');
+  if (!trend.length) { svg.innerHTML = ''; return; }
+  const W = 600, H = 140, pad = 10;
+  const max = Math.max.apply(null, trend.map(function (t) { return t.amount; })) || 1;
+  const stepX = (W - pad * 2) / (trend.length - 1 || 1);
+  const pts = trend.map(function (t, i) {
+    const x = pad + i * stepX;
+    const y = H - pad - (t.amount / max) * (H - pad * 2);
+    return [x, y];
+  });
+  const linePath = pts.map(function (p, i) { return (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
+  const areaPath = linePath + ' L' + pts[pts.length - 1][0].toFixed(1) + ',' + (H - pad) + ' L' + pts[0][0].toFixed(1) + ',' + (H - pad) + ' Z';
+  const dayLabel = function (d) { return new Date(d).toLocaleDateString('fa-IR', { weekday: 'short' }); };
+  svg.innerHTML =
+    '<defs><linearGradient id="revFade" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0" stop-color="var(--accent)" stop-opacity="0.3"/>' +
+    '<stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>' +
+    '<line x1="' + pad + '" y1="' + (H - pad) + '" x2="' + (W - pad) + '" y2="' + (H - pad) + '" stroke="var(--border)" stroke-width="1"/>' +
+    '<path d="' + areaPath + '" fill="url(#revFade)"/>' +
+    '<path d="' + linePath + '" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+    pts.map(function (p, i) {
+      return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3" fill="var(--accent)">' +
+        '<title>' + dayLabel(trend[i].date) + ': ' + trend[i].amount.toLocaleString() + ' ت</title></circle>';
+    }).join('');
 }
 
 // ── Resellers ─────────────────────────────────

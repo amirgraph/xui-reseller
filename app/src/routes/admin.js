@@ -216,9 +216,45 @@ router.get('/stats', adminAuth, (req, res) => {
     FROM resellers r ORDER BY r.created_at DESC LIMIT 5
   `).all();
 
+  // درآمد = شارژهایی که واقعاً وارد سیستم شده (type='credit' روی نماینده —
+  // یعنی کارت‌به‌کارتِ تأییدشده یا شارژِ ادمین)، نه هر تراکنشی؛ debit فقط
+  // مصرفِ داخلیِ نماینده از موجودیِ خودش است، درآمدِ جدید نیست.
+  const revenueToday = db.prepare(`
+    SELECT COALESCE(SUM(amount),0) t FROM transactions
+    WHERE type='credit' AND date(created_at)=date('now')
+  `).get().t;
+  const revenueWeek = db.prepare(`
+    SELECT date(created_at) d, COALESCE(SUM(amount),0) t FROM transactions
+    WHERE type='credit' AND created_at >= date('now','-6 days')
+    GROUP BY date(created_at)
+  `).all();
+  // ۷ روزِ اخیر را به‌ترتیب پر می‌کنیم — روزهایی که تراکنش نداشتند صفر بمانند
+  const revenueByDay = {};
+  revenueWeek.forEach((r) => { revenueByDay[r.d] = r.t; });
+  const revenueTrend = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+    revenueTrend.push({ date: d, amount: revenueByDay[d] || 0 });
+  }
+
+  const resellerBalanceTotal = db.prepare('SELECT COALESCE(SUM(balance),0) t FROM resellers').get().t;
+  const salesRateHour = db.prepare(`SELECT COUNT(*) c FROM clients WHERE created_at >= datetime('now','-1 hour')`).get().c;
+  const activeServersCount = db.prepare('SELECT COUNT(*) c FROM servers WHERE active=1').get().c;
+
+  // وضعیتِ زنده‌ی هر سرور (CPU/RAM/uptime) — از دیتایی که خودِ سرور با
+  // اسکریپتِ مانیتورینگ هر ۱ دقیقه push کرده، نه APIِ داخلیِ x-ui.
+  const servers = db.prepare(`
+    SELECT id, name, flag, active, status_cpu_pct, status_mem_used_mb, status_mem_total_mb,
+           status_xray_active, status_uptime_sec, status_updated_at
+    FROM servers WHERE active=1 ORDER BY sort_order, id
+  `).all();
+
   res.json({
     success: true,
-    data: { totalResellers, activeResellers, totalClients, activeClients, totalTraffic, recentActivity }
+    data: {
+      totalResellers, activeResellers, totalClients, activeClients, totalTraffic, recentActivity,
+      revenueToday, revenueTrend, resellerBalanceTotal, salesRateHour, activeServersCount, servers,
+    }
   });
 });
 
