@@ -204,6 +204,31 @@ router.get('/clients', adminAuth, (req, res) => {
 
 // ─── Dashboard Stats ─────────────────────────────────────────
 
+// اعلاناتِ واقعی: هرچیزی که status='pending' دارد و منتظرِ تصمیمِ ادمین است —
+// نه یک جدولِ notifications جدا با read/unread، همان وضعیتِ pending خودِ
+// رکورد کافی‌ست؛ وقتی ادمین رد/تأیید کند، status عوض می‌شود و خودش از لیست
+// می‌افتد.
+router.get('/notifications', adminAuth, (req, res) => {
+  const db = getDB();
+  const charges = db.prepare(`
+    SELECT cr.id, cr.amount, cr.created_at, r.name reseller_name, r.username
+    FROM charge_requests cr JOIN resellers r ON r.id = cr.reseller_id
+    WHERE cr.status='pending' ORDER BY cr.created_at DESC
+  `).all().map((c) => ({
+    kind: 'charge', id: c.id, created_at: c.created_at, page: 'charge-requests',
+    text: 'درخواستِ شارژِ ' + Number(c.amount).toLocaleString() + ' ت — ' + c.reseller_name,
+  }));
+  const orders = db.prepare(`
+    SELECT id, full_name, amount, created_at FROM panel_orders
+    WHERE status='pending' ORDER BY created_at DESC
+  `).all().map((o) => ({
+    kind: 'order', id: o.id, created_at: o.created_at, page: 'panel-orders',
+    text: 'درخواستِ پنلِ جدید — ' + o.full_name,
+  }));
+  const items = charges.concat(orders).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  res.json({ success: true, count: items.length, data: items.slice(0, 30) });
+});
+
 router.get('/stats', adminAuth, (req, res) => {
   const db = getDB();
   const totalResellers = db.prepare('SELECT COUNT(*) as c FROM resellers').get().c;

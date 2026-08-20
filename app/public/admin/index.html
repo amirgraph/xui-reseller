@@ -115,12 +115,47 @@
 
   .main {
     margin-right: 240px;
-    padding: 28px;
+    padding: 78px 28px 28px;
     min-height: 100vh;
+    position: relative;
   }
 
   .page { display: none; }
   .page.active { display: block; }
+
+  /* ── نوارِ ثابتِ بالا (رویِ همهٔ صفحه‌ها): زنگولهٔ اعلاناتِ واقعی + تنظیمات ── */
+  .global-topbar {
+    position: fixed; top: 0; left: 0; right: 240px; height: 62px; z-index: 40;
+    display: flex; align-items: center; justify-content: flex-start; gap: 8px;
+    padding: 0 24px; background: rgba(13,10,11,0.72); backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+  }
+  .gt-btn {
+    width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text-dim); display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative;
+    transition: border-color .15s, color .15s;
+  }
+  .gt-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .gt-badge {
+    position: absolute; top: -4px; left: -4px; min-width: 17px; height: 17px; border-radius: 999px;
+    background: var(--danger); color: #fff; font-size: .64rem; font-weight: 800; display: flex; align-items: center;
+    justify-content: center; padding: 0 3px; border: 2px solid var(--bg);
+  }
+  .gt-dropdown {
+    position: absolute; top: 52px; left: 0; width: 320px; max-height: 380px; overflow-y: auto;
+    background: var(--surface); backdrop-filter: var(--glass); border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: 0 20px 40px -12px rgba(0,0,0,.5); display: none; z-index: 41;
+  }
+  .gt-dropdown.open { display: block; }
+  .gt-dropdown-item {
+    display: block; padding: 12px 14px; border-bottom: 1px solid var(--border); cursor: pointer; font-size: .82rem;
+    transition: background .15s;
+  }
+  .gt-dropdown-item:last-child { border-bottom: none; }
+  .gt-dropdown-item:hover { background: var(--surface-hover); }
+  .gt-dropdown-item .t { color: var(--text-muted); font-size: .7rem; margin-top: 3px; }
+  .gt-dropdown-empty { padding: 24px; text-align: center; color: var(--text-dim); font-size: .82rem; }
+  @media (max-width: 900px) { .global-topbar { right: 0; } }
 
   /* ── Header ── */
   .page-header {
@@ -366,6 +401,7 @@
     }
     .sidebar.open { transform: translateX(0); box-shadow: -8px 0 30px rgba(0,0,0,0.5); }
     .main { margin-right: 0; padding: 16px; }
+    .global-topbar { display: none; } /* .mobile-topbar موجود همین نقش را روی موبایل بازی می‌کند */
     .form-row { grid-template-columns: 1fr; }
     .stats-grid { grid-template-columns: 1fr 1fr; }
 
@@ -518,6 +554,18 @@
   </div>
 
   <main class="main">
+    <div class="global-topbar">
+      <div style="position:relative">
+        <button class="gt-btn" onclick="toggleNotifDropdown()" title="اعلان‌ها" aria-label="اعلان‌ها">
+          <svg viewBox="0 0 24 24" style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="gt-badge" id="notif-badge" style="display:none">0</span>
+        </button>
+        <div class="gt-dropdown" id="notif-dropdown"></div>
+      </div>
+      <button class="gt-btn" onclick="document.querySelector('.nav-item[onclick*=settings]')?.click()" title="تنظیمات" aria-label="تنظیمات">
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a1.7 1.7 0 0 0 .3 1.9 2 2 0 1 1-2.8 2.8 1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6 2 2 0 1 1-4 0 1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.3 2 2 0 1 1-2.8-2.8 1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1 2 2 0 1 1 0-4A1.7 1.7 0 0 0 6.7 6a1.7 1.7 0 0 0-.3-1.9 2 2 0 1 1 2.8-2.8 1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 12.2 0a2 2 0 0 1 3.9 0 1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3 2 2 0 1 1 2.8 2.8 1.7 1.7 0 0 0-.3 1.9c.3.7.9 1.1 1.6 1.1a2 2 0 1 1 0 4c-.7 0-1.3.4-1.7 1Z"/></svg>
+      </button>
+    </div>
     <!-- Dashboard -->
     <div class="page active" id="page-dashboard">
       <!-- بنرِ آپدیت (وقتی نسخهٔ جدیدتری در ریپو باشد) -->
@@ -1183,6 +1231,8 @@ function initApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   loadDashboard();
+  loadNotifications();
+  setInterval(loadNotifications, 60000); // بجِ زنگوله فارغ از این‌که ادمین کدام صفحه است تازه بماند
 }
 
 function logout() {
@@ -1291,6 +1341,49 @@ function fmt(gb) { return typeof gb === 'number' ? gb.toFixed(1) + ' GB' : '-'; 
 function fmtDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('fa-IR'); }
 
 // ── Dashboard ─────────────────────────────────
+// اعلاناتِ واقعی — همان درخواست‌هایِ pendingِ شارژ/پنل، نه یک سیستمِ
+// خوانده‌شده/نخوانده‌یِ جدا. با کلیک، همان صفحه‌ای که خودِ ادمین از سایدبار
+// می‌رود باز می‌شود (نه یک ویوِ تازه‌ساز).
+var _notifItems = [];
+async function loadNotifications() {
+  try {
+    const r = await get('/admin/notifications');
+    if (!r || !r.success) return;
+    _notifItems = r.data || [];
+    const badge = document.getElementById('notif-badge');
+    if (r.count > 0) { badge.style.display = 'flex'; badge.textContent = r.count > 99 ? '99+' : r.count; }
+    else { badge.style.display = 'none'; }
+    if (document.getElementById('notif-dropdown').classList.contains('open')) renderNotifDropdown();
+  } catch (_) {}
+}
+function renderNotifDropdown() {
+  const el = document.getElementById('notif-dropdown');
+  if (!_notifItems.length) { el.innerHTML = '<div class="gt-dropdown-empty">اعلانِ در انتظاری نیست</div>'; return; }
+  el.innerHTML = _notifItems.map(function (n, i) {
+    return '<div class="gt-dropdown-item" onclick="notifItemClick(' + i + ')">' + n.text +
+      '<div class="t">' + new Date(n.created_at + 'Z').toLocaleString('fa-IR') + '</div></div>';
+  }).join('');
+}
+function toggleNotifDropdown() {
+  const el = document.getElementById('notif-dropdown');
+  const willOpen = !el.classList.contains('open');
+  el.classList.toggle('open', willOpen);
+  if (willOpen) renderNotifDropdown();
+}
+function notifItemClick(i) {
+  const n = _notifItems[i];
+  if (!n) return;
+  document.getElementById('notif-dropdown').classList.remove('open');
+  const navEl = document.querySelector('.nav-item[onclick*="' + n.page + '"]');
+  if (navEl) navEl.click();
+}
+document.addEventListener('click', function (e) {
+  const dd = document.getElementById('notif-dropdown');
+  if (!dd || !dd.classList.contains('open')) return;
+  if (e.target.closest('.gt-dropdown') || e.target.closest('.gt-btn')) return;
+  dd.classList.remove('open');
+});
+
 async function checkVersion() {
   try {
     const r = await get('/admin/version');
