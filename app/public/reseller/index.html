@@ -3,26 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VPN Panel</title>
+<title>امیر پنل</title>
 <link rel="manifest" href="/reseller/manifest.json">
-<meta name="theme-color" content="#7C5CFC">
+<meta name="theme-color" content="#ef6f68">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="پنل">
 <link rel="apple-touch-icon" href="/reseller/icon-192.png">
 <style>
-:root{--bg:#080810;--surface:rgba(255,255,255,0.04);--surface-hover:rgba(255,255,255,0.07);--border:rgba(255,255,255,0.08);--accent:#7C5CFC;--accent2:#5eead4;--text:#f0f0ff;--text-muted:rgba(240,240,255,0.45);--danger:#ff4d6d;--success:#2dd4bf;--warning:#fbbf24;--radius:14px;--glass:blur(20px)}
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap');
+:root{--bg:#0d0a0b;--surface:rgba(255,255,255,0.045);--surface-hover:rgba(255,255,255,0.075);--border:rgba(255,255,255,0.08);--accent:#ef6f68;--accent2:#f0847c;--text:#f7ede9;--text-muted:rgba(247,237,233,0.45);--danger:#ff4d6d;--success:#2dd4bf;--warning:#fbbf24;--radius:14px;--glass:blur(20px)}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-body::before{content:'';position:fixed;top:-20%;right:-10%;width:500px;height:500px;background:radial-gradient(circle,rgba(124,92,252,0.1) 0%,transparent 70%);pointer-events:none;z-index:0}
+body{font-family:'Vazirmatn','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+body::before{content:'';position:fixed;top:-20%;right:-10%;width:500px;height:500px;background:radial-gradient(circle,rgba(239,111,104,0.12) 0%,transparent 70%);pointer-events:none;z-index:0}
 #auth-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:100;flex-direction:column;gap:14px;padding:20px}
 .auth-card{background:rgba(255,255,255,0.05);backdrop-filter:var(--glass);border:1px solid var(--border);border-radius:24px;padding:36px 32px 28px;width:100%;max-width:380px;text-align:center}
 .auth-top-actions{display:flex;gap:10px;justify-content:center;margin-bottom:20px}
 .auth-action-btn{display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:12px;font-size:.82rem;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .2s}
 .auth-action-btn svg{width:16px;height:16px;stroke:currentColor;flex-shrink:0}
-.auth-buy-btn{background:rgba(124,92,252,0.15);border:1px solid rgba(124,92,252,0.35);color:var(--accent)}
-.auth-buy-btn:hover{background:rgba(124,92,252,0.25)}
-.brand-logo{font-size:2.6rem;margin-bottom:10px}
+.auth-buy-btn{background:rgba(239,111,104,0.15);border:1px solid rgba(239,111,104,0.35);color:var(--accent)}
+.auth-buy-btn:hover{background:rgba(239,111,104,0.25)}
+.brand-logo{font-size:2.6rem;margin-bottom:10px;width:56px;height:56px;margin-left:auto;margin-right:auto;display:flex;align-items:center;justify-content:center}
 .auth-card h1{font-size:1.35rem;margin-bottom:4px}
 .auth-card>p{color:var(--text-muted);margin-bottom:24px;font-size:.84rem}
 #app{display:none;min-height:100vh;position:relative;z-index:1}
@@ -32,8 +33,8 @@ body::before{content:'';position:fixed;top:-20%;right:-10%;width:500px;height:50
 .topbar-logo-placeholder{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#a78bfa);display:flex;align-items:center;justify-content:center;font-size:16px}
 .topbar-name{font-weight:700;font-size:.95rem}
 .topbar-right{display:flex;align-items:center;gap:8px}
-.balance-pill{background:rgba(124,92,252,0.15);border:1px solid rgba(124,92,252,0.3);border-radius:20px;padding:5px 12px;font-size:.82rem;color:var(--accent);font-weight:600;display:flex;align-items:center;gap:5px;cursor:pointer}
-.balance-pill:hover{background:rgba(124,92,252,0.25)}
+.balance-pill{background:rgba(239,111,104,0.15);border:1px solid rgba(239,111,104,0.3);border-radius:20px;padding:5px 12px;font-size:.82rem;color:var(--accent);font-weight:600;display:flex;align-items:center;gap:5px;cursor:pointer}
+.balance-pill:hover{background:rgba(239,111,104,0.25)}
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(10,10,20,0.95);backdrop-filter:var(--glass);border-top:1px solid var(--border);display:none;z-index:50}
 .bottom-nav-items{display:flex;align-items:center;justify-content:space-around;padding:8px 0 12px}
 .bn-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 12px;border-radius:10px;cursor:pointer;font-size:.64rem;color:var(--text-muted);transition:color .2s}
@@ -43,7 +44,7 @@ body::before{content:'';position:fixed;top:-20%;right:-10%;width:500px;height:50
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;color:var(--text-muted);font-size:.86rem;transition:all .2s;margin-bottom:2px}
 .nav-item svg{width:18px;height:18px;stroke:currentColor;flex-shrink:0}
 .nav-item:hover{background:var(--surface-hover);color:var(--text)}
-.nav-item.active{background:rgba(124,92,252,0.15);color:var(--accent)}
+.nav-item.active{background:rgba(239,111,104,0.15);color:var(--accent)}
 .main{margin-right:220px;padding:24px;min-height:calc(100vh - 60px)}
 .page{display:none}.page.active{display:block}
 .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:10px}
@@ -64,7 +65,7 @@ td{padding:12px 14px;font-size:.83rem;border-bottom:1px solid rgba(255,255,255,0
 tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--surface-hover)}
 input,select,textarea{width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:9px;padding:9px 12px;color:var(--text);font-size:.86rem;outline:none;transition:border-color .2s;font-family:inherit}
-input:focus,select:focus{border-color:var(--accent);background:rgba(124,92,252,0.08)}
+input:focus,select:focus{border-color:var(--accent);background:rgba(239,111,104,0.08)}
 select option{background:#1a1a2e}
 label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
 .form-group{margin-bottom:14px}
@@ -94,10 +95,10 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
 .sub-box:hover{background:rgba(255,255,255,0.07)}
 .emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-top:8px}
 .emoji-btn{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:1.3rem;cursor:pointer;transition:all .2s;text-align:center}
-.emoji-btn:hover,.emoji-btn.selected{background:rgba(124,92,252,0.2);border-color:var(--accent)}
+.emoji-btn:hover,.emoji-btn.selected{background:rgba(239,111,104,0.2);border-color:var(--accent)}
 .motion-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
 .motion-btn{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;cursor:pointer;transition:all .2s;text-align:center;font-size:.8rem}
-.motion-btn:hover,.motion-btn.selected{background:rgba(124,92,252,0.2);border-color:var(--accent)}
+.motion-btn:hover,.motion-btn.selected{background:rgba(239,111,104,0.2);border-color:var(--accent)}
 #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(20,20,40,.95);backdrop-filter:var(--glass);border:1px solid var(--border);border-radius:12px;padding:10px 22px;font-size:.85rem;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
 #toast.show{opacity:1}
 #toast.success{border-color:var(--success);color:var(--success)}
@@ -112,12 +113,12 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
 .change-pass-section{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:16px}
 .amount-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
 .amount-btn{background:var(--surface);border:2px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;text-align:center;transition:all .2s;font-size:.9rem;font-weight:600}
-.amount-btn:hover,.amount-btn.selected{border-color:var(--accent);background:rgba(124,92,252,0.15);color:var(--accent)}
-.card-display{background:rgba(124,92,252,0.08);border:1px solid rgba(124,92,252,0.25);border-radius:12px;padding:16px;margin-bottom:16px;text-align:center;cursor:pointer}
+.amount-btn:hover,.amount-btn.selected{border-color:var(--accent);background:rgba(239,111,104,0.15);color:var(--accent)}
+.card-display{background:rgba(239,111,104,0.08);border:1px solid rgba(239,111,104,0.25);border-radius:12px;padding:16px;margin-bottom:16px;text-align:center;cursor:pointer}
 .card-number{font-size:1.15rem;font-weight:700;letter-spacing:3px;direction:ltr;color:var(--accent2);margin-bottom:4px}
 .card-owner{font-size:.8rem;color:var(--text-muted)}
 .receipt-upload{border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:14px}
-.receipt-upload:hover{border-color:var(--accent);background:rgba(124,92,252,0.05)}
+.receipt-upload:hover{border-color:var(--accent);background:rgba(239,111,104,0.05)}
 .receipt-upload input{display:none}
 .receipt-preview{max-width:100%;max-height:180px;border-radius:8px;margin-top:10px;display:none}
 .charge-history-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
@@ -161,8 +162,8 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
         خرید پنل
       </button>
     </div>
-    <div class="brand-logo" id="auth-logo">🌐</div>
-    <h1 id="auth-title">VPN Panel</h1>
+    <div class="brand-logo" id="auth-logo"><img src="/assets/logo.png" alt="امیر پنل" style="width:100%;height:100%;object-fit:contain"></div>
+    <h1 id="auth-title">امیر پنل</h1>
     <p>ورود به پنل نمایندگی</p>
     <div class="form-group"><label>نام کاربری</label><input id="login-user" type="text" placeholder="username" dir="ltr" autocomplete="username"></div>
     <div class="form-group"><label>رمز عبور</label><input id="login-pass" type="password" placeholder="••••••••" dir="ltr" autocomplete="current-password"></div>
@@ -191,7 +192,7 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
       <div class="form-group"><label>نام کاربری</label><input id="np-username" placeholder="ali_panel" dir="ltr"></div>
       <div class="form-group"><label>رمز عبور</label><input id="np-password" type="password" placeholder="••••••••" dir="ltr"></div>
     </div>
-    <div id="np-cost" style="background:rgba(124,92,252,0.08);border:1px solid rgba(124,92,252,0.2);border-radius:10px;padding:11px 14px;font-size:.83rem;margin-bottom:14px;display:none"></div>
+    <div id="np-cost" style="background:rgba(239,111,104,0.08);border:1px solid rgba(239,111,104,0.2);border-radius:10px;padding:11px 14px;font-size:.83rem;margin-bottom:14px;display:none"></div>
     <p id="np-err" style="color:var(--danger);font-size:.83rem;margin-bottom:10px"></p>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-secondary" onclick="closeModal('modal-new-panel')">انصراف</button>
@@ -233,7 +234,7 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
         <div class="form-group"><label>نام کاربری (انگلیسی)</label><input id="bp-username" placeholder="ali_vpn" dir="ltr"></div>
         <div class="form-group"><label>رمز عبور</label><input id="bp-password" type="password" placeholder="••••••••" dir="ltr"></div>
       </div>
-      <div style="background:rgba(124,92,252,0.08);border:1px solid rgba(124,92,252,0.2);border-radius:10px;padding:12px 14px;font-size:.82rem;margin-bottom:16px">
+      <div style="background:rgba(239,111,104,0.08);border:1px solid rgba(239,111,104,0.2);border-radius:10px;padding:12px 14px;font-size:.82rem;margin-bottom:16px">
         <div style="display:flex;justify-content:space-between;margin-bottom:6px">
           <span style="color:var(--text-muted)">پلن انتخابی</span><span style="font-weight:700" id="bp-info-plan">—</span>
         </div>
@@ -284,9 +285,9 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
   <div class="topbar">
     <div class="topbar-brand">
       <div class="topbar-logo-placeholder" id="tb-logo">🌐</div>
-      <span class="topbar-name" id="tb-name">VPN Panel</span>
+      <span class="topbar-name" id="tb-name">امیر پنل</span>
     </div>
-    <div class="topbar-center">VPN Panel</div>
+    <div class="topbar-center">امیر پنل</div>
     <div class="topbar-right">
       <span class="balance-pill" id="tb-balance" onclick="showPage('charge',document.querySelector('.nav-item[data-page=charge]'))" title="افزایش اعتبار">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><circle cx="16" cy="14" r="1"/><path d="M20 7V5a2 2 0 0 0-2-2H4"/></svg>
@@ -358,9 +359,9 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
   </div>
   <main class="main">
     <div class="page active" id="page-dashboard">
-      <div class="unlim-banner" style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.3);border-radius:10px;padding:8px 11px;margin-bottom:14px;display:flex;gap:8px;align-items:flex-start;font-size:.74rem;line-height:1.7">
-        <svg style="flex-shrink:0;color:var(--accent,#7C5CFC);margin-top:1px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-        <div><b style="color:var(--accent,#7C5CFC)">کاربر نامحدود:</b> برای ساخت، حجم را روی <b>صفر (۰)</b> بگذارید و تاریخ انقضا را انتخاب کنید. <b style="color:var(--warning,#f0a020)">توجه:</b> پس از ساخت، حذف نمی‌شود و موجودی بازنمی‌گردد.</div>
+      <div class="unlim-banner" style="background:rgba(239,111,104,.1);border:1px solid rgba(239,111,104,.3);border-radius:10px;padding:8px 11px;margin-bottom:14px;display:flex;gap:8px;align-items:flex-start;font-size:.74rem;line-height:1.7">
+        <svg style="flex-shrink:0;color:var(--accent,#ef6f68);margin-top:1px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <div><b style="color:var(--accent,#ef6f68)">کاربر نامحدود:</b> برای ساخت، حجم را روی <b>صفر (۰)</b> بگذارید و تاریخ انقضا را انتخاب کنید. <b style="color:var(--warning,#f0a020)">توجه:</b> پس از ساخت، حذف نمی‌شود و موجودی بازنمی‌گردد.</div>
       </div>
       <div class="page-header">
         <h2>داشبورد</h2>
@@ -455,7 +456,7 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
         <h2>پنل‌های من</h2>
         <button class="btn btn-primary" onclick="openNewPanel()">ساخت پنل جدید</button>
       </div>
-      <div id="panels-balance" style="background:rgba(124,92,252,0.08);border:1px solid rgba(124,92,252,0.2);border-radius:12px;padding:12px 15px;font-size:.84rem;margin-bottom:16px"></div>
+      <div id="panels-balance" style="background:rgba(239,111,104,0.08);border:1px solid rgba(239,111,104,0.2);border-radius:12px;padding:12px 15px;font-size:.84rem;margin-bottom:16px"></div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>نام</th><th>یوزر</th><th>ظرفیت</th><th>کاربران</th><th>وضعیت</th><th>ساخت</th></tr></thead>
@@ -489,7 +490,7 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
           <input type="hidden" id="brand-motion" value="hearts">
         </div>
         <div class="form-row">
-          <div class="form-group"><label>رنگ اصلی</label><input id="brand-color" type="color" value="#7C5CFC" style="height:42px;padding:4px"></div>
+          <div class="form-group"><label>رنگ اصلی</label><input id="brand-color" type="color" value="#ef6f68" style="height:42px;padding:4px"></div>
           <div class="form-group"><label>رنگ پس‌زمینه</label><input id="brand-bg" type="color" value="#080810" style="height:42px;padding:4px"></div>
         </div>
         <div class="form-group">
@@ -522,7 +523,7 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
           </div>
           <div class="form-row">
             <div class="form-group"><label>عنوانِ بالای پنل</label><input id="panel-title" placeholder="مثلاً: تامی پنل"></div>
-            <div class="form-group"><label>رنگ اصلی پنل</label><input id="panel-accent" type="color" value="#7C5CFC" style="height:42px;padding:4px"></div>
+            <div class="form-group"><label>رنگ اصلی پنل</label><input id="panel-accent" type="color" value="#ef6f68" style="height:42px;padding:4px"></div>
           </div>
           <div class="form-group">
             <label>رنگ متن و آیکون‌های پنل</label>
@@ -599,7 +600,7 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
     <div class="form-group" id="c-inbounds-wrap">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <label style="margin:0">اینباندها</label>
-        <button type="button" style="background:rgba(124,92,252,.15);border:1px solid rgba(124,92,252,.3);color:var(--accent);border-radius:6px;padding:3px 10px;font-size:.75rem;cursor:pointer" onclick="toggleAllInbounds(this)">همه / هیچ</button>
+        <button type="button" style="background:rgba(239,111,104,.15);border:1px solid rgba(239,111,104,.3);color:var(--accent);border-radius:6px;padding:3px 10px;font-size:.75rem;cursor:pointer" onclick="toggleAllInbounds(this)">همه / هیچ</button>
       </div>
       <div id="c-inbounds-list" style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:6px 10px;max-height:120px;overflow-y:auto"></div>
       <select id="c-inbound" style="display:none"></select>
@@ -626,7 +627,7 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
       <input id="c-expires" type="datetime-local" dir="ltr" onchange="updateClientCost()">
     </div>
     <div class="form-group"><label>آیدی تلگرام (اختیاری)</label><input id="c-telegram" placeholder="123456789" dir="ltr"></div>
-    <div style="background:rgba(124,92,252,0.08);border:1px solid rgba(124,92,252,0.2);border-radius:9px;padding:10px 14px;margin-bottom:14px;font-size:.82rem" id="c-balance-info"></div>
+    <div style="background:rgba(239,111,104,0.08);border:1px solid rgba(239,111,104,0.2);border-radius:9px;padding:10px 14px;margin-bottom:14px;font-size:.82rem" id="c-balance-info"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-secondary" onclick="closeModal('modal-client')">انصراف</button>
       <button class="btn btn-primary" id="c-save-btn" onclick="saveClient()">ایجاد کاربر</button>
@@ -724,7 +725,7 @@ function applyBrand(rs){
   // نکته: این تابع فقط صفحه‌ی لاگین (پیش از ورود) رو با نام/لوگوی برند پر می‌کنه.
   // عنوان و رنگِ خودِ پنلِ داخلی (بعد از ورود) رو applyPanelSettings کنترل می‌کنه —
   // تا تغییرِ برندِ نماینده برای مشتری‌هاش، ظاهرِ کارِ خودش رو عوض نکنه.
-  const name=rs.brand_name||'VPN Panel';
+  const name=rs.brand_name||'امیر پنل';
   document.getElementById('auth-title').textContent=name;
   if(rs.brand_logo){document.getElementById('auth-logo').textContent=rs.brand_logo;document.getElementById('tb-logo').textContent=rs.brand_logo;}
 }
@@ -765,13 +766,13 @@ async function loadProfile(){
   document.getElementById('tb-balance-text').textContent=(profile.balance||0).toLocaleString()+' ت';
   document.getElementById('brand-name').value=profile.brand_name||'';
   document.getElementById('brand-logo').value=profile.brand_logo||'';
-  document.getElementById('brand-color').value=profile.brand_color||'#7C5CFC';
+  document.getElementById('brand-color').value=profile.brand_color||'#ef6f68';
   document.getElementById('brand-bg').value=profile.brand_bg_color||'#080810';
   document.getElementById('brand-color2').value=profile.brand_color2||'#f472b6';
   document.getElementById('brand-text-color').value=profile.brand_text_color||'#f8f0ff';
   document.getElementById('brand-telegram').value=profile.telegram_support||'';
   document.getElementById('panel-title').value=profile.panel_title||'';
-  document.getElementById('panel-accent').value=profile.panel_accent_color||'#7C5CFC';
+  document.getElementById('panel-accent').value=profile.panel_accent_color||'#ef6f68';
   document.getElementById('panel-text').value=profile.panel_text_color||'#f0f0ff';
   applyPanelSettings(profile);
   loadApiToken();
@@ -839,7 +840,7 @@ function openNewPanel(){
   else{
     empty.style.display='none';
     box.innerHTML=npPlans.map((p,i)=>`
-      <div id="np-plan-${i}" onclick="pickNewPanelPlan(${i})" style="cursor:pointer;border:1px solid rgba(124,92,252,.25);background:rgba(124,92,252,.06);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+      <div id="np-plan-${i}" onclick="pickNewPanelPlan(${i})" style="cursor:pointer;border:1px solid rgba(239,111,104,.25);background:rgba(239,111,104,.06);border-radius:10px;padding:10px 12px;margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;gap:8px">
           <b>${escHtml(p.name)}</b>
           <span style="white-space:nowrap">
@@ -857,8 +858,8 @@ function pickNewPanelPlan(i){
   npPlan=npPlans[i];
   npPlans.forEach((_,j)=>{
     const el=document.getElementById('np-plan-'+j);
-    el.style.borderColor=(i===j)?'var(--accent)':'rgba(124,92,252,.25)';
-    el.style.background=(i===j)?'rgba(124,92,252,.16)':'rgba(124,92,252,.06)';
+    el.style.borderColor=(i===j)?'var(--accent)':'rgba(239,111,104,.25)';
+    el.style.background=(i===j)?'rgba(239,111,104,.16)':'rgba(239,111,104,.06)';
   });
   const c=document.getElementById('np-cost');
   const left=Number(npInfo.balance||0)-Number(npPlan.your_price);
@@ -1178,10 +1179,10 @@ async function saveBrand(){
 // ── ظاهرِ خودِ پنل (جدا از برندِ ساب مشتری) ──────────────────
 function applyPanelSettings(rs){
   if(!rs) return;
-  const color=rs.panel_accent_color||'#7C5CFC';
+  const color=rs.panel_accent_color||'#ef6f68';
   document.documentElement.style.setProperty('--accent',color);
   if(rs.panel_text_color) document.documentElement.style.setProperty('--text',rs.panel_text_color);
-  const title=rs.panel_title||rs.brand_name||'VPN Panel';
+  const title=rs.panel_title||rs.brand_name||'امیر پنل';
   document.getElementById('tb-name').textContent=title;
   document.title=title;
 }
@@ -1332,7 +1333,7 @@ function renderBpPlans(){
   if(!bpPlans.length){ box.innerHTML=''; empty.style.display='block'; return; }
   empty.style.display='none';
   box.innerHTML=bpPlans.map((p,i)=>`
-    <div onclick="pickBpPlan(${i})" style="cursor:pointer;border:1px solid rgba(124,92,252,.25);background:rgba(124,92,252,.06);border-radius:12px;padding:13px 15px;margin-bottom:10px">
+    <div onclick="pickBpPlan(${i})" style="cursor:pointer;border:1px solid rgba(239,111,104,.25);background:rgba(239,111,104,.06);border-radius:12px;padding:13px 15px;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
         <div style="font-weight:700">${escHtml(p.name)}</div>
         <div style="color:var(--accent);font-weight:700;white-space:nowrap">${Number(p.price).toLocaleString()} ت${p.billing==='monthly'?' <span style="font-size:.7rem;color:var(--text-muted)">/ ماه</span>':''}</div>
@@ -1449,7 +1450,7 @@ if(token) initApp().catch(e=>console.error('initApp:',e));
   function rain(canvas, fade){
     var ctx=canvas.getContext('2d'); var W,H,cols,drops;
     var chars='ｱｲｳｴｵｶｷｸｹｺ0123456789ABCDEF<>/{}[]$#*+=@%'.split('');
-    function accent(){return (getComputedStyle(document.documentElement).getPropertyValue('--accent')||'#7C5CFC').trim();}
+    function accent(){return (getComputedStyle(document.documentElement).getPropertyValue('--accent')||'#ef6f68').trim();}
     function size(){var r=canvas.getBoundingClientRect();W=canvas.width=Math.max(1,r.width||innerWidth);H=canvas.height=Math.max(1,r.height||innerHeight);cols=Math.max(1,Math.floor(W/14));drops=[];for(var i=0;i<cols;i++)drops[i]=Math.random()*H/14;}
     size(); addEventListener('resize',size);
     var col=accent();

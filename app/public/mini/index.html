@@ -7,9 +7,9 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{
-  --bg:#07030f;--acc:#7C5CFC;--acc2:#5eead4;
+  --bg:#07030f;--acc:#ef6f68;--acc2:#5eead4;
   --text:#f0f0ff;--muted:rgba(240,240,255,.48);
-  --glass:rgba(255,255,255,.04);--border:rgba(124,92,252,.2);
+  --glass:rgba(255,255,255,.04);--border:rgba(239,111,104,.2);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
@@ -22,7 +22,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
   display:inline-block;font-size:5.2rem;line-height:1;
   background:linear-gradient(135deg,var(--acc) 0%,#a78bfa 45%,var(--acc2) 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  filter:drop-shadow(0 0 28px rgba(124,92,252,.65));
+  filter:drop-shadow(0 0 28px rgba(239,111,104,.65));
   animation:floatA 3.5s ease-in-out infinite;
   font-family:'Georgia','Palatino Linotype',serif;
 }
@@ -44,8 +44,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .phone-wrap{display:flex;justify-content:center;margin-top:8px}
 .phone{
   width:200px;height:360px;border-radius:28px;
-  background:#0d0d1e;border:2.5px solid rgba(124,92,252,.45);
-  box-shadow:0 0 40px rgba(124,92,252,.25),inset 0 0 20px rgba(0,0,0,.4);
+  background:#0d0d1e;border:2.5px solid rgba(239,111,104,.45);
+  box-shadow:0 0 40px rgba(239,111,104,.25),inset 0 0 20px rgba(0,0,0,.4);
   position:relative;overflow:hidden;flex-shrink:0;
 }
 .phone::before{content:'';position:absolute;top:10px;left:50%;transform:translateX(-50%);width:48px;height:5px;background:rgba(255,255,255,.1);border-radius:3px;z-index:10}
@@ -59,7 +59,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .ps-topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .ps-logo{font-size:.7rem;font-weight:800;background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .ps-bal{font-size:.55rem;color:var(--acc2);background:rgba(94,234,212,.1);border-radius:8px;padding:2px 6px}
-.ps-card{background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.2);border-radius:9px;padding:8px;margin-bottom:5px}
+.ps-card{background:rgba(239,111,104,.1);border:1px solid rgba(239,111,104,.2);border-radius:9px;padding:8px;margin-bottom:5px}
 .ps-stat-row{display:flex;gap:4px;margin-bottom:5px}
 .ps-stat{flex:1;background:rgba(255,255,255,.04);border-radius:6px;padding:5px 4px;text-align:center}
 .ps-stat-v{font-size:.6rem;font-weight:800;color:var(--acc)}
@@ -70,9 +70,9 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 /* screen 2: brand settings */
 .ps-nav{display:flex;gap:3px;margin-bottom:8px;background:rgba(255,255,255,.03);border-radius:7px;padding:3px}
 .ps-nav-item{flex:1;text-align:center;font-size:.45rem;padding:3px;border-radius:5px;color:var(--muted)}
-.ps-nav-item.sel{background:rgba(124,92,252,.2);color:var(--acc)}
+.ps-nav-item.sel{background:rgba(239,111,104,.2);color:var(--acc)}
 .ps-label{font-size:.45rem;color:var(--muted);margin-bottom:2px}
-.ps-input{background:rgba(255,255,255,.05);border:1px solid rgba(124,92,252,.25);border-radius:5px;padding:4px 6px;font-size:.55rem;color:var(--text);width:100%;margin-bottom:5px;display:flex;align-items:center;gap:2px}
+.ps-input{background:rgba(255,255,255,.05);border:1px solid rgba(239,111,104,.25);border-radius:5px;padding:4px 6px;font-size:.55rem;color:var(--text);width:100%;margin-bottom:5px;display:flex;align-items:center;gap:2px}
 .ps-input .typed{color:var(--acc2)}
 .ps-input .caret{display:inline-block;width:1px;height:9px;background:var(--acc2);animation:blink .7s step-end infinite;margin-left:1px;vertical-align:middle}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
@@ -95,7 +95,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .feat:nth-child(3){animation-delay:.15s}.feat:nth-child(4){animation-delay:.2s}
 .feat:nth-child(5){animation-delay:.25s}.feat:nth-child(6){animation-delay:.3s}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-.feat-ico{width:30px;height:30px;border-radius:8px;background:rgba(124,92,252,.12);border:1px solid rgba(124,92,252,.2);display:flex;align-items:center;justify-content:center;margin-bottom:8px}
+.feat-ico{width:30px;height:30px;border-radius:8px;background:rgba(239,111,104,.12);border:1px solid rgba(239,111,104,.2);display:flex;align-items:center;justify-content:center;margin-bottom:8px}
 .feat-ico svg{width:16px;height:16px;stroke:var(--acc);stroke-width:1.8}
 .feat-name{font-size:.78rem;font-weight:700;margin-bottom:2px}
 .feat-desc{font-size:.68rem;color:var(--muted);line-height:1.4}
@@ -114,27 +114,27 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .sub-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:9px;border-radius:9px;border:none;font-family:inherit;font-size:.77rem;font-weight:600;cursor:pointer;transition:all .2s}
 .sub-btn svg{width:13px;height:13px;stroke:currentColor;flex-shrink:0}
 .sub-btn.copy{background:rgba(94,234,212,.1);border:1px solid rgba(94,234,212,.25);color:var(--acc2)}
-.sub-btn.qr{background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.25);color:var(--acc)}
+.sub-btn.qr{background:rgba(239,111,104,.1);border:1px solid rgba(239,111,104,.25);color:var(--acc)}
 .sub-btn:active{transform:scale(.95)}
 
 /* ─── HASH ─── */
-.hash-card{background:rgba(0,0,0,.3);border:1px solid rgba(124,92,252,.15);border-radius:12px;padding:14px;margin-top:8px;backdrop-filter:blur(10px)}
+.hash-card{background:rgba(0,0,0,.3);border:1px solid rgba(239,111,104,.15);border-radius:12px;padding:14px;margin-top:8px;backdrop-filter:blur(10px)}
 .proto-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-.proto-tag{background:rgba(124,92,252,.2);color:var(--acc);border-radius:5px;padding:2px 9px;font-family:monospace;font-size:.67rem;font-weight:700;letter-spacing:1px}
+.proto-tag{background:rgba(239,111,104,.2);color:var(--acc);border-radius:5px;padding:2px 9px;font-family:monospace;font-size:.67rem;font-weight:700;letter-spacing:1px}
 .hash-text{font-family:'Courier New',monospace;font-size:.68rem;line-height:1.75;direction:ltr;text-align:left;word-break:break-all}
 .h-s{color:#a78bfa}.h-u{color:var(--acc)}.h-h{color:var(--acc2)}.h-p{color:#fbbf24}.h-k{color:#94a3b8}.h-v{color:#f0abfc}.h-n{color:#86efac}
 
 /* ─── BADGES ─── */
 .badge-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
 .badge{padding:4px 11px;border-radius:20px;font-size:.7rem;font-weight:700;animation:fadeUp .4s ease both}
-.bp{background:rgba(124,92,252,.12);border:1px solid rgba(124,92,252,.3);color:var(--acc)}
+.bp{background:rgba(239,111,104,.12);border:1px solid rgba(239,111,104,.3);color:var(--acc)}
 .ba{background:rgba(94,234,212,.08);border:1px solid rgba(94,234,212,.2);color:var(--acc2)}
 
 /* ─── CTA ─── */
 .cta-wrap{margin-top:28px;text-align:center}
 .cta-btn{width:100%;padding:17px;border-radius:16px;border:none;font-family:inherit;font-size:1rem;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--acc),#9d7bfd 50%,#38bdf8);background-size:200%;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;animation:pulseCta 2.5s ease-in-out infinite}
 .cta-btn svg{width:20px;height:20px;fill:currentColor;flex-shrink:0}
-@keyframes pulseCta{0%,100%{box-shadow:0 8px 30px rgba(124,92,252,.35),0 0 0 0 rgba(124,92,252,.2)}50%{box-shadow:0 8px 45px rgba(124,92,252,.6),0 0 0 10px rgba(124,92,252,0)}}
+@keyframes pulseCta{0%,100%{box-shadow:0 8px 30px rgba(239,111,104,.35),0 0 0 0 rgba(239,111,104,.2)}50%{box-shadow:0 8px 45px rgba(239,111,104,.6),0 0 0 10px rgba(239,111,104,0)}}
 .cta-btn:active{transform:scale(.97)}
 .cta-note{font-size:.74rem;color:var(--muted);margin-top:10px;display:flex;align-items:center;justify-content:center;gap:5px}
 .cta-note svg{width:13px;height:13px;stroke:var(--acc2);flex-shrink:0}
@@ -151,11 +151,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .dl-os{font-size:.63rem;color:var(--muted);margin-top:1px}
 .dl-android{background:rgba(61,220,132,.12)}
 .dl-win{background:rgba(0,120,215,.12)}
-.dl-panel{grid-column:1/-1;background:linear-gradient(135deg,rgba(124,92,252,.08),rgba(94,234,212,.05));border-color:rgba(124,92,252,.3)}
+.dl-panel{grid-column:1/-1;background:linear-gradient(135deg,rgba(239,111,104,.08),rgba(94,234,212,.05));border-color:rgba(239,111,104,.3)}
 
 /* ─── BUY PANEL ─── */
-.buy-card{background:linear-gradient(135deg,rgba(124,92,252,.1),rgba(94,234,212,.06));border:1px solid rgba(124,92,252,.3);border-radius:16px;padding:16px;position:relative;overflow:hidden;backdrop-filter:blur(16px)}
-.buy-card::after{content:'';position:absolute;top:-40px;right:-40px;width:120px;height:120px;background:radial-gradient(circle,rgba(124,92,252,.2),transparent 70%);border-radius:50%;pointer-events:none}
+.buy-card{background:linear-gradient(135deg,rgba(239,111,104,.1),rgba(94,234,212,.06));border:1px solid rgba(239,111,104,.3);border-radius:16px;padding:16px;position:relative;overflow:hidden;backdrop-filter:blur(16px)}
+.buy-card::after{content:'';position:absolute;top:-40px;right:-40px;width:120px;height:120px;background:radial-gradient(circle,rgba(239,111,104,.2),transparent 70%);border-radius:50%;pointer-events:none}
 .buy-price-row{display:flex;align-items:flex-end;gap:10px;margin-bottom:12px;flex-wrap:wrap}
 .buy-price{font-size:1.6rem;font-weight:900;background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .buy-price-label{font-size:.75rem;color:var(--muted);margin-bottom:4px}
@@ -240,7 +240,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
         </div>
         <div class="ps-label">رنگ اصلی</div>
         <div style="display:flex;gap:4px;margin-bottom:5px">
-          <div style="width:16px;height:16px;border-radius:4px;background:#7C5CFC;border:1.5px solid rgba(255,255,255,.3)"></div>
+          <div style="width:16px;height:16px;border-radius:4px;background:#ef6f68;border:1.5px solid rgba(255,255,255,.3)"></div>
           <div style="width:16px;height:16px;border-radius:4px;background:#06b6d4"></div>
           <div style="width:16px;height:16px;border-radius:4px;background:#10b981"></div>
           <div style="width:16px;height:16px;border-radius:4px;background:#f59e0b"></div>
@@ -388,7 +388,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
       <div class="dl-info"><div class="dl-name">V2RayNG</div><div class="dl-os">Android</div></div>
     </a>
     <a class="dl-btn" href="https://github.com/MatsuriDayo/NekoBoxForAndroid/releases/latest" target="_blank" onclick="openLink('https://github.com/MatsuriDayo/NekoBoxForAndroid/releases/latest')">
-      <div class="dl-ico" style="background:rgba(124,92,252,.12)">
+      <div class="dl-ico" style="background:rgba(239,111,104,.12)">
         <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       </div>
       <div class="dl-info"><div class="dl-name">NekoBox</div><div class="dl-os">Android</div></div>
@@ -400,7 +400,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
       <div class="dl-info"><div class="dl-name">Hiddify</div><div class="dl-os">Windows / Mac</div></div>
     </a>
     <a class="dl-btn dl-panel" href="/VPN Panel.apk" onclick="openLink('/VPN Panel.apk');return false;">
-      <div class="dl-ico" style="background:rgba(124,92,252,.15)">
+      <div class="dl-ico" style="background:rgba(239,111,104,.15)">
         <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
       </div>
       <div class="dl-info"><div class="dl-name">APK پنل نمایندگی</div><div class="dl-os">اپ اندروید پنل امیر</div></div>
@@ -504,12 +504,12 @@ async function loadBrand(){
     for(let i=0;i<pts.length;i++){
       for(let j=i+1;j<pts.length;j++){
         const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);
-        if(d<125){cx.beginPath();cx.strokeStyle=`rgba(124,92,252,${(1-d/125)*.22})`;cx.lineWidth=.5;cx.moveTo(pts[i].x,pts[i].y);cx.lineTo(pts[j].x,pts[j].y);cx.stroke();}
+        if(d<125){cx.beginPath();cx.strokeStyle=`rgba(239,111,104,${(1-d/125)*.22})`;cx.lineWidth=.5;cx.moveTo(pts[i].x,pts[i].y);cx.lineTo(pts[j].x,pts[j].y);cx.stroke();}
       }
     }
     pts.forEach(p=>{
       cx.beginPath();cx.arc(p.x,p.y,p.r,0,Math.PI*2);
-      cx.fillStyle='rgba(124,92,252,.5)';cx.fill();
+      cx.fillStyle='rgba(239,111,104,.5)';cx.fill();
       p.x+=p.vx;p.y+=p.vy;
       if(p.x<0||p.x>W)p.vx*=-1;if(p.y<0||p.y>H)p.vy*=-1;
     });

@@ -5,15 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>پنل مدیریت</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap');
   :root {
-    --bg: #080810;
-    --surface: rgba(255,255,255,0.04);
-    --surface-hover: rgba(255,255,255,0.07);
+    --bg: #0d0a0b;
+    --surface: rgba(255,255,255,0.045);
+    --surface-hover: rgba(255,255,255,0.075);
     --border: rgba(255,255,255,0.08);
-    --accent: #7C5CFC;
-    --accent2: #5eead4;
-    --text: #f0f0ff;
-    --text-muted: rgba(240,240,255,0.45);
+    --accent: #ef6f68;
+    --accent2: #f0847c;
+    --text: #f7ede9;
+    --text-muted: rgba(247,237,233,0.45);
     --danger: #ff4d6d;
     --success: #2dd4bf;
     --warning: #fbbf24;
@@ -22,7 +23,7 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-family: 'Vazirmatn', 'Segoe UI', system-ui, sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
@@ -34,7 +35,7 @@
     top: -30%;
     right: -10%;
     width: 600px; height: 600px;
-    background: radial-gradient(circle, rgba(124,92,252,0.12) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(239,111,104,0.12) 0%, transparent 70%);
     pointer-events: none;
     z-index: 0;
   }
@@ -86,11 +87,13 @@
   }
   .logo-icon {
     width: 36px; height: 36px;
-    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
     border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
     font-size: 18px;
+    overflow: hidden;
   }
+  .logo-icon img { width: 100%; height: 100%; object-fit: contain; }
   .logo-text { font-size: 1rem; font-weight: 700; }
   .logo-sub { font-size: 0.7rem; color: var(--text-muted); }
 
@@ -105,7 +108,7 @@
     margin-bottom: 2px;
   }
   .nav-item:hover { background: var(--surface-hover); color: var(--text); }
-  .nav-item.active { background: rgba(124,92,252,0.18); color: var(--accent); }
+  .nav-item.active { background: rgba(239,111,104,0.18); color: var(--accent); }
   .nav-item .icon { font-size: 1.1rem; width: 20px; text-align: center; }
 
   .sidebar-bottom { margin-top: auto; }
@@ -140,7 +143,7 @@
     padding: 20px;
     transition: border-color .2s;
   }
-  .stat-card:hover { border-color: rgba(124,92,252,0.3); }
+  .stat-card:hover { border-color: rgba(239,111,104,0.3); }
   .stat-label { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 8px; }
   .stat-value { font-size: 2rem; font-weight: 700; }
   .stat-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
@@ -187,7 +190,7 @@
   }
   input:focus, select:focus, textarea:focus {
     border-color: var(--accent);
-    background: rgba(124,92,252,0.08);
+    background: rgba(239,111,104,0.08);
   }
   select option { background: #1a1a2e; color: var(--text); }
   label { display: block; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px; }
@@ -375,7 +378,7 @@
 <div id="auth-screen">
   <canvas id="mx-canvas"></canvas>
   <div class="auth-card">
-    <div class="logo-icon" style="margin:0 auto 16px;width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" style="width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 2 4 5v6c0 5 3.4 8.9 8 10 4.6-1.1 8-5 8-10V5l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg></div>
+    <div class="logo-icon" style="margin:0 auto 16px;width:52px;height:52px;border-radius:16px;"><img src="/assets/logo.png" alt="امیر پنل"></div>
     <h1>پنل مدیریت</h1>
     <p>ورود به حساب ادمین</p>
     <div class="form-group">
@@ -395,16 +398,16 @@
 <div id="app">
   <div class="mobile-topbar">
     <button class="hamburger-btn" onclick="toggleSidebar()"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-    <div class="logo-icon" style="width:30px;height:30px;font-size:14px;">𝓐</div>
-    <div class="logo-text">VPN Panel</div>
+    <div class="logo-icon" style="width:30px;height:30px;"><img src="/assets/logo.png" alt="امیر پنل"></div>
+    <div class="logo-text">امیر پنل</div>
   </div>
   <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
   <div class="sidebar">
     <div class="logo">
-      <div class="logo-icon">𝓐</div>
+      <div class="logo-icon"><img src="/assets/logo.png" alt="امیر پنل"></div>
       <div>
-        <div class="logo-text">VPN Panel</div>
-        <div class="logo-sub">VPN Reseller</div>
+        <div class="logo-text">امیر پنل</div>
+        <div class="logo-sub">VPN Reseller Panel</div>
       </div>
     </div>
     <div style="display:flex;gap:8px;padding:0 12px 12px">
@@ -1803,7 +1806,7 @@ async function rejectPanelOrder(btn) {
   function rain(canvas, fade){
     var ctx=canvas.getContext('2d'); var W,H,cols,drops;
     var chars='ｱｲｳｴｵｶｷｸｹｺ0123456789ABCDEF<>/{}[]$#*+=@%'.split('');
-    function accent(){return (getComputedStyle(document.documentElement).getPropertyValue('--accent')||'#7C5CFC').trim();}
+    function accent(){return (getComputedStyle(document.documentElement).getPropertyValue('--accent')||'#ef6f68').trim();}
     function size(){var r=canvas.getBoundingClientRect();W=canvas.width=Math.max(1,r.width||innerWidth);H=canvas.height=Math.max(1,r.height||innerHeight);cols=Math.max(1,Math.floor(W/14));drops=[];for(var i=0;i<cols;i++)drops[i]=Math.random()*H/14;}
     size(); addEventListener('resize',size);
     var col=accent();
