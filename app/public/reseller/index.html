@@ -16,14 +16,14 @@
 :root[data-theme="light"]{--bg:#efe7d6;--surface:#fbf7ee;--surface-hover:#f4ecd8;--border:rgba(28,23,16,0.14);--accent:#c9544c;--accent2:#d97b73;--text:#1c1710;--text-dim:rgba(28,23,16,0.65);--text-muted:rgba(28,23,16,0.5);--danger:#d1435f;--success:#0e9f6e;--warning:#b45309;--nav-glass:rgba(251,247,238,0.82)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Vazirmatn','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-body::before{content:'';position:fixed;top:-20%;right:-10%;width:500px;height:500px;background:radial-gradient(circle,rgba(239,111,104,0.12) 0%,transparent 70%);pointer-events:none;z-index:0}
+body::before{content:'';position:fixed;top:-20%;right:-10%;width:500px;height:500px;background:radial-gradient(circle,color-mix(in srgb, var(--accent) 12%, transparent) 0%,transparent 70%);pointer-events:none;z-index:0}
 #auth-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:100;flex-direction:column;gap:14px;padding:20px}
 .auth-card{background:rgba(255,255,255,0.05);backdrop-filter:var(--glass);border:1px solid var(--border);border-radius:24px;padding:36px 32px 28px;width:100%;max-width:380px;text-align:center}
 .auth-top-actions{display:flex;gap:10px;justify-content:center;margin-bottom:20px}
 .auth-action-btn{display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:12px;font-size:.82rem;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .2s}
 .auth-action-btn svg{width:16px;height:16px;stroke:currentColor;flex-shrink:0}
-.auth-buy-btn{background:rgba(239,111,104,0.15);border:1px solid rgba(239,111,104,0.35);color:var(--accent)}
-.auth-buy-btn:hover{background:rgba(239,111,104,0.25)}
+.auth-buy-btn{background:color-mix(in srgb, var(--accent) 15%, transparent);border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);color:var(--accent)}
+.auth-buy-btn:hover{background:color-mix(in srgb, var(--accent) 25%, transparent)}
 .brand-logo{font-size:2.6rem;margin-bottom:10px;width:56px;height:56px;margin-left:auto;margin-right:auto;display:flex;align-items:center;justify-content:center}
 .auth-card h1{font-size:1.35rem;margin-bottom:4px}
 .auth-card>p{color:var(--text-muted);margin-bottom:24px;font-size:.84rem}
@@ -36,8 +36,8 @@ body::before{content:'';position:fixed;top:-20%;right:-10%;width:500px;height:50
 .topbar-logo-placeholder{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:16px}
 .topbar-name{font-weight:700;font-size:.95rem}
 .topbar-right{display:flex;align-items:center;gap:8px}
-.balance-pill{background:rgba(239,111,104,0.15);border:1px solid rgba(239,111,104,0.3);border-radius:20px;padding:5px 12px;font-size:.82rem;color:var(--accent);font-weight:600;display:flex;align-items:center;gap:5px;cursor:pointer}
-.balance-pill:hover{background:rgba(239,111,104,0.25)}
+.balance-pill{background:color-mix(in srgb, var(--accent) 15%, transparent);border:1px solid color-mix(in srgb, var(--accent) 30%, transparent);border-radius:20px;padding:5px 12px;font-size:.82rem;color:var(--accent);font-weight:600;display:flex;align-items:center;gap:5px;cursor:pointer}
+.balance-pill:hover{background:color-mix(in srgb, var(--accent) 25%, transparent)}
 /* سایدبار جایش را به پیلِ شناورِ پایین داد — خودش تویِ DOM با display:none
    می‌ماند چون nav-itemهایش هنوز با data-page مرجعِ ناوبری‌اند */
 .sidebar{display:none}
@@ -51,7 +51,7 @@ body::before{content:'';position:fixed;top:-20%;right:-10%;width:500px;height:50
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;color:var(--text-muted);font-size:.86rem;transition:all .2s;margin-bottom:2px}
 .nav-item svg{width:18px;height:18px;stroke:currentColor;flex-shrink:0}
 .nav-item:hover{background:var(--surface-hover);color:var(--text)}
-.nav-item.active{background:rgba(239,111,104,0.15);color:var(--accent)}
+.nav-item.active{background:color-mix(in srgb, var(--accent) 15%, transparent);color:var(--accent)}
 .main{margin-right:0;padding:24px 24px 100px;max-width:1100px;margin-left:auto;margin-right:auto;min-height:calc(100vh - 60px)}
 .page{display:none}.page.active{display:block}
 .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:10px}
@@ -72,7 +72,7 @@ td{padding:12px 14px;font-size:.83rem;border-bottom:1px solid rgba(255,255,255,0
 tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--surface-hover)}
 input,select,textarea{width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:9px;padding:9px 12px;color:var(--text);font-size:.86rem;outline:none;transition:border-color .2s;font-family:inherit}
-input:focus,select:focus{border-color:var(--accent);background:rgba(239,111,104,0.08)}
+input:focus,select:focus{border-color:var(--accent);background:color-mix(in srgb, var(--accent) 8%, transparent)}
 select option{background:#1a1a2e}
 label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
 .form-group{margin-bottom:14px}
@@ -102,10 +102,10 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
 .sub-box:hover{background:rgba(255,255,255,0.07)}
 .emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-top:8px}
 .emoji-btn{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:1.3rem;cursor:pointer;transition:all .2s;text-align:center}
-.emoji-btn:hover,.emoji-btn.selected{background:rgba(239,111,104,0.2);border-color:var(--accent)}
+.emoji-btn:hover,.emoji-btn.selected{background:color-mix(in srgb, var(--accent) 20%, transparent);border-color:var(--accent)}
 .motion-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
 .motion-btn{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;cursor:pointer;transition:all .2s;text-align:center;font-size:.8rem}
-.motion-btn:hover,.motion-btn.selected{background:rgba(239,111,104,0.2);border-color:var(--accent)}
+.motion-btn:hover,.motion-btn.selected{background:color-mix(in srgb, var(--accent) 20%, transparent);border-color:var(--accent)}
 #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(20,20,40,.95);backdrop-filter:var(--glass);border:1px solid var(--border);border-radius:12px;padding:10px 22px;font-size:.85rem;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
 #toast.show{opacity:1}
 #toast.success{border-color:var(--success);color:var(--success)}
@@ -120,12 +120,12 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
 .change-pass-section{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:16px}
 .amount-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
 .amount-btn{background:var(--surface);border:2px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;text-align:center;transition:all .2s;font-size:.9rem;font-weight:600}
-.amount-btn:hover,.amount-btn.selected{border-color:var(--accent);background:rgba(239,111,104,0.15);color:var(--accent)}
-.card-display{background:rgba(239,111,104,0.08);border:1px solid rgba(239,111,104,0.25);border-radius:12px;padding:16px;margin-bottom:16px;text-align:center;cursor:pointer}
+.amount-btn:hover,.amount-btn.selected{border-color:var(--accent);background:color-mix(in srgb, var(--accent) 15%, transparent);color:var(--accent)}
+.card-display{background:color-mix(in srgb, var(--accent) 8%, transparent);border:1px solid color-mix(in srgb, var(--accent) 25%, transparent);border-radius:12px;padding:16px;margin-bottom:16px;text-align:center;cursor:pointer}
 .card-number{font-size:1.15rem;font-weight:700;letter-spacing:3px;direction:ltr;color:var(--accent2);margin-bottom:4px}
 .card-owner{font-size:.8rem;color:var(--text-muted)}
 .receipt-upload{border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:14px}
-.receipt-upload:hover{border-color:var(--accent);background:rgba(239,111,104,0.05)}
+.receipt-upload:hover{border-color:var(--accent);background:color-mix(in srgb, var(--accent) 5%, transparent)}
 .receipt-upload input{display:none}
 .receipt-preview{max-width:100%;max-height:180px;border-radius:8px;margin-top:10px;display:none}
 .charge-history-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
@@ -143,7 +143,7 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
 .rs-ring-outer{position:absolute;inset:0;border-radius:50%;border:1.5px dashed var(--border);animation:rs-spin 60s linear infinite}
 @keyframes rs-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.rs-ring-outer{animation:none}}
-.rs-dial{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:68%;height:68%;border-radius:50%;background:radial-gradient(circle at 35% 28%,var(--accent2),#170a0c 76%);box-shadow:inset 0 2px 18px rgba(0,0,0,.35),0 10px 30px -12px rgba(239,111,104,.45);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.rs-dial{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:68%;height:68%;border-radius:50%;background:radial-gradient(circle at 35% 28%,var(--accent2),#170a0c 76%);box-shadow:inset 0 2px 18px rgba(0,0,0,.35),0 10px 30px -12px color-mix(in srgb, var(--accent) 45%, transparent);display:flex;align-items:center;justify-content:center;cursor:pointer}
 .rs-dial:hover{filter:brightness(1.12)}
 .rs-dial-fillring{position:absolute;inset:0;pointer-events:none}
 .rs-dial-center{text-align:center;position:relative;z-index:1}
@@ -255,7 +255,7 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
       <div class="form-group"><label>نام کاربری</label><input id="np-username" placeholder="ali_panel" dir="ltr"></div>
       <div class="form-group"><label>رمز عبور</label><input id="np-password" type="password" placeholder="••••••••" dir="ltr"></div>
     </div>
-    <div id="np-cost" style="background:rgba(239,111,104,0.08);border:1px solid rgba(239,111,104,0.2);border-radius:10px;padding:11px 14px;font-size:.83rem;margin-bottom:14px;display:none"></div>
+    <div id="np-cost" style="background:color-mix(in srgb, var(--accent) 8%, transparent);border:1px solid color-mix(in srgb, var(--accent) 20%, transparent);border-radius:10px;padding:11px 14px;font-size:.83rem;margin-bottom:14px;display:none"></div>
     <p id="np-err" style="color:var(--danger);font-size:.83rem;margin-bottom:10px"></p>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-secondary" onclick="closeModal('modal-new-panel')">انصراف</button>
@@ -297,7 +297,7 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
         <div class="form-group"><label>نام کاربری (انگلیسی)</label><input id="bp-username" placeholder="ali_vpn" dir="ltr"></div>
         <div class="form-group"><label>رمز عبور</label><input id="bp-password" type="password" placeholder="••••••••" dir="ltr"></div>
       </div>
-      <div style="background:rgba(239,111,104,0.08);border:1px solid rgba(239,111,104,0.2);border-radius:10px;padding:12px 14px;font-size:.82rem;margin-bottom:16px">
+      <div style="background:color-mix(in srgb, var(--accent) 8%, transparent);border:1px solid color-mix(in srgb, var(--accent) 20%, transparent);border-radius:10px;padding:12px 14px;font-size:.82rem;margin-bottom:16px">
         <div style="display:flex;justify-content:space-between;margin-bottom:6px">
           <span style="color:var(--text-muted)">پلن انتخابی</span><span style="font-weight:700" id="bp-info-plan">—</span>
         </div>
@@ -612,7 +612,7 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
         <h2>پنل‌های من</h2>
         <button class="btn btn-primary" onclick="openNewPanel()">ساخت پنل جدید</button>
       </div>
-      <div id="panels-balance" style="background:rgba(239,111,104,0.08);border:1px solid rgba(239,111,104,0.2);border-radius:12px;padding:12px 15px;font-size:.84rem;margin-bottom:16px"></div>
+      <div id="panels-balance" style="background:color-mix(in srgb, var(--accent) 8%, transparent);border:1px solid color-mix(in srgb, var(--accent) 20%, transparent);border-radius:12px;padding:12px 15px;font-size:.84rem;margin-bottom:16px"></div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>نام</th><th>یوزر</th><th>ظرفیت</th><th>کاربران</th><th>وضعیت</th><th>ساخت</th></tr></thead>
@@ -756,7 +756,7 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
     <div class="form-group" id="c-inbounds-wrap">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <label style="margin:0">اینباندها</label>
-        <button type="button" style="background:rgba(239,111,104,.15);border:1px solid rgba(239,111,104,.3);color:var(--accent);border-radius:6px;padding:3px 10px;font-size:.75rem;cursor:pointer" onclick="toggleAllInbounds(this)">همه / هیچ</button>
+        <button type="button" style="background:color-mix(in srgb, var(--accent) 15%, transparent);border:1px solid color-mix(in srgb, var(--accent) 30%, transparent);color:var(--accent);border-radius:6px;padding:3px 10px;font-size:.75rem;cursor:pointer" onclick="toggleAllInbounds(this)">همه / هیچ</button>
       </div>
       <div id="c-inbounds-list" style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:6px 10px;max-height:120px;overflow-y:auto"></div>
       <select id="c-inbound" style="display:none"></select>
@@ -783,7 +783,7 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
       <input id="c-expires" type="datetime-local" dir="ltr" onchange="updateClientCost()">
     </div>
     <div class="form-group"><label>آیدی تلگرام (اختیاری)</label><input id="c-telegram" placeholder="123456789" dir="ltr"></div>
-    <div style="background:rgba(239,111,104,0.08);border:1px solid rgba(239,111,104,0.2);border-radius:9px;padding:10px 14px;margin-bottom:14px;font-size:.82rem" id="c-balance-info"></div>
+    <div style="background:color-mix(in srgb, var(--accent) 8%, transparent);border:1px solid color-mix(in srgb, var(--accent) 20%, transparent);border-radius:9px;padding:10px 14px;margin-bottom:14px;font-size:.82rem" id="c-balance-info"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-secondary" onclick="closeModal('modal-client')">انصراف</button>
       <button class="btn btn-primary" id="c-save-btn" onclick="saveClient()">ایجاد کاربر</button>
@@ -1012,7 +1012,7 @@ function openNewPanel(){
   else{
     empty.style.display='none';
     box.innerHTML=npPlans.map((p,i)=>`
-      <div id="np-plan-${i}" onclick="pickNewPanelPlan(${i})" style="cursor:pointer;border:1px solid rgba(239,111,104,.25);background:rgba(239,111,104,.06);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+      <div id="np-plan-${i}" onclick="pickNewPanelPlan(${i})" style="cursor:pointer;border:1px solid color-mix(in srgb, var(--accent) 25%, transparent);background:color-mix(in srgb, var(--accent) 6%, transparent);border-radius:10px;padding:10px 12px;margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;gap:8px">
           <b>${escHtml(p.name)}</b>
           <span style="white-space:nowrap">
@@ -1030,8 +1030,8 @@ function pickNewPanelPlan(i){
   npPlan=npPlans[i];
   npPlans.forEach((_,j)=>{
     const el=document.getElementById('np-plan-'+j);
-    el.style.borderColor=(i===j)?'var(--accent)':'rgba(239,111,104,.25)';
-    el.style.background=(i===j)?'rgba(239,111,104,.16)':'rgba(239,111,104,.06)';
+    el.style.borderColor=(i===j)?'var(--accent)':'color-mix(in srgb, var(--accent) 25%, transparent)';
+    el.style.background=(i===j)?'color-mix(in srgb, var(--accent) 16%, transparent)':'color-mix(in srgb, var(--accent) 6%, transparent)';
   });
   const c=document.getElementById('np-cost');
   const left=Number(npInfo.balance||0)-Number(npPlan.your_price);
@@ -1449,6 +1449,9 @@ function applyPanelSettings(rs){
   if(!rs) return;
   const color=rs.panel_accent_color||'#ef6f68';
   document.documentElement.style.setProperty('--accent',color);
+  // accent2 (رنگِ روشن‌ترِ گرادیانت‌ها/هاب) هم از همون رنگِ نماینده مشتق می‌شود —
+  // وگرنه با رنگِ سفارشی، هابِ داشبورد نصفه‌کورالِ پیش‌فرض/نصفه‌رنگِ خودش می‌ماند
+  document.documentElement.style.setProperty('--accent2','color-mix(in srgb, '+color+' 65%, white)');
   if(rs.panel_text_color) document.documentElement.style.setProperty('--text',rs.panel_text_color);
   const title=rs.panel_title||rs.brand_name||'امیر پنل';
   document.getElementById('tb-name').textContent=title;
@@ -1601,7 +1604,7 @@ function renderBpPlans(){
   if(!bpPlans.length){ box.innerHTML=''; empty.style.display='block'; return; }
   empty.style.display='none';
   box.innerHTML=bpPlans.map((p,i)=>`
-    <div onclick="pickBpPlan(${i})" style="cursor:pointer;border:1px solid rgba(239,111,104,.25);background:rgba(239,111,104,.06);border-radius:12px;padding:13px 15px;margin-bottom:10px">
+    <div onclick="pickBpPlan(${i})" style="cursor:pointer;border:1px solid color-mix(in srgb, var(--accent) 25%, transparent);background:color-mix(in srgb, var(--accent) 6%, transparent);border-radius:12px;padding:13px 15px;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
         <div style="font-weight:700">${escHtml(p.name)}</div>
         <div style="color:var(--accent);font-weight:700;white-space:nowrap">${Number(p.price).toLocaleString()} ت${p.billing==='monthly'?' <span style="font-size:.7rem;color:var(--text-muted)">/ ماه</span>':''}</div>
