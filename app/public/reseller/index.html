@@ -12,7 +12,8 @@
 <link rel="apple-touch-icon" href="/reseller/icon-192.png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap');
-:root{--bg:#0d0a0b;--surface:rgba(255,255,255,0.045);--surface-hover:rgba(255,255,255,0.075);--border:rgba(255,255,255,0.08);--accent:#ef6f68;--accent2:#f0847c;--text:#f7ede9;--text-muted:rgba(247,237,233,0.45);--danger:#ff4d6d;--success:#2dd4bf;--warning:#fbbf24;--radius:14px;--glass:blur(20px)}
+:root{--bg:#0d0a0b;--surface:rgba(255,255,255,0.045);--surface-hover:rgba(255,255,255,0.075);--border:rgba(255,255,255,0.08);--accent:#ef6f68;--accent2:#f0847c;--text:#f7ede9;--text-dim:rgba(247,237,233,0.65);--text-muted:rgba(247,237,233,0.45);--danger:#ff4d6d;--success:#2dd4bf;--warning:#fbbf24;--radius:14px;--glass:blur(20px);--nav-glass:rgba(13,10,11,0.72)}
+:root[data-theme="light"]{--bg:#efe7d6;--surface:#fbf7ee;--surface-hover:#f4ecd8;--border:rgba(28,23,16,0.14);--accent:#c9544c;--accent2:#d97b73;--text:#1c1710;--text-dim:rgba(28,23,16,0.65);--text-muted:rgba(28,23,16,0.5);--danger:#d1435f;--success:#0e9f6e;--warning:#b45309;--nav-glass:rgba(251,247,238,0.82)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Vazirmatn','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 body::before{content:'';position:fixed;top:-20%;right:-10%;width:500px;height:500px;background:radial-gradient(circle,rgba(239,111,104,0.12) 0%,transparent 70%);pointer-events:none;z-index:0}
@@ -35,17 +36,21 @@ body::before{content:'';position:fixed;top:-20%;right:-10%;width:500px;height:50
 .topbar-right{display:flex;align-items:center;gap:8px}
 .balance-pill{background:rgba(239,111,104,0.15);border:1px solid rgba(239,111,104,0.3);border-radius:20px;padding:5px 12px;font-size:.82rem;color:var(--accent);font-weight:600;display:flex;align-items:center;gap:5px;cursor:pointer}
 .balance-pill:hover{background:rgba(239,111,104,0.25)}
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(10,10,20,0.95);backdrop-filter:var(--glass);border-top:1px solid var(--border);display:none;z-index:50}
-.bottom-nav-items{display:flex;align-items:center;justify-content:space-around;padding:8px 0 12px}
-.bn-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 12px;border-radius:10px;cursor:pointer;font-size:.64rem;color:var(--text-muted);transition:color .2s}
-.bn-item svg{width:20px;height:20px;stroke:currentColor}
-.bn-item.active{color:var(--accent)}
-.sidebar{position:fixed;top:60px;right:0;width:220px;height:calc(100vh - 60px);background:rgba(255,255,255,0.02);border-left:1px solid var(--border);padding:20px 12px;display:flex;flex-direction:column;overflow-y:auto}
+/* سایدبار جایش را به پیلِ شناورِ پایین داد — خودش تویِ DOM با display:none
+   می‌ماند چون nav-itemهایش هنوز با data-page مرجعِ ناوبری‌اند */
+.sidebar{display:none}
+.bottom-nav{position:fixed;left:0;right:0;bottom:18px;display:flex;justify-content:center;z-index:50;pointer-events:none}
+.bottom-nav-items{display:flex;gap:2px;padding:6px;border-radius:999px;pointer-events:auto;background:var(--nav-glass);-webkit-backdrop-filter:blur(20px) saturate(140%);backdrop-filter:blur(20px) saturate(140%);border:1px solid var(--border);box-shadow:0 12px 30px -12px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.08);max-width:calc(100vw - 24px);overflow-x:auto;scrollbar-width:none}
+.bottom-nav-items::-webkit-scrollbar{display:none}
+.bn-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;width:46px;height:46px;flex:none;border-radius:999px;cursor:pointer;font-size:0;color:var(--text-muted);transition:background .15s ease,color .15s ease}
+.bn-item svg{width:18px;height:18px}
+.bn-item.active{background:var(--accent);color:#fff}
+.bn-item:not(.active):hover{background:var(--surface-hover);color:var(--accent)}
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;color:var(--text-muted);font-size:.86rem;transition:all .2s;margin-bottom:2px}
 .nav-item svg{width:18px;height:18px;stroke:currentColor;flex-shrink:0}
 .nav-item:hover{background:var(--surface-hover);color:var(--text)}
 .nav-item.active{background:rgba(239,111,104,0.15);color:var(--accent)}
-.main{margin-right:220px;padding:24px;min-height:calc(100vh - 60px)}
+.main{margin-right:0;padding:24px 24px 100px;max-width:1100px;margin-left:auto;margin-right:auto;min-height:calc(100vh - 60px)}
 .page{display:none}.page.active{display:block}
 .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:10px}
 .page-header h2{font-size:1.3rem;font-weight:700}
@@ -129,10 +134,36 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
 .step.done{color:var(--success)}
 .step-num{width:24px;height:24px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0}
 .step-line{flex:1;height:2px;background:rgba(255,255,255,0.08);margin:0 6px}
+/* ── هابِ کاربران: چون نماینده فقط یک نوع موجودیت (کاربر) دارد، برخلافِ
+   پنلِ ادمین نیازی به فنِ سوییچِ‌حالت نیست — فقط دایره+ماهواره‌های واقعی ── */
+.rs-hub{display:flex;flex-direction:column;align-items:center;gap:14px;margin-bottom:20px}
+.rs-orbit{position:relative;width:100%;max-width:260px;aspect-ratio:1;margin:0 auto}
+.rs-ring-outer{position:absolute;inset:0;border-radius:50%;border:1.5px dashed var(--border);animation:rs-spin 60s linear infinite}
+@keyframes rs-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.rs-ring-outer{animation:none}}
+.rs-dial{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:66%;height:66%;border-radius:50%;background:radial-gradient(circle at 35% 28%,var(--accent2),#170a0c 76%);box-shadow:inset 0 2px 18px rgba(0,0,0,.35),0 10px 30px -12px rgba(239,111,104,.45);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.rs-dial:hover{filter:brightness(1.12)}
+.rs-dial-fillring{position:absolute;inset:0;pointer-events:none}
+.rs-dial-center{text-align:center;position:relative;z-index:1}
+.rs-dial-name{font-size:.78rem;color:rgba(255,255,255,.78);margin-bottom:5px}
+.rs-dial-pct{font-size:1.7rem;font-weight:800;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.4)}
+.rs-dial-meta{font-size:.66rem;color:rgba(255,255,255,.6);margin-top:5px;line-height:1.7}
+.rs-sat{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:13px;cursor:pointer}
+.rs-sat:hover .rs-ring{transform:scale(1.08)}
+.rs-sat.selected .rs-ring{outline:2px solid var(--accent);outline-offset:2px}
+.rs-ring{--pct:0;width:42px;height:42px;border-radius:50%;position:relative;background:conic-gradient(var(--accent) calc(var(--pct)*1%),var(--border) 0);transition:transform .15s ease;box-shadow:0 6px 14px -8px rgba(0,0,0,.5)}
+.rs-ring-inner{position:absolute;inset:4px;border-radius:50%;overflow:hidden;z-index:1;display:flex;align-items:center;justify-content:center;background:var(--border);box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+.rs-ring-inner span{font-size:.85rem;font-weight:800;color:var(--text)}
+.rs-pct-badge{position:absolute;z-index:2;bottom:-3px;left:50%;transform:translateX(-50%);font-size:.58rem;font-weight:800;font-variant-numeric:tabular-nums;color:#fff;background:var(--accent);padding:1px 5px;border-radius:999px;border:1.5px solid var(--surface);white-space:nowrap}
+.rs-sat-name{white-space:nowrap;font-size:.66rem;color:var(--text-muted);display:flex;align-items:center;gap:4px}
+.rs-dot{width:6px;height:6px;border-radius:50%;flex:none}
+.rs-dot.on{background:var(--success)}.rs-dot.off{background:var(--danger)}
+.rs-pager{display:none;align-items:center;gap:14px}
+.rs-pager button{width:34px;height:34px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.rs-hint{color:var(--text-muted);font-size:.74rem;text-align:center}
 .step.done .step-line{background:var(--success)}
 @media(max-width:768px){
-  .sidebar{display:none}.bottom-nav{display:block}
-  .main{margin-right:0;padding:16px;padding-bottom:80px}
+  .main{padding:16px 16px 100px}
   .form-row{grid-template-columns:1fr}
   .topbar-center{display:none}
 }
@@ -289,6 +320,10 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
     </div>
     <div class="topbar-center">امیر پنل</div>
     <div class="topbar-right">
+      <button class="btn btn-secondary btn-sm" id="theme-btn" onclick="toggleTheme()" title="تغییرِ تم" aria-label="تغییرِ تمِ روشن/تاریک" style="padding:7px;border-radius:10px">
+        <svg id="theme-icon-dark" viewBox="0 0 256 256" fill="currentColor" style="width:15px;height:15px"><rect width="256" height="256" fill="none"/><path d="M235.54,150.21a104.84,104.84,0,0,1-37,52.91A104,104,0,0,1,32,120,103.09,103.09,0,0,1,52.88,57.48a104.84,104.84,0,0,1,52.91-37,8,8,0,0,1,10,10,88.08,88.08,0,0,0,109.8,109.8,8,8,0,0,1,10,10Z"/></svg>
+        <svg id="theme-icon-light" viewBox="0 0 256 256" fill="currentColor" style="width:15px;height:15px;display:none"><rect width="256" height="256" fill="none"/><path d="M120,40V16a8,8,0,0,1,16,0V40a8,8,0,0,1-16,0Zm8,24a64,64,0,1,0,64,64A64.07,64.07,0,0,0,128,64ZM58.34,69.66A8,8,0,0,0,69.66,58.34l-16-16A8,8,0,0,0,42.34,53.66Zm0,116.68-16,16a8,8,0,0,0,11.32,11.32l16-16a8,8,0,0,0-11.32-11.32ZM192,72a8,8,0,0,0,5.66-2.34l16-16a8,8,0,0,0-11.32-11.32l-16,16A8,8,0,0,0,192,72Zm5.66,114.34a8,8,0,0,0-11.32,11.32l16,16a8,8,0,0,0,11.32-11.32ZM48,128a8,8,0,0,0-8-8H16a8,8,0,0,0,0,16H40A8,8,0,0,0,48,128Zm80,80a8,8,0,0,0-8,8v24a8,8,0,0,0,16,0V216A8,8,0,0,0,128,208Zm112-88H216a8,8,0,0,0,0,16h24a8,8,0,0,0,0-16Z"/></svg>
+      </button>
       <span class="balance-pill" id="tb-balance" onclick="showPage('charge',document.querySelector('.nav-item[data-page=charge]'))" title="افزایش اعتبار">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><circle cx="16" cy="14" r="1"/><path d="M20 7V5a2 2 0 0 0-2-2H4"/></svg>
         <span id="tb-balance-text">...</span>
@@ -331,29 +366,23 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
   </div>
   <div class="bottom-nav">
     <div class="bottom-nav-items">
-      <div class="bn-item active" data-page="dashboard" onclick="showPage('dashboard',this)">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-        داشبورد
+      <div class="bn-item active" data-page="dashboard" onclick="showPage('dashboard',this)" title="داشبورد" aria-label="داشبورد">
+        <svg viewBox="0 0 256 256" fill="currentColor"><rect width="256" height="256" fill="none"/><path d="M200,40H56A16,16,0,0,0,40,56V200a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V56A16,16,0,0,0,200,40Zm0,80H136V56h64ZM120,56v64H56V56ZM56,136h64v64H56Zm144,64H136V136h64v64Z"/></svg>
       </div>
-      <div class="bn-item" data-page="clients" onclick="showPage('clients',this)">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-        کاربران
+      <div class="bn-item" data-page="clients" onclick="showPage('clients',this)" title="کاربران" aria-label="کاربران">
+        <svg viewBox="0 0 256 256" fill="currentColor"><rect width="256" height="256" fill="none"/><path d="M164.47,195.63a8,8,0,0,1-6.7,12.37H10.23a8,8,0,0,1-6.7-12.37,95.83,95.83,0,0,1,47.22-37.71,60,60,0,1,1,66.5,0A95.83,95.83,0,0,1,164.47,195.63Zm87.91-.15a95.87,95.87,0,0,0-47.13-37.56A60,60,0,0,0,144.7,54.59a4,4,0,0,0-1.33,6A75.83,75.83,0,0,1,147,150.53a4,4,0,0,0,1.07,5.53,112.32,112.32,0,0,1,29.85,30.83,23.92,23.92,0,0,1,3.65,16.47,4,4,0,0,0,3.95,4.64h60.3a8,8,0,0,0,7.73-5.93A8.22,8.22,0,0,0,252.38,195.48Z"/></svg>
       </div>
-      <div class="bn-item" data-page="charge" onclick="showPage('charge',this)">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><circle cx="16" cy="14" r="1"/><path d="M20 7V5a2 2 0 0 0-2-2H4"/></svg>
-        شارژ
+      <div class="bn-item" data-page="charge" onclick="showPage('charge',this)" title="افزایش اعتبار" aria-label="افزایش اعتبار">
+        <svg viewBox="0 0 256 256" fill="currentColor"><rect width="256" height="256" fill="none"/><path d="M224,48H32A16,16,0,0,0,16,64V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48ZM136,176H120a8,8,0,0,1,0-16h16a8,8,0,0,1,0,16Zm64,0H168a8,8,0,0,1,0-16h32a8,8,0,0,1,0,16ZM32,88V64H224V88Z"/></svg>
       </div>
-      <div class="bn-item" id="bn-panels" data-page="panels" onclick="showPage('panels',this)" style="display:none">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-        پنل‌ها
+      <div class="bn-item" id="bn-panels" data-page="panels" onclick="showPage('panels',this)" style="display:none" title="پنل‌های من" aria-label="پنل‌های من">
+        <svg viewBox="0 0 256 256" fill="currentColor"><rect width="256" height="256" fill="none"/><path d="M230.14,58.87A8,8,0,0,0,224,56H62.68L56.6,22.57A8,8,0,0,0,48.73,16H24a8,8,0,0,0,0,16h18L67.56,172.29a24,24,0,0,0,5.33,11.27,28,28,0,1,0,44.4,8.44h45.42A27.75,27.75,0,0,0,160,204a28,28,0,1,0,28-28H91.17a8,8,0,0,1-7.87-6.57L80.13,152h116a24,24,0,0,0,23.61-19.71l12.16-66.86A8,8,0,0,0,230.14,58.87ZM104,204a12,12,0,1,1-12-12A12,12,0,0,1,104,204Zm96,0a12,12,0,1,1-12-12A12,12,0,0,1,200,204Z"/></svg>
       </div>
-      <div class="bn-item" data-page="brand" onclick="showPage('brand',this)">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
-        برند
+      <div class="bn-item" data-page="brand" onclick="showPage('brand',this)" title="برند من" aria-label="برند من">
+        <svg viewBox="0 0 256 256" fill="currentColor"><rect width="256" height="256" fill="none"/><path d="M200.77,53.89A103.27,103.27,0,0,0,128,24h-1.07A104,104,0,0,0,24,128c0,43,26.58,79.06,69.36,94.17A32,32,0,0,0,136,192a16,16,0,0,1,16-16h46.21a31.81,31.81,0,0,0,31.2-24.88,104.43,104.43,0,0,0,2.59-24A103.28,103.28,0,0,0,200.77,53.89ZM84,168a12,12,0,1,1,12-12A12,12,0,0,1,84,168Zm0-56a12,12,0,1,1,12-12A12,12,0,0,1,84,112Zm44-24a12,12,0,1,1,12-12A12,12,0,0,1,128,88Zm44,24a12,12,0,1,1,12-12A12,12,0,0,1,172,112Z"/></svg>
       </div>
-      <div class="bn-item" data-page="account" onclick="showPage('account',this)">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        حساب
+      <div class="bn-item" data-page="account" onclick="showPage('account',this)" title="حساب من" aria-label="حساب من">
+        <svg viewBox="0 0 256 256" fill="currentColor"><rect width="256" height="256" fill="none"/><path d="M172,120a44,44,0,1,1-44-44A44.05,44.05,0,0,1,172,120Zm60,8A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88.09,88.09,0,0,0-91.47-87.93C77.43,41.89,39.87,81.12,40,128.25a87.65,87.65,0,0,0,22.24,58.16A79.71,79.71,0,0,1,84,165.1a4,4,0,0,1,4.83.32,59.83,59.83,0,0,0,78.28,0,4,4,0,0,1,4.83-.32,79.71,79.71,0,0,1,21.79,21.31A87.62,87.62,0,0,0,216,128Z"/></svg>
       </div>
     </div>
   </div>
@@ -380,6 +409,31 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
       <div class="table-wrap" style="padding:18px;margin-bottom:20px">
         <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:.82rem;color:var(--text-muted)">مصرف ترافیک</span><span style="font-size:.82rem" id="ds-traffic-label">-</span></div>
         <div class="progress-bar"><div class="progress-fill" id="ds-traffic-bar" style="width:0%"></div></div>
+      </div>
+      <div class="table-wrap" style="padding:20px;text-align:center">
+        <h3 style="font-size:.95rem;margin-bottom:6px;font-weight:700">کاربرانِ من</h3>
+        <div class="rs-hub">
+          <div class="rs-orbit" id="rs-orbit">
+            <div class="rs-ring-outer"></div>
+            <div class="rs-dial" id="rs-dial" onclick="rsDialClick()">
+              <svg class="rs-dial-fillring" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="3" stroke-linecap="round" pathLength="100"/>
+                <circle id="rs-dial-arc" cx="50" cy="50" r="46" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dasharray .4s ease"/>
+              </svg>
+              <div class="rs-dial-center">
+                <div class="rs-dial-name" id="rs-dial-name">—</div>
+                <div class="rs-dial-pct" id="rs-dial-pct">—</div>
+                <div class="rs-dial-meta" id="rs-dial-meta"></div>
+              </div>
+            </div>
+          </div>
+          <div class="rs-pager" id="rs-pager">
+            <button onclick="rsPage(-1)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+            <span id="rs-pager-label" style="font-size:.76rem;color:var(--text-muted)"></span>
+            <button onclick="rsPage(1)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+          </div>
+          <p class="rs-hint">روی هرکدام کلیک کن تا انتخاب شود، روی دایرهٔ وسط کلیک کن تا جزئیاتش را ببینی.</p>
+        </div>
       </div>
     </div>
     <div class="page" id="page-clients">
@@ -668,6 +722,22 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
 <div id="toast"></div>
 <script src="/qrcode.min.js"></script>
 <script>
+// تم: پیش‌فرض دارک، انتخابِ کاربر در localStorage می‌ماند
+(function(){const saved=localStorage.getItem('theme');if(saved==='light')document.documentElement.dataset.theme='light';})();
+document.addEventListener('DOMContentLoaded',syncThemeIcon);
+function toggleTheme(){
+  const isLight=document.documentElement.dataset.theme==='light';
+  if(isLight){delete document.documentElement.dataset.theme;localStorage.setItem('theme','dark');}
+  else{document.documentElement.dataset.theme='light';localStorage.setItem('theme','light');}
+  syncThemeIcon();
+}
+function syncThemeIcon(){
+  const isLight=document.documentElement.dataset.theme==='light';
+  const d=document.getElementById('theme-icon-dark'),l=document.getElementById('theme-icon-light');
+  if(!d||!l)return;
+  d.style.display=isLight?'none':'block';l.style.display=isLight?'block':'none';
+}
+
 const API='/api';
 let token=localStorage.getItem('reseller_token');
 let profile=null,currentClient=null,allClients=[];
@@ -889,11 +959,13 @@ async function createPanel(){
 }
 
 async function apiReq(method,path,body){
-  const opts={method,headers:{Authorization:'Bearer '+token}};
-  if(body){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(body);}
-  const r=await fetch(API+path,opts);
-  if(r.status===401){logout();return{};}
-  return r.json();
+  try{
+    const opts={method,headers:{Authorization:'Bearer '+token}};
+    if(body){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(body);}
+    const r=await fetch(API+path,opts);
+    if(r.status===401){logout();return{};}
+    try{return await r.json();}catch(e){return{success:r.ok,message:'خطای سرور ('+r.status+')'};}
+  }catch(e){return{success:false,message:'خطای اتصال به شبکه'};}
 }
 const apiGet=p=>apiReq('GET',p);
 const apiPost=(p,b)=>apiReq('POST',p,b);
@@ -926,6 +998,72 @@ async function loadDashboard(){
   const pct=d.traffic_limit_gb>0?Math.min(100,(d.traffic_used_gb/d.traffic_limit_gb)*100):0;
   document.getElementById('ds-traffic-bar').style.width=pct+'%';
   document.getElementById('ds-traffic-label').textContent=fmt(d.traffic_used_gb)+' از '+fmt(d.traffic_limit_gb);
+  await loadClients();
+  renderRsHub();
+}
+
+// ── هابِ کاربران رویِ داشبورد: همون دایره/گیج‌هایِ اقماری الگویِ پنلِ ادمین،
+// فقط تک‌حالته چون نماینده فقط «کاربر» دارد، نه سرور/نماینده ──
+var _rsSelected=0,_rsPageIdx=0;
+const RS_PAGE_SIZE=8;
+function rsItemStatus(c){
+  const limit=Number(c.traffic_limit_gb)||0,used=Number(c.traffic_used_gb)||0;
+  const pct=limit>0?Math.min(100,Math.round((used/limit)*100)):0;
+  return{pct,label:limit>0?pct+'٪':'∞',dotClass:c.is_active?'on':'off'};
+}
+function rsPageItems(){return (allClients||[]).slice(_rsPageIdx*RS_PAGE_SIZE,_rsPageIdx*RS_PAGE_SIZE+RS_PAGE_SIZE);}
+function renderRsHub(){
+  const orbit=document.getElementById('rs-orbit');
+  if(!orbit)return;
+  orbit.querySelectorAll('.rs-sat').forEach(el=>el.remove());
+  const all=allClients||[];
+  const pager=document.getElementById('rs-pager');
+  if(all.length>RS_PAGE_SIZE){
+    pager.style.display='flex';
+    document.getElementById('rs-pager-label').textContent=(_rsPageIdx+1)+' / '+Math.ceil(all.length/RS_PAGE_SIZE);
+  }else pager.style.display='none';
+  const items=rsPageItems();
+  if(!items.length){
+    document.getElementById('rs-dial-name').textContent='کاربری نیست';
+    document.getElementById('rs-dial-pct').textContent='—';
+    document.getElementById('rs-dial-meta').textContent='';
+    return;
+  }
+  if(_rsSelected>=items.length)_rsSelected=0;
+  const N=items.length;
+  items.forEach((c,i)=>{
+    const angle=(i/N)*360-90,rad=angle*Math.PI/180,R=44;
+    const cx=50+R*Math.cos(rad),cy=50+R*Math.sin(rad);
+    const st=rsItemStatus(c);
+    const el=document.createElement('div');
+    el.className='rs-sat'+(i===_rsSelected?' selected':'');
+    el.style.left=cx+'%';el.style.top=cy+'%';el.dataset.i=i;
+    el.innerHTML=`<div class="rs-ring" style="--pct:${st.pct}"><div class="rs-ring-inner"><span>${(c.username||'?').charAt(0).toUpperCase()}</span></div><span class="rs-pct-badge">${st.label}</span></div>`+
+      `<div class="rs-sat-name"><span class="rs-dot ${st.dotClass}"></span>${c.username}</div>`;
+    el.addEventListener('click',()=>selectRsItem(i));
+    orbit.appendChild(el);
+  });
+  selectRsItem(_rsSelected);
+}
+function selectRsItem(i){
+  _rsSelected=i;
+  document.querySelectorAll('.rs-sat').forEach(el=>el.classList.toggle('selected',+el.dataset.i===i));
+  const c=rsPageItems()[i];
+  if(!c)return;
+  const st=rsItemStatus(c);
+  document.getElementById('rs-dial-name').textContent=c.username;
+  document.getElementById('rs-dial-pct').textContent=st.label;
+  document.getElementById('rs-dial-arc').setAttribute('stroke-dasharray',st.pct+' 100');
+  document.getElementById('rs-dial-meta').textContent=(c.is_online?'آنلاین':'آفلاین')+' · انقضا: '+fmtDate(c.expires_at);
+}
+function rsPage(dir){
+  const total=Math.max(1,Math.ceil((allClients||[]).length/RS_PAGE_SIZE));
+  _rsPageIdx=(_rsPageIdx+dir+total)%total;_rsSelected=0;renderRsHub();
+}
+function rsDialClick(){
+  const c=rsPageItems()[_rsSelected];
+  if(!c)return;
+  openClientInfo(c.id);
 }
 
 let inbounds=[];
