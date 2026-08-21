@@ -138,7 +138,7 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
 .step-line{flex:1;height:2px;background:rgba(255,255,255,0.08);margin:0 6px}
 /* ── هابِ کاربران: چون نماینده فقط یک نوع موجودیت (کاربر) دارد، برخلافِ
    پنلِ ادمین نیازی به فنِ سوییچِ‌حالت نیست — فقط دایره+ماهواره‌های واقعی ── */
-.rs-hub{display:flex;flex-direction:column;align-items:center;gap:14px;margin-bottom:20px}
+.rs-hub{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;margin-bottom:20px;flex:1}
 .rs-orbit{position:relative;width:100%;max-width:260px;aspect-ratio:1;margin:0 auto}
 .rs-ring-outer{position:absolute;inset:0;border-radius:50%;border:1.5px dashed var(--border);animation:rs-spin 60s linear infinite}
 @keyframes rs-spin{to{transform:rotate(360deg)}}
@@ -168,7 +168,7 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
 .rs-grid{display:grid;grid-template-columns:260px 1fr 260px;gap:18px;align-items:center;margin-bottom:24px}
 @media(max-width:1050px){.rs-grid{grid-template-columns:1fr}.rs-grid>.rs-card-hub{order:-1}}
 .rs-card{background:var(--surface);backdrop-filter:var(--glass);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
-.rs-card-hub{padding:20px 0 0;text-align:center;background:none;border:none;backdrop-filter:none;box-shadow:none}
+.rs-card-hub{padding:20px 0 0;text-align:center;background:none;border:none;backdrop-filter:none;box-shadow:none;align-self:stretch;display:flex;flex-direction:column}
 .rs-card-title{font-size:.85rem;font-weight:700;margin-bottom:14px}
 .rs-big-num{font-size:1.6rem;font-weight:800;display:flex;align-items:baseline;gap:6px;margin-bottom:10px}
 .rs-big-num .u{font-size:.72rem;color:var(--text-muted);font-weight:600}
@@ -832,6 +832,9 @@ function toggleTheme(){
   if(isLight){delete document.documentElement.dataset.theme;localStorage.setItem('theme','dark');}
   else{document.documentElement.dataset.theme='light';localStorage.setItem('theme','light');}
   syncThemeIcon();
+  // رنگِ متنِ سفارشیِ نماینده (panel_text_color) معمولاً فقط برایِ دارک تنظیم شده —
+  // با همون profile دوباره اعمالش کن تا با تمِ جدید هم‌خوان بمونه (یا پاک بشه)
+  if(typeof profile!=='undefined'&&profile) applyPanelSettings(profile);
 }
 function syncThemeIcon(){
   const isLight=document.documentElement.dataset.theme==='light';
@@ -1452,7 +1455,11 @@ function applyPanelSettings(rs){
   // accent2 (رنگِ روشن‌ترِ گرادیانت‌ها/هاب) هم از همون رنگِ نماینده مشتق می‌شود —
   // وگرنه با رنگِ سفارشی، هابِ داشبورد نصفه‌کورالِ پیش‌فرض/نصفه‌رنگِ خودش می‌ماند
   document.documentElement.style.setProperty('--accent2','color-mix(in srgb, '+color+' 65%, white)');
-  if(rs.panel_text_color) document.documentElement.style.setProperty('--text',rs.panel_text_color);
+  // این رنگ معمولاً نماینده فقط زیرِ تمِ دارک تنظیمش کرده — روی تمِ روشن
+  // اعمالش نکن وگرنه متن با پس‌زمینهٔ روشن هم‌رنگ می‌شود و ناخوانا می‌ماند
+  if(rs.panel_text_color&&document.documentElement.dataset.theme!=='light')
+    document.documentElement.style.setProperty('--text',rs.panel_text_color);
+  else document.documentElement.style.removeProperty('--text');
   const title=rs.panel_title||rs.brand_name||'امیر پنل';
   document.getElementById('tb-name').textContent=title;
   document.title=title;
