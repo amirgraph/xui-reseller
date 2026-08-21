@@ -28,7 +28,7 @@ body::before{content:'';position:fixed;top:-20%;right:-10%;width:500px;height:50
 .auth-card h1{font-size:1.35rem;margin-bottom:4px}
 .auth-card>p{color:var(--text-muted);margin-bottom:24px;font-size:.84rem}
 #app{display:none;min-height:100vh;position:relative;z-index:1}
-.topbar{position:sticky;top:0;z-index:50;background:rgba(8,8,16,0.85);backdrop-filter:var(--glass);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between}
+.topbar{position:sticky;top:0;z-index:50;background:var(--nav-glass);backdrop-filter:var(--glass);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between}
 .topbar-center{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:20px}
 .ts-stat-label{font-size:.62rem;color:var(--text-muted);font-weight:600;margin-bottom:2px}
 .ts-stat-value{font-size:.92rem;font-weight:800;font-variant-numeric:tabular-nums}
@@ -143,7 +143,7 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
 .rs-ring-outer{position:absolute;inset:0;border-radius:50%;border:1.5px dashed var(--border);animation:rs-spin 60s linear infinite}
 @keyframes rs-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.rs-ring-outer{animation:none}}
-.rs-dial{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:68%;height:68%;border-radius:50%;background:radial-gradient(circle at 35% 28%,var(--accent2),#170a0c 76%);box-shadow:inset 0 2px 18px rgba(0,0,0,.35),0 10px 30px -12px color-mix(in srgb, var(--accent) 45%, transparent);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.rs-dial{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:68%;height:68%;border-radius:50%;background:radial-gradient(circle at 35% 28%,var(--accent2),color-mix(in srgb, var(--accent) 35%, black) 76%);box-shadow:inset 0 2px 18px rgba(0,0,0,.35),0 10px 30px -12px color-mix(in srgb, var(--accent) 45%, transparent);display:flex;align-items:center;justify-content:center;cursor:pointer}
 .rs-dial:hover{filter:brightness(1.12)}
 .rs-dial-fillring{position:absolute;inset:0;pointer-events:none}
 .rs-dial-center{text-align:center;position:relative;z-index:1}
