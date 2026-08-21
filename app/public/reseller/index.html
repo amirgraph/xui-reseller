@@ -29,7 +29,9 @@ body::before{content:'';position:fixed;top:-20%;right:-10%;width:500px;height:50
 .auth-card>p{color:var(--text-muted);margin-bottom:24px;font-size:.84rem}
 #app{display:none;min-height:100vh;position:relative;z-index:1}
 .topbar{position:sticky;top:0;z-index:50;background:rgba(8,8,16,0.85);backdrop-filter:var(--glass);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between}
-.topbar-center{position:absolute;left:50%;transform:translateX(-50%);font-weight:800;font-size:1.1rem;letter-spacing:1px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.topbar-center{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:20px}
+.ts-stat-label{font-size:.62rem;color:var(--text-muted);font-weight:600;margin-bottom:2px}
+.ts-stat-value{font-size:.92rem;font-weight:800;font-variant-numeric:tabular-nums}
 .topbar-brand{display:flex;align-items:center;gap:10px}
 .topbar-logo-placeholder{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#a78bfa);display:flex;align-items:center;justify-content:center;font-size:16px}
 .topbar-name{font-weight:700;font-size:.95rem}
@@ -141,7 +143,7 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
 .rs-ring-outer{position:absolute;inset:0;border-radius:50%;border:1.5px dashed var(--border);animation:rs-spin 60s linear infinite}
 @keyframes rs-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.rs-ring-outer{animation:none}}
-.rs-dial{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:66%;height:66%;border-radius:50%;background:radial-gradient(circle at 35% 28%,var(--accent2),#170a0c 76%);box-shadow:inset 0 2px 18px rgba(0,0,0,.35),0 10px 30px -12px rgba(239,111,104,.45);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.rs-dial{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:68%;height:68%;border-radius:50%;background:radial-gradient(circle at 35% 28%,var(--accent2),#170a0c 76%);box-shadow:inset 0 2px 18px rgba(0,0,0,.35),0 10px 30px -12px rgba(239,111,104,.45);display:flex;align-items:center;justify-content:center;cursor:pointer}
 .rs-dial:hover{filter:brightness(1.12)}
 .rs-dial-fillring{position:absolute;inset:0;pointer-events:none}
 .rs-dial-center{text-align:center;position:relative;z-index:1}
@@ -161,6 +163,35 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
 .rs-pager{display:none;align-items:center;gap:14px}
 .rs-pager button{width:34px;height:34px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center}
 .rs-hint{color:var(--text-muted);font-size:.74rem;text-align:center}
+/* ── چیدمانِ سه‌ستونیِ داشبورد، مثلِ پنلِ ادمین ── */
+.rs-grid{display:grid;grid-template-columns:260px 1fr 260px;gap:18px;align-items:center;margin-bottom:24px}
+@media(max-width:1050px){.rs-grid{grid-template-columns:1fr}.rs-grid>.rs-card-hub{order:-1}}
+.rs-card{background:var(--surface);backdrop-filter:var(--glass);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.rs-card-hub{padding:20px 0 0;text-align:center}
+.rs-card-title{font-size:.85rem;font-weight:700;margin-bottom:14px}
+.rs-big-num{font-size:1.6rem;font-weight:800;display:flex;align-items:baseline;gap:6px;margin-bottom:10px}
+.rs-big-num .u{font-size:.72rem;color:var(--text-muted);font-weight:600}
+.rs-donut-wrap{display:flex;justify-content:center;margin-bottom:12px}
+.rs-inline-stat{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-top:1px solid var(--border);font-size:.8rem}
+.rs-inline-stat .l{color:var(--text-muted)}
+.rs-inline-stat .v{font-weight:800;font-variant-numeric:tabular-nums}
+.rs-cta{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--surface-hover);color:var(--text);font-size:.8rem;font-weight:700;cursor:pointer;transition:border-color .15s,transform .15s;margin-top:14px}
+.rs-cta:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px)}
+.rs-cta svg{width:14px;height:14px}
+.rs-dual{display:flex;gap:22px;margin-bottom:14px}
+.rs-dual .n{font-size:1.3rem;font-weight:800}
+.rs-dual .l{font-size:.66rem;color:var(--text-muted);font-weight:600;margin-top:2px}
+/* ── کمانِ شیشه‌ای: همون الگویِ پنلِ ادمین، منتها سه دکمهٔ واقعی (نه سوییچِ حالت) ── */
+.rs-fan-glass{position:absolute;inset:0;pointer-events:none;z-index:1;-webkit-backdrop-filter:blur(14px) saturate(150%);backdrop-filter:blur(14px) saturate(150%)}
+.rs-fan-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:2}
+.rs-fan-btn{position:absolute;width:9%;min-width:44px;min-height:44px;aspect-ratio:1;transform:translate(-50%,-50%);border:none;background:none;box-shadow:none;cursor:pointer;color:rgba(255,255,255,0.7);z-index:3;display:flex;align-items:center;justify-content:center;transition:transform 180ms ease,filter 180ms ease}
+.rs-fan-btn svg{width:55%;height:55%}
+.rs-fan-btn:hover{color:#fff;transform:translate(-50%,-56%);filter:brightness(1.15)}
+.rs-fan-btn.left{left:31.19%;top:9.67%}
+.rs-fan-btn.mid{left:50%;top:4.5%;width:10%;color:#fff}
+.rs-fan-btn.right{left:68.81%;top:9.67%}
+.rs-fan-assembly{position:absolute;inset:0;transform:translateY(-26%)}
+.rs-orbit{margin:15% auto 44px}
 .step.done .step-line{background:var(--success)}
 @media(max-width:768px){
   .main{padding:16px 16px 100px}
@@ -318,11 +349,19 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
       <div class="topbar-logo-placeholder" id="tb-logo">🌐</div>
       <span class="topbar-name" id="tb-name">امیر پنل</span>
     </div>
-    <div class="topbar-center">امیر پنل</div>
+    <div class="topbar-center">
+      <div><div class="ts-stat-label">کاربرانِ فعال</div><div class="ts-stat-value"><span id="ts-active">-</span> <span style="color:var(--text-muted);font-weight:600" id="ts-total"></span></div></div>
+      <div><div class="ts-stat-label">آنلاینِ الان</div><div class="ts-stat-value" id="ts-online">-</div></div>
+      <div><div class="ts-stat-label">منقضی‌شدنی</div><div class="ts-stat-value" id="ts-expiring">-</div></div>
+      <div><div class="ts-stat-label">ظرفیتِ باقی‌مانده</div><div class="ts-stat-value" id="ts-remaining">-</div></div>
+    </div>
     <div class="topbar-right">
       <button class="btn btn-secondary btn-sm" id="theme-btn" onclick="toggleTheme()" title="تغییرِ تم" aria-label="تغییرِ تمِ روشن/تاریک" style="padding:7px;border-radius:10px">
         <svg id="theme-icon-dark" viewBox="0 0 256 256" fill="currentColor" style="width:15px;height:15px"><rect width="256" height="256" fill="none"/><path d="M235.54,150.21a104.84,104.84,0,0,1-37,52.91A104,104,0,0,1,32,120,103.09,103.09,0,0,1,52.88,57.48a104.84,104.84,0,0,1,52.91-37,8,8,0,0,1,10,10,88.08,88.08,0,0,0,109.8,109.8,8,8,0,0,1,10,10Z"/></svg>
         <svg id="theme-icon-light" viewBox="0 0 256 256" fill="currentColor" style="width:15px;height:15px;display:none"><rect width="256" height="256" fill="none"/><path d="M120,40V16a8,8,0,0,1,16,0V40a8,8,0,0,1-16,0Zm8,24a64,64,0,1,0,64,64A64.07,64.07,0,0,0,128,64ZM58.34,69.66A8,8,0,0,0,69.66,58.34l-16-16A8,8,0,0,0,42.34,53.66Zm0,116.68-16,16a8,8,0,0,0,11.32,11.32l16-16a8,8,0,0,0-11.32-11.32ZM192,72a8,8,0,0,0,5.66-2.34l16-16a8,8,0,0,0-11.32-11.32l-16,16A8,8,0,0,0,192,72Zm5.66,114.34a8,8,0,0,0-11.32,11.32l16,16a8,8,0,0,0,11.32-11.32ZM48,128a8,8,0,0,0-8-8H16a8,8,0,0,0,0,16H40A8,8,0,0,0,48,128Zm80,80a8,8,0,0,0-8,8v24a8,8,0,0,0,16,0V216A8,8,0,0,0,128,208Zm112-88H216a8,8,0,0,0,0,16h24a8,8,0,0,0,0-16Z"/></svg>
+      </button>
+      <button class="btn btn-secondary btn-sm" onclick="showPage('account',document.querySelector('.nav-item[data-page=account]'))" title="حسابِ من" aria-label="حسابِ من" style="padding:7px;border-radius:10px">
+        <svg viewBox="0 0 256 256" fill="currentColor" style="width:15px;height:15px"><rect width="256" height="256" fill="none"/><path d="M216,130.16q.06-2.16,0-4.32l14.92-18.64a8,8,0,0,0,1.48-7.06,107.6,107.6,0,0,0-10.88-26.25,8,8,0,0,0-6-3.93l-23.72-2.64q-1.48-1.56-3-3L186,40.54a8,8,0,0,0-3.94-6,107.29,107.29,0,0,0-26.25-10.86,8,8,0,0,0-7.06,1.48L130.16,40Q128,40,125.84,40L107.2,25.11a8,8,0,0,0-7.06-1.48A107.6,107.6,0,0,0,73.89,34.51a8,8,0,0,0-3.93,6L67.32,64.27q-1.56,1.49-3,3L40.54,70a8,8,0,0,0-6,3.94,107.71,107.71,0,0,0-10.87,26.25,8,8,0,0,0,1.49,7.06L40,125.84Q40,128,40,130.16L25.11,148.8a8,8,0,0,0-1.48,7.06,107.6,107.6,0,0,0,10.88,26.25,8,8,0,0,0,6,3.93l23.72,2.64q1.49,1.56,3,3L70,215.46a8,8,0,0,0,3.94,6,107.71,107.71,0,0,0,26.25,10.87,8,8,0,0,0,7.06-1.49L125.84,216q2.16.06,4.32,0l18.64,14.92a8,8,0,0,0,7.06,1.48,107.21,107.21,0,0,0,26.25-10.88,8,8,0,0,0,3.93-6l2.64-23.72q1.56-1.48,3-3L215.46,186a8,8,0,0,0,6-3.94,107.71,107.71,0,0,0,10.87-26.25,8,8,0,0,0-1.49-7.06ZM128,168a40,40,0,1,1,40-40A40,40,0,0,1,128,168Z"/></svg>
       </button>
       <span class="balance-pill" id="tb-balance" onclick="showPage('charge',document.querySelector('.nav-item[data-page=charge]'))" title="افزایش اعتبار">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><circle cx="16" cy="14" r="1"/><path d="M20 7V5a2 2 0 0 0-2-2H4"/></svg>
@@ -399,40 +438,106 @@ label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:5px}
           بروزرسانی
         </button>
       </div>
-      <div class="stats-grid">
-        <div class="stat-card c-accent"><div class="stat-label">موجودی کیف پول</div><div class="stat-value" id="ds-balance">-</div><div class="stat-sub">تومان</div></div>
-        <div class="stat-card c-success"><div class="stat-label">ظرفیت باقی‌مانده</div><div class="stat-value" id="ds-remaining">-</div><div class="stat-sub">گیگابایت</div></div>
-        <div class="stat-card"><div class="stat-label">کاربران فعال</div><div class="stat-value" id="ds-active">-</div><div class="stat-sub" id="ds-total-sub">از - کل</div></div>
-        <div class="stat-card c-warning"><div class="stat-label">آنلاین الان</div><div class="stat-value" id="ds-online">-</div><div class="stat-sub">کاربر</div></div>
-        <div class="stat-card c-danger"><div class="stat-label">منقضی شدنی</div><div class="stat-value" id="ds-expiring">-</div><div class="stat-sub">ظرف ۳ روز</div></div>
-      </div>
-      <div class="table-wrap" style="padding:18px;margin-bottom:20px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:.82rem;color:var(--text-muted)">مصرف ترافیک</span><span style="font-size:.82rem" id="ds-traffic-label">-</span></div>
-        <div class="progress-bar"><div class="progress-fill" id="ds-traffic-bar" style="width:0%"></div></div>
-      </div>
-      <div class="table-wrap" style="padding:20px;text-align:center">
-        <h3 style="font-size:.95rem;margin-bottom:6px;font-weight:700">کاربرانِ من</h3>
-        <div class="rs-hub">
-          <div class="rs-orbit" id="rs-orbit">
-            <div class="rs-ring-outer"></div>
-            <div class="rs-dial" id="rs-dial" onclick="rsDialClick()">
-              <svg class="rs-dial-fillring" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="3" stroke-linecap="round" pathLength="100"/>
-                <circle id="rs-dial-arc" cx="50" cy="50" r="46" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dasharray .4s ease"/>
+      <div class="rs-grid">
+        <!-- کارتِ وضعیتِ کاربران -->
+        <div class="rs-card">
+          <div class="rs-card-title">کاربرانِ فعال</div>
+          <div class="rs-big-num"><span id="ds-active">-</span><span class="u" id="ds-total-sub">از - کل</span></div>
+          <div class="rs-donut-wrap"><svg width="130" height="84" viewBox="0 0 130 84" id="ds-donut"></svg></div>
+          <div class="rs-inline-stat"><span class="l">آنلاینِ الان</span><span class="v" id="ds-online">-</span></div>
+          <div class="rs-inline-stat"><span class="l">منقضی‌شدنی (ظرفِ ۳ روز)</span><span class="v" id="ds-expiring">-</span></div>
+          <button class="rs-cta" onclick="showPage('clients',document.querySelector('.nav-item[data-page=clients]'))">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            مشاهدهٔ همهٔ کاربران
+          </button>
+        </div>
+
+        <!-- هابِ کاربران -->
+        <div class="rs-card rs-card-hub">
+          <h3 style="font-size:.95rem;margin-bottom:6px;font-weight:700">کاربرانِ من</h3>
+          <div class="rs-hub">
+            <div class="rs-orbit" id="rs-orbit">
+              <div class="rs-ring-outer"></div>
+              <svg width="0" height="0" aria-hidden="true" style="position:absolute">
+                <defs>
+                  <clipPath id="rsFanClipL" clipPathUnits="objectBoundingBox"><path d="M0.1891,0.1021 A0.505,0.505 0 0 1 0.3898,0.0072 L0.416,0.1243 A0.385,0.385 0 0 0 0.263,0.1966 Z"/></clipPath>
+                  <clipPath id="rsFanClipM" clipPathUnits="objectBoundingBox"><path d="M0.3962,-0.0146 A0.525,0.525 0 0 1 0.6038,-0.0146 L0.5761,0.1226 A0.385,0.385 0 0 0 0.4239,0.1226 Z"/></clipPath>
+                  <clipPath id="rsFanClipR" clipPathUnits="objectBoundingBox"><path d="M0.6102,0.0072 A0.505,0.505 0 0 1 0.8109,0.1021 L0.737,0.1966 A0.385,0.385 0 0 0 0.584,0.1243 Z"/></clipPath>
+                </defs>
               </svg>
-              <div class="rs-dial-center">
-                <div class="rs-dial-name" id="rs-dial-name">—</div>
-                <div class="rs-dial-pct" id="rs-dial-pct">—</div>
-                <div class="rs-dial-meta" id="rs-dial-meta"></div>
+              <div class="rs-fan-assembly">
+                <div class="rs-fan-glass" style="clip-path:url(#rsFanClipL);-webkit-clip-path:url(#rsFanClipL)"></div>
+                <div class="rs-fan-glass" style="clip-path:url(#rsFanClipM);-webkit-clip-path:url(#rsFanClipM)"></div>
+                <div class="rs-fan-glass" style="clip-path:url(#rsFanClipR);-webkit-clip-path:url(#rsFanClipR)"></div>
+                <svg class="rs-fan-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="rsFanFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="var(--accent2)" stop-opacity="0.72"/>
+                      <stop offset="1" stop-color="var(--accent)" stop-opacity="0.55"/>
+                    </linearGradient>
+                    <linearGradient id="rsFanSheen" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#fff" stop-opacity="0.4"/>
+                      <stop offset="0.6" stop-color="#fff" stop-opacity="0"/>
+                    </linearGradient>
+                    <filter id="rsFanShadow" x="-40%" y="-40%" width="180%" height="200%">
+                      <feDropShadow dx="0" dy="2.4" stdDeviation="2.2" flood-color="#000" flood-opacity="0.5"/>
+                    </filter>
+                  </defs>
+                  <g filter="url(#rsFanShadow)">
+                    <path d="M18.909,10.205 A50.5,50.5 0 0 1 38.984,0.716 L41.601,12.427 A38.5,38.5 0 0 0 26.297,19.662 Z" fill="url(#rsFanFill)"/>
+                    <path d="M39.623,-1.464 A52.5,52.5 0 0 1 60.377,-1.464 L57.61,12.26 A38.5,38.5 0 0 0 42.39,12.26 Z" fill="url(#rsFanFill)"/>
+                    <path d="M61.016,0.716 A50.5,50.5 0 0 1 81.091,10.205 L73.703,19.662 A38.5,38.5 0 0 0 58.399,12.427 Z" fill="url(#rsFanFill)"/>
+                  </g>
+                  <g>
+                    <path d="M18.909,10.205 A50.5,50.5 0 0 1 38.984,0.716 L41.601,12.427 A38.5,38.5 0 0 0 26.297,19.662 Z" fill="url(#rsFanSheen)"/>
+                    <path d="M39.623,-1.464 A52.5,52.5 0 0 1 60.377,-1.464 L57.61,12.26 A38.5,38.5 0 0 0 42.39,12.26 Z" fill="url(#rsFanSheen)"/>
+                    <path d="M61.016,0.716 A50.5,50.5 0 0 1 81.091,10.205 L73.703,19.662 A38.5,38.5 0 0 0 58.399,12.427 Z" fill="url(#rsFanSheen)"/>
+                  </g>
+                </svg>
+                <button class="rs-fan-btn left" onclick="openAddClient()" title="افزودنِ کاربرِ جدید" aria-label="افزودنِ کاربرِ جدید">
+                  <svg viewBox="0 0 256 256" fill="currentColor"><rect width="256" height="256" fill="none"/><path d="M229.66,109.66l-48,48a8,8,0,0,1-11.32-11.32L204.69,112H165a88,88,0,0,0-85.23,66,8,8,0,0,1-15.5-4A103.94,103.94,0,0,1,165,96h39.71L170.34,61.66a8,8,0,0,1,11.32-11.32l48,48A8,8,0,0,1,229.66,109.66Z"/></svg>
+                </button>
+                <button class="rs-fan-btn mid" onclick="loadDashboard()" title="بروزرسانی" aria-label="بروزرسانی">
+                  <svg viewBox="0 0 256 256" fill="currentColor"><rect width="256" height="256" fill="none"/><path d="M197.67,186.37a8,8,0,0,1,0,11.29C196.58,198.75,170.82,224,128,224c-37.39,0-64.53-22.4-80-39.85V208a8,8,0,0,1-16,0V160a8,8,0,0,1,8-8H88a8,8,0,0,1,0,16H55.44C67.76,183.35,93,208,128,208c36,0,58.14-21.46,58.36-21.68A8,8,0,0,1,197.67,186.37ZM216,40a8,8,0,0,0-8,8V71.85C192.53,54.4,165.39,32,128,32,85.18,32,59.42,57.25,58.34,58.34a8,8,0,0,0,11.32,11.31C69.86,69.46,92,48,128,48c35,0,60.24,24.65,72.56,40H168a8,8,0,0,0,0,16h48a8,8,0,0,0,8-8V48A8,8,0,0,0,216,40Z"/></svg>
+                </button>
+                <button class="rs-fan-btn right" onclick="showPage('clients',document.querySelector('.nav-item[data-page=clients]'))" title="همهٔ کاربران" aria-label="همهٔ کاربران">
+                  <svg viewBox="0 0 256 256" fill="currentColor"><rect width="256" height="256" fill="none"/><path d="M164.47,195.63a8,8,0,0,1-6.7,12.37H10.23a8,8,0,0,1-6.7-12.37,95.83,95.83,0,0,1,47.22-37.71,60,60,0,1,1,66.5,0A95.83,95.83,0,0,1,164.47,195.63Zm87.91-.15a95.87,95.87,0,0,0-47.13-37.56A60,60,0,0,0,144.7,54.59a4,4,0,0,0-1.33,6A75.83,75.83,0,0,1,147,150.53a4,4,0,0,0,1.07,5.53,112.32,112.32,0,0,1,29.85,30.83,23.92,23.92,0,0,1,3.65,16.47,4,4,0,0,0,3.95,4.64h60.3a8,8,0,0,0,7.73-5.93A8.22,8.22,0,0,0,252.38,195.48Z"/></svg>
+                </button>
+                <div class="rs-dial" id="rs-dial" onclick="rsDialClick()">
+                  <svg class="rs-dial-fillring" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="3" stroke-linecap="round" pathLength="100"/>
+                    <circle id="rs-dial-arc" cx="50" cy="50" r="46" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dasharray .4s ease"/>
+                  </svg>
+                  <div class="rs-dial-center">
+                    <div class="rs-dial-name" id="rs-dial-name">—</div>
+                    <div class="rs-dial-pct" id="rs-dial-pct">—</div>
+                    <div class="rs-dial-meta" id="rs-dial-meta"></div>
+                  </div>
+                </div>
               </div>
             </div>
+            <div class="rs-pager" id="rs-pager">
+              <button onclick="rsPage(-1)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+              <span id="rs-pager-label" style="font-size:.76rem;color:var(--text-muted)"></span>
+              <button onclick="rsPage(1)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+            </div>
+            <p class="rs-hint">روی هرکدام کلیک کن تا انتخاب شود، روی دایرهٔ وسط کلیک کن تا جزئیاتش را ببینی.</p>
           </div>
-          <div class="rs-pager" id="rs-pager">
-            <button onclick="rsPage(-1)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
-            <span id="rs-pager-label" style="font-size:.76rem;color:var(--text-muted)"></span>
-            <button onclick="rsPage(1)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+        </div>
+
+        <!-- کارتِ موجودی -->
+        <div class="rs-card">
+          <div class="rs-card-title">موجودی</div>
+          <div class="rs-dual">
+            <div><div class="n" id="ds-balance">-</div><div class="l">موجودیِ کیف‌پول (ت)</div></div>
+            <div><div class="n" id="ds-remaining">-</div><div class="l">ظرفیتِ باقی‌مانده (GB)</div></div>
           </div>
-          <p class="rs-hint">روی هرکدام کلیک کن تا انتخاب شود، روی دایرهٔ وسط کلیک کن تا جزئیاتش را ببینی.</p>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:.78rem;color:var(--text-muted)">مصرفِ ترافیک</span><span style="font-size:.78rem" id="ds-traffic-label">-</span></div>
+          <div class="progress-bar"><div class="progress-fill" id="ds-traffic-bar" style="width:0%"></div></div>
+          <button class="rs-cta" onclick="openAddClient()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            ساختِ سریعِ کاربر
+          </button>
         </div>
       </div>
     </div>
@@ -998,8 +1103,36 @@ async function loadDashboard(){
   const pct=d.traffic_limit_gb>0?Math.min(100,(d.traffic_used_gb/d.traffic_limit_gb)*100):0;
   document.getElementById('ds-traffic-bar').style.width=pct+'%';
   document.getElementById('ds-traffic-label').textContent=fmt(d.traffic_used_gb)+' از '+fmt(d.traffic_limit_gb);
+
+  document.getElementById('ts-active').textContent=d.active_clients||0;
+  document.getElementById('ts-total').textContent='از '+(d.total_clients||0);
+  document.getElementById('ts-online').textContent=d.online_clients||0;
+  document.getElementById('ts-expiring').textContent=d.expiring_soon||0;
+  document.getElementById('ts-remaining').textContent=(d.traffic_remaining_gb||0).toFixed(1)+' GB';
+
+  renderDsDonut(d.active_clients||0,d.total_clients||0);
   await loadClients();
   renderRsHub();
+}
+
+// نیم‌دایرهٔ نسبتِ کاربرِ فعال به کل — عددِ واقعیِ همین لحظه
+function renderDsDonut(active,total){
+  const svg=document.getElementById('ds-donut');
+  if(!svg)return;
+  const pct=total>0?Math.max(0,Math.min(1,active/total)):0;
+  function arcPath(cx,cy,r,a1,a2){
+    const s={x:cx+r*Math.cos(a1),y:cy+r*Math.sin(a1)},e={x:cx+r*Math.cos(a2),y:cy+r*Math.sin(a2)};
+    const large=a2-a1>Math.PI?1:0;
+    return 'M'+s.x+' '+s.y+' A'+r+' '+r+' 0 '+large+' 1 '+e.x+' '+e.y;
+  }
+  const cx=65,cy=76,r=58;
+  const full=arcPath(cx,cy,r,Math.PI,2*Math.PI);
+  const fill=arcPath(cx,cy,r,Math.PI,Math.PI+pct*Math.PI);
+  svg.innerHTML=
+    '<path d="'+full+'" fill="none" stroke="var(--border)" stroke-width="14" stroke-linecap="round"/>'+
+    '<path d="'+fill+'" fill="none" stroke="var(--accent)" stroke-width="14" stroke-linecap="round"/>'+
+    '<text x="'+cx+'" y="'+(cy-6)+'" text-anchor="middle" font-size="16" font-weight="800" fill="var(--text)" font-family="Vazirmatn">'+Math.round(pct*100)+'٪</text>'+
+    '<text x="'+cx+'" y="'+(cy+10)+'" text-anchor="middle" font-size="8" fill="var(--text-muted)" font-family="Vazirmatn">فعال از کل</text>';
 }
 
 // ── هابِ کاربران رویِ داشبورد: همون دایره/گیج‌هایِ اقماری الگویِ پنلِ ادمین،
